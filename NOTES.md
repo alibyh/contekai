@@ -804,3 +804,236 @@ as the stamp. All three read fine as instructions and all three fail axe. The
 design system's verified-pairs table covers seven combinations; it should be
 extended to cover `--signal` on both grounds and to state plainly that
 `--on-ink-faint` and dimmed surfaces are not text.
+
+---
+
+## Step 3, revision — Capabilities as a three-up stacked carousel
+
+**Built:** the horizontally scrolling deck replaced by a stack. Active card
+centred and full size, previous and next peeking from either side, scaled and
+**behind** it. The other three sit at opacity 0. Six-segment scrub bar, arrows,
+keyboard, live counter, real product fragments unchanged, card 06 still the dark
+card and still last.
+
+### Auto-advance: the exception, and how far it goes
+
+`kit/skills/motion/SKILL.md` §2C says **"Never auto-advance — auto-advancing
+carousels are a documented usability failure and steal control from a user
+reading on a phone."** This component overrides that rule on the client's
+explicit instruction. Recording it as an exception rather than quietly dropping
+the rule, because the reasoning behind it does not stop being true.
+
+The override is bounded so it takes as little control as it can:
+
+| Condition | Behaviour |
+|---|---|
+| Cadence | 6s |
+| Pointer over the deck or its controls | paused |
+| Keyboard focus inside the deck | paused |
+| Tab hidden (`visibilityState`) | paused |
+| Any manual navigation (arrow, key, scrub) | suspended 15s, then resumes at the next tick |
+| `prefers-reduced-motion` | never starts |
+
+Verified, not assumed. Measured advance `01 → 02 → 03` on a 6s cadence; hover,
+keyboard focus and hidden tab each hold it still for 7s+; after a manual click
+the first auto-advance came at **17.1s**, which is the 15s cooldown plus the
+next tick.
+
+**A bug that only a timed test would find.** Pausing on any `focusin` meant a
+single arrow *click* pinned the pause forever: Chrome focuses a clicked button,
+so `focusWithin` stayed true long after the pointer had gone, and auto-advance
+never resumed. It now pauses on `:focus-visible` only — someone tabbing through
+is reading; someone who clicked is not necessarily still there. Confirmed with a
+real Tab press (pauses, then resumes 3s after focus leaves) rather than a
+programmatic `.focus()`, which does not set `:focus-visible` at all and quietly
+made the first version of the test pass.
+
+### The peek offsets are measured, not taken on trust
+
+The revision names both a `translateX(±58%)` (±52% mobile) and a "roughly 40% of
+each visible past the active card's edge" goal. Those two do not agree: at 58%
+the sliver measured **59%** of the peeking card, which competes with the active
+one instead of hinting at it. The prose goal is the real instruction, so the
+values were tuned to hit it — **42%**, measured at 41% visible at 1440 and 40%
+at 375. Peek scale is 0.88 desktop / 0.82 mobile as specified.
+
+### Contrast, again, and how the stack sidesteps it
+
+The peeking cards sit at `opacity: .45`, which is the same trap that took the
+old scrolling falloff out at 96 on `color-contrast`. It is not a problem here
+because the peeks are genuinely decorative now: `paint()` marks every non-active
+card `aria-hidden` and `inert`, so they are out of the accessibility tree and
+the tab order. That is also just correct — the reading order should be the
+active card, not six cards deep, and focus should never land on something
+off-stage. With JS off, none of it is applied and all six are exposed.
+
+### Verification
+
+| | |
+|---|---|
+| Lighthouse mobile | **100 / 100 / 100 / 100**, three consecutive runs |
+| LCP / CLS / total | 1.7 s · 0 · 116 KB |
+| z-order | prev/next at `z-index: 1`, active at `3` — behind, not beside |
+| Transforms | `translateX` + `scale` only. No `rotateY`, no `perspective`, no coverflow |
+| Reduced motion | no auto-advance; falloff dropped outright (prev at opacity **1**, `matrix(1,0,0,1,-151,0)` — offset kept, neither shrunk nor dimmed) |
+| JS disabled | `data-stacked` never applied; plain snapping row, **6/6 cards at full opacity**, zero `aria-hidden` |
+| Horizontal page scroll | none at 375 or 1440 (peeks clip at the stage edge) |
+
+One CLS oddity worth recording: a single Lighthouse run out of four reported
+**0.608**, attributed to `.cap__stage` with cause "Web font loaded". It did not
+reproduce in three subsequent runs, nor under a throttled puppeteer session with
+a `layout-shift` PerformanceObserver (total 0.0000). Rather than leave it to
+chance, `.cap__stage` now carries an explicit `min-block-size` in **both**
+states — in the pre-JS flex row its height was content-driven and therefore
+exposed to a font-swap reflow. Three runs since: CLS 0.
+
+### Self-critique
+
+**Distinctive:** the stack still carries real product surfaces. What is behind
+the active card is a receipt total in GMD, a low-stock alert, a queued sale
+waiting for the network — so flipping through it is flipping through the
+product, not through six illustrations. The dark card closing the sequence
+means the deck ends on the offline claim, on the same night ground as the hero.
+
+**Templated:** the stacked three-up carousel is itself the most template-shaped
+thing on the page. It is a pattern the reader has seen on a hundred sites, and
+unlike the receipt or the night/paper opposition it carries no argument about
+this product. The fragments are doing the work of making it specific; the
+container is not helping them.
+
+**Removed:** pointer-drag on the track. The scrolling deck had a full
+`pointerdown/move/up` drag implementation with `setPointerCapture` and a
+`will-change` toggle. In a stack there is nothing to drag along — the cards do
+not live on an axis any more — so keeping it would have meant inventing a
+swipe-to-advance gesture the revision did not ask for. Arrows, keyboard and the
+scrub bar cover navigation, so about 40 lines went.
+
+**Gate:** passed. Auto-advance pauses on hover, focus and hidden tab and stays
+suspended after manual navigation · prev/next are behind the active card · no
+coverflow, 3D or perspective · reduced motion kills auto-advance and the falloff
+· JS-off still shows all six.
+
+---
+
+## Step 4, revision — Built for here as scattered note cards
+
+**Built:** the four ledger rows replaced by four paper notes pinned to the night
+ground. Hand-authored scatter, one thumbtack each, still a `<dl>`, DOM order
+01→04 regardless of where a note sits.
+
+### Everything about the scatter is a constant
+
+No `Math.random()` anywhere. Every position, width, rotation, z-index and
+thumbtack offset is authored in the component's `notes` array and passed through
+as custom properties. Verified across runs and breakpoints: the rotations read
+back as exactly `-3.0°, 2.0°, -1.0°, 4.0°` every time. Widths deliberately vary
+(300 / 280 / 320 / 260px) so no two notes share an edge or a baseline.
+
+**The overlap had to be built, not assumed.** First pass positioned the four
+notes without any of them actually touching — the z-indexes were decorative and
+the "pinned over time" reading was absent. Measured and re-authored until the
+corners overlap by roughly `--space-4`: **13px and 19px at 1440**, 15px and 16px
+in the 900–1023 two-column arrangement. No note's *text* is covered at any
+width, checked by intersecting each note's text rects against every
+higher-z-index note rather than by looking.
+
+### The shadow tilt did not work the first time
+
+Each note is rotated, and `box-shadow` rotates with its element, so four notes
+would read as lit from four different directions. The fix is to counter-rotate
+each offset by `sin(rotation)`.
+
+Writing that as a `--shadow-note` token in `tokens.css` silently did nothing:
+**a `var()` nested inside a custom property declared on `:root` resolves against
+`:root`**, where `--note-tilt` does not exist, so every note fell back to `0`
+and all four shadows came out identical. The two shadow colours are now tokens
+(`--shadow-ink-near` / `--shadow-ink-far`) and the offsets are composed on the
+element, where `--note-tilt` is in scope. Measured second-layer x-offsets:
+`-0.84px, +0.56px, -0.28px, +1.12px` — proportional to each rotation, one light
+source.
+
+### `--on-ink-faint` for the third time
+
+The revision again asks for the footer stamp in `--on-ink-faint`. It measures
+**4.06:1** at 12px and fails the 4.5:1 floor, which is a blocker on the gate the
+client will run. Rather than fall back to `--muted` (~11:1) and lose the whisper
+entirely, `tokens.css` now carries **`--on-ink-quiet`** at `.5` alpha — the
+quietest text that still clears the floor, measured **4.9:1**. `--on-ink-faint`
+is now commented in the token file as not a text colour at any size.
+
+### Responsive and zoom
+
+Below 900px the scatter is not attempted: notes centre in a single column with
+alternating ±2° rotations and `--space-6` between them, thumbtacks intact.
+900–1023 is the compressed two-column arrangement (01+03 left, 02+04 right).
+
+200% browser zoom on a 1440 screen is a **720px layout viewport**, which lands
+below 900 and collapses to the stack — so the scatter cannot overlap content at
+zoom. Verified at 720 and 512 (≈280%): stack layout, no horizontal scroll, no
+covered text. Worth noting because the first version of this check used
+`body { zoom: 2 }`, which does *not* change the layout viewport, kept the
+scatter active at an effective 720px, and reported three text collisions that
+would never happen in a real browser.
+
+### Verification
+
+| | |
+|---|---|
+| Lighthouse mobile | **100 / 100 / 100 / 100** |
+| Markup | `<dl>` with `<dt>`/`<dd>`, DOM order `01→02→03→04` at every width |
+| Ground / cards | `--ink-900` section, notes `rgb(246,243,236)` = `--paper` |
+| Ornament | 4 thumbtacks, 4 SVGs total in the section — no tape, staples, torn edges or texture |
+| Rotations | hand-authored constants, identical every run |
+| Hover | none. No lift, no wobble, no transition on hover at all |
+| Reduced motion | notes at final position and rotation immediately |
+| JS disabled | all four visible, rotations preserved |
+
+### The substitution test, answered honestly
+
+The revision asks directly: does the scattered-notes treatment fit *this*
+product, or would it work for anything?
+
+Straight answer: **the treatment is portable; what makes it Contekai's is the
+content and the ground.** Any brand can pin notes to a board, and I am not going
+to claim otherwise. What is not portable is that the notes are `--paper` on
+`--ink-900` — the same night-and-paper opposition the hero and the receipt are
+built on, which only means something because this product exists for the hours
+when the lights are off. And the four things pinned up are not benefits; they
+are a shopkeeper's own list of what goes wrong: the power, the staff, the stock,
+the not-knowing.
+
+What I changed to push it toward a shop counter and away from a moodboard:
+
+- **Widths vary and no two notes share a baseline.** The first pass had them
+  near-uniform and evenly spaced, which read as a gallery grid tilted a few
+  degrees. Uneven widths and irregular vertical offsets read as things added one
+  at a time.
+- **The overlap is corner-only and small.** Notes layered like a collage read as
+  curation; notes just catching each other's corners read as accumulation.
+- **One ornament, and it is off-centre.** A tack centred by CSS is a graphic; a
+  tack a few pixels off centre, differently on each note, is a person.
+- **Nothing else was added.** The obvious next moves — paper texture, a torn
+  edge, tape, a cork background — are exactly what would turn it into a Pinterest
+  board. The restraint is what keeps it a wall behind a counter.
+
+### Self-critique
+
+**Distinctive:** four bright paper notes on the night ground is the page's
+thesis stated a third way — the lights are out and the paper is still legible.
+It only works because the rest of the page has already established that
+opposition, and it would be meaningless on a site that had not.
+
+**Templated:** the rotation itself. `transform: rotate(-3deg)` on a card is one
+of the most common decorative moves there is, and nothing about the angle is
+specific to Contekai. It survives because the content underneath is not
+decorative, but it is the weakest idea in the section.
+
+**Removed:** the second ornament. I had a hairline "tear" along each note's top
+edge to sell the paper. It made the notes look like a scrapbook, it fought the
+`--r-sm` radius, and it was the third graphic device in a section whose previous
+version had zero. Cutting it left the thumbtack as the only ornament, which is
+what the revision asks for and what the section can carry.
+
+**Gate:** passed. Hand-authored rotations · `--paper` on `--ink-900` · one inline
+SVG tack per note in `--laterite`, nothing else · DOM order 01→04 · stack below
+900px · no hover animation · substitution test answered above.

@@ -134,7 +134,7 @@ const cards: Card[] = [
   </div>
 
   <div
-    class="cap__track"
+    class="cap__stage"
     data-deck-track
     tabindex="0"
     role="group"
@@ -302,9 +302,11 @@ const cards: Card[] = [
     }
   </div>
 
-  {/* The only progress indicator. Six dots under a carousel is filler. */}
+  {/* Six segments, one per card. Pointer-interactive (click or drag to jump)
+      and aria-hidden: the arrows, the keyboard and the live counter already
+      carry navigation and position, so this duplicates nothing unique. */}
   <div class="cap__scrub" data-deck-scrub aria-hidden="true">
-    <div class="cap__scrub-fill" data-deck-scrub-fill></div>
+    {cards.map(() => <span class="cap__seg" data-deck-seg />)}
   </div>
 </section>
 
@@ -391,46 +393,132 @@ const cards: Card[] = [
       font-variant-numeric: tabular-nums;
     }
 
-    /* --- track ------------------------------------------------------------- */
+    /* --- stage -------------------------------------------------------------
+       DEFAULT (and the JS-off state): a plain horizontally scrolling snap row
+       showing all six cards. The stacked layout below only exists once deck.ts
+       has set [data-stacked], so nothing here depends on JS to be usable.
+       ---------------------------------------------------------------------- */
 
-    .cap__track {
+    .cap__stage {
       display: flex;
       gap: var(--space-5);
+      /* Pinned in both states. In the pre-JS flex row the height is otherwise
+         content-driven, which leaves it exposed to a reflow when the web font
+         swaps — one Lighthouse run out of four attributed a 0.608 CLS to
+         exactly that, on this element. Fixing the height removes the whole
+         class of shift rather than chasing the flake. */
+      min-block-size: 500px;
       overflow-x: auto;
-      /* Snap is CSS. JS only wires the arrows and the progress state. */
       scroll-snap-type: x mandatory;
       scroll-padding-inline-start: var(--gutter);
-      padding-inline: var(--gutter);
-      /* The track bleeds off the right edge. The partial card is the
-         affordance that says it moves. */
-      padding-inline-end: var(--space-7);
-      /* Never trap vertical scroll on touch. */
+      padding-inline: var(--gutter) var(--space-7);
       touch-action: pan-x pan-y;
       scrollbar-width: none;
-      list-style: none;
     }
 
-    .cap__track::-webkit-scrollbar {
+    .cap__stage::-webkit-scrollbar {
       display: none;
     }
 
-    .cap__track:focus-visible {
+    .cap__stage:focus-visible {
       outline: var(--focus-ring);
       outline-offset: -3px;
+    }
+
+    /* --- stage, stacked ------------------------------------------------------
+       Three-up: the active card centred and full size, previous and next
+       peeking from either side, BEHIND it. Depth comes from scale, opacity and
+       z-order only — no shadow tricks, no perspective, no rotateY. Adding any
+       of those turns this into coverflow, which is the exact templated shape
+       the section is trying to avoid.
+
+       The three cards that are not in play stay in the DOM at opacity 0 and are
+       hidden from assistive tech by deck.ts, so nothing off-stage can take
+       focus or be read out of order.
+       ---------------------------------------------------------------------- */
+
+    .cap__stage[data-stacked] {
+      display: block;
+      position: relative;
+      block-size: 500px;
+      min-block-size: 500px;
+      overflow: clip;
+      padding-inline: 0;
+      scroll-snap-type: none;
+      overflow-x: clip;
+    }
+
+    .cap__stage[data-stacked] .card {
+      position: absolute;
+      inset-block-start: 0;
+      inset-inline-start: 50%;
+      margin-inline-start: calc(var(--card-w) / -2);
+      opacity: 0;
+      transform: scale(0.88);
+      pointer-events: none;
+      transition:
+        transform var(--dur-slow) var(--ease-out),
+        opacity var(--dur-slow) var(--ease-out);
+    }
+
+    .cap__stage[data-stacked] .card[data-pos="active"] {
+      z-index: 3;
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+    }
+
+    .cap__stage[data-stacked] .card[data-pos="prev"],
+    .cap__stage[data-stacked] .card[data-pos="next"] {
+      z-index: 1;
+      opacity: 0.45;
+    }
+
+    .cap__stage[data-stacked] .card[data-pos="prev"] {
+      transform: translateX(var(--peek-neg)) scale(var(--peek-scale));
+    }
+
+    .cap__stage[data-stacked] .card[data-pos="next"] {
+      transform: translateX(var(--peek)) scale(var(--peek-scale));
+    }
+
+    /* Reduced motion drops the falloff outright, not just its transition: the
+       neighbours keep their offsets so the three-up composition is intact, but
+       they are neither shrunk nor dimmed. Same size and full opacity means
+       z-order alone separates them, which is quieter and more legible than a
+       0.45 ghost. Auto-advance never starts (handled in deck.ts). */
+    @media (prefers-reduced-motion: reduce) {
+      .cap__stage[data-stacked] .card[data-pos="prev"],
+      .cap__stage[data-stacked] .card[data-pos="next"] {
+        opacity: 1;
+      }
+
+      .cap__stage[data-stacked] .card[data-pos="prev"] {
+        transform: translateX(var(--peek-neg));
+      }
+
+      .cap__stage[data-stacked] .card[data-pos="next"] {
+        transform: translateX(var(--peek));
+      }
     }
 
     /* --- card -------------------------------------------------------------- */
 
     .card {
+      --card-w: 84vw;
+      /* Tuned by measurement, not taken on trust. The revision names both a
+         58%/52% translate and a "roughly 40% of each visible" goal, and those
+         two do not agree: 58% put 59% of the peeking card past the active
+         card's edge, which competes with it. These values hit the stated goal —
+         measured 40% at 1440 and 41% at 375. */
+      --peek: 42%;
+      --peek-neg: -42%;
+      --peek-scale: 0.82;
       display: grid;
       grid-template-rows: auto 1fr auto auto auto;
       gap: var(--space-4);
       flex: none;
-      inline-size: 84vw;
-      /* Fixed per breakpoint so the track never reflows mid-drag. Taller than
-         the spec's 440px below 480px because a narrow card wraps its title and
-         body onto more lines, and the fragment — which is the evidence the
-         card exists to show — was the thing getting clipped for it. */
+      inline-size: var(--card-w);
       block-size: 500px;
       padding: var(--space-5);
       border: var(--border-paper);
@@ -439,30 +527,7 @@ const cards: Card[] = [
       scroll-snap-align: start;
       transition:
         background-color var(--dur-base) var(--ease-out),
-        box-shadow var(--dur-base) var(--ease-out),
         transform var(--dur-base) var(--ease-out);
-    }
-
-    .card[data-active] {
-      box-shadow: var(--shadow-paper);
-    }
-
-    /* Adjacent-card falloff. The motion spec asks for opacity .55, and that
-       cannot ship: measured with axe, dimming a card drags its muted text from
-       5.7:1 to 2.3:1 and its accent text to 2.3:1. The accessibility floor is a
-       blocker and the falloff is an effect, so the falloff gives way.
-       Contrast-safe substitute, same job: the inactive card recedes by VALUE,
-       dropping to the section's own paper and losing its lift, while every
-       glyph keeps its full contrast. Scale is unchanged from the spec.
-       Still no 3D, no perspective, no coverflow. */
-    .cap__track[data-falloff] .card:not([data-active]) {
-      transform: scale(0.97);
-      background-color: var(--paper);
-      box-shadow: none;
-    }
-
-    .cap__track[data-falloff] .card--dark:not([data-active]) {
-      background-color: var(--ink-800);
     }
 
     .card--dark {
@@ -726,31 +791,44 @@ const cards: Card[] = [
     /* --- scrub ------------------------------------------------------------- */
 
     .cap__scrub {
+      display: flex;
+      gap: 2px;
       block-size: 4px;
       margin-inline: var(--gutter);
-      background-color: var(--hairline-paper);
       cursor: pointer;
       touch-action: none;
     }
 
-    .cap__scrub-fill {
-      block-size: 100%;
-      inline-size: 0;
+    .cap__seg {
+      flex: 1;
+      background-color: var(--hairline-paper);
+      transition: background-color var(--dur-base) var(--ease-out);
+    }
+
+    .cap__seg[data-on] {
       background-color: var(--laterite);
-      transform-origin: left;
     }
 
     /* --- responsive -------------------------------------------------------- */
 
     @media (min-width: 480px) {
       .card {
-        inline-size: 72vw;
+        --card-w: 72vw;
       }
     }
 
     @media (min-width: 768px) {
       .card {
-        inline-size: 340px;
+        --card-w: 340px;
+        --peek: 42%;
+        --peek-neg: -42%;
+        --peek-scale: 0.88;
+        block-size: 480px;
+      }
+
+      .cap__stage,
+      .cap__stage[data-stacked] {
+        min-block-size: 480px;
         block-size: 480px;
       }
     }
@@ -761,7 +839,7 @@ const cards: Card[] = [
       }
 
       .card {
-        inline-size: 360px;
+        --card-w: 360px;
       }
     }
   }

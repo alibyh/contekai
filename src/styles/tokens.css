@@ -76,6 +76,11 @@
     /* derived text — opacity ramps, not new hues */
     --on-ink: #f6f3ec;
     --on-ink-muted: rgb(246 243 236 / 0.68);
+    /* The quietest text that still clears 4.5:1 on --ink-900 (measured 4.9:1).
+       Exists because two section specs asked for --on-ink-faint on small text
+       and it fails at 4.06:1; this keeps the whisper and passes the floor. */
+    --on-ink-quiet: rgb(246 243 236 / 0.5);
+    /* NOT a text colour at any size. Rules, dividers, disabled affordances. */
     --on-ink-faint: rgb(246 243 236 / 0.44);
     --on-paper: #16232e;
     --on-paper-muted: rgb(22 35 46 / 0.7);
@@ -191,6 +196,15 @@
       0 16px 40px -20px rgb(10 21 30 / 0.28);
     --border-paper: 1px solid var(--hairline-paper);
     --border-ink: 1px solid var(--hairline-ink);
+
+    /* The two shadow colours, exposed so a component can compose its own
+       offsets without writing a raw colour. Used by the pinned notes in §03,
+       which need a per-card x-offset and therefore cannot use --shadow-lift
+       whole. (A var() nested inside a token declared here resolves AGAINST
+       :root, not against the element using it, so the tilt has to be composed
+       at the point of use.) */
+    --shadow-ink-near: rgb(10 21 30 / 0.1);
+    --shadow-ink-far: rgb(10 21 30 / 0.28);
 
     /* Dark surfaces separate by VALUE (--ink-900 → --ink-700), not by shadow.
        No backdrop-filter anywhere. No glass panels. */

@@ -4,57 +4,109 @@
  * local argument gets made explicitly.
  *
  * It answers the objection the reader is actually holding: "POS software is
- * built for shops that have power and internet. Mine doesn't, always."
+ * built for shops that have power and internet. Mine doesn't, always." Benefits
+ * are cheap. Conditions are credible.
  *
- * Benefits are cheap. Conditions are credible — naming the problem accurately
- * is what proves you know the market. So each row is a condition and a
- * response, not a feature with an icon.
+ * PRESENTATION: four notes pinned to the wall behind a counter. Paper cards on
+ * the night ground, which strengthens the paper/night motif rather than diluting
+ * it — this is the one place on the page where paper appears as objects rather
+ * than as a whole section.
  *
- * Structure is a description list, because that is what this is: `<dt>` is the
- * condition, `<dd>` is the response. It reads correctly in a screen reader and
- * the markup means what it looks like.
+ * The scatter is HAND-AUTHORED. Every position, width, rotation, z-index and
+ * thumbtack offset below is a constant. Nothing is randomised: a scatter that
+ * differs per load feels unstable on scroll-back, differs between browsers, and
+ * is a well-worn generated-design tell. The asymmetry has to be a composition,
+ * not a dice roll.
  *
- * Rows are DELIBERATELY UNEVEN in height. A ledger has uneven entries; forcing
- * equal heights would push this back toward the card grid it exists to avoid.
- * No icons, no cards, no filled row backgrounds — the rules and the two-column
- * split are the entire structure. This is the quiet section. Its job is to slow
- * the reader down and be believed.
+ * Semantically this is still a description list — `<dt>` is the condition,
+ * `<dd>` is the response — and the DOM order is 01 → 02 → 03 → 04 regardless of
+ * where each note sits on screen. Positioning is visual only.
  */
 import Eyebrow from "../ui/Eyebrow.astro";
 
-interface Row {
+interface Note {
   index: string;
   condition: string;
   response: string;
+  /** Rotation in the scatter, and in the mobile stack. Hand-authored. */
+  rotLg: number;
+  rotSm: number;
+  /** Thumbtack offset from centre, px. A few px each way so it reads as
+      pinned by a person rather than centred by a machine. */
+  tack: number;
+  /** Full scatter, >= 1024. */
+  lg: { x: string; y: string; w: string; z: number };
+  /** Compressed two-column scatter, 900–1023: 01 + 03 left, 02 + 04 right. */
+  md: { x: string; y: string; w: string };
 }
 
-/** Facts from CONTEXT.md §4 "Why Contekai", reframed as condition → response. */
-const rows: Row[] = [
+/** Facts from CONTEXT.md §4 "Why Contekai", reframed as condition → response.
+    The four claims are unchanged from the original §03 spec. */
+const notes: Note[] = [
   {
     index: "01",
     condition: "The power goes. The network drops.",
     response:
       "Sales and stock keep working offline. Everything syncs the moment you're back online.",
+    rotLg: -3,
+    rotSm: -2,
+    tack: -6,
+    lg: { x: "3%", y: "0px", w: "300px", z: 2 },
+    md: { x: "1%", y: "0px", w: "47%" },
   },
   {
     index: "02",
     condition: "Staff change often.",
     response:
       "Anyone can learn the till in a few minutes. Each person gets their own login and only the access you give them.",
+    rotLg: 2,
+    rotSm: 2,
+    tack: 5,
+    lg: { x: "52%", y: "26px", w: "280px", z: 1 },
+    md: { x: "53%", y: "22px", w: "45%" },
   },
   {
     index: "03",
     condition: "Stock walks, expires, or runs out unnoticed.",
     response:
       "Alerts before you run out, before things expire, and when a count doesn't match.",
+    rotLg: -1,
+    rotSm: -2,
+    tack: -2,
+    lg: { x: "21%", y: "195px", w: "320px", z: 4 },
+    md: { x: "5%", y: "150px", w: "45%" },
   },
   {
     index: "04",
     condition: "You can't see where the money is made.",
     response:
       "Best sellers, busiest hours, margin per item, profit per branch. In dalasis, daily.",
+    rotLg: 4,
+    rotSm: 2,
+    tack: 7,
+    lg: { x: "62%", y: "220px", w: "260px", z: 3 },
+    md: { x: "57%", y: "200px", w: "41%" },
   },
 ];
+
+/** sin(rotation), which counter-rotates each note's shadow so all four read as
+    lit from the same direction. See --shadow-note in tokens.css. */
+const tilt = (deg: number) => Math.sin((deg * Math.PI) / 180).toFixed(4);
+
+const styleFor = (n: Note) =>
+  [
+    `--rot-lg:${n.rotLg}deg`,
+    `--rot-sm:${n.rotSm}deg`,
+    `--note-tilt:${tilt(n.rotLg)}`,
+    `--tack:${n.tack}px`,
+    `--x-lg:${n.lg.x}`,
+    `--y-lg:${n.lg.y}`,
+    `--w-lg:${n.lg.w}`,
+    `--z:${n.lg.z}`,
+    `--x-md:${n.md.x}`,
+    `--y-md:${n.md.y}`,
+    `--w-md:${n.md.w}`,
+  ].join(";");
 ---
 
 <section
@@ -64,33 +116,48 @@ const rows: Row[] = [
   data-ground="dark"
   aria-labelledby="bfh-title"
 >
+  {/* The header is not part of the scatter. Left-aligned, top, unrotated. */}
   <div class="bfh__head">
     <Eyebrow index="03">Built for here</Eyebrow>
-    {/* No intro paragraph. The rows are the argument; a preamble weakens them. */}
     <h2 id="bfh-title">Made for the way shops here actually run.</h2>
   </div>
 
-  <dl class="ledger">
+  <dl class="board">
     {
-      rows.map((row) => (
-        <div class="ledger__row" data-reveal>
-          <dt class="ledger__condition">
-            {/* The index is aria-hidden: the list structure already conveys
-                enumeration. It is here because this is a checklist of four
-                objections a reader can count off — unlike the deck, where the
-                numbers are positional. */}
-            <span class="ledger__index t-mono" aria-hidden="true">
-              {row.index}
+      notes.map((note) => (
+        <div class="note" style={styleFor(note)} data-reveal>
+          <dt class="note__condition">
+            {/* The section's one ornament. Nothing else: no tape, no staples,
+                no torn edges, no paper texture. */}
+            <svg
+              class="note__tack"
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              aria-hidden="true"
+            >
+              <circle cx="7" cy="7" r="5" fill="var(--laterite)" />
+              <circle
+                cx="7"
+                cy="7"
+                r="5"
+                fill="none"
+                stroke="var(--laterite-hover)"
+                stroke-width="1"
+              />
+            </svg>
+            <span class="note__index t-mono" aria-hidden="true">
+              {note.index}
             </span>
-            <span>{row.condition}</span>
+            <span class="note__text">{note.condition}</span>
           </dt>
-          <dd class="ledger__response">{row.response}</dd>
+          <dd class="note__response">{note.response}</dd>
         </div>
       ))
     }
   </dl>
 
-  {/* The whole flourish. Nothing else. */}
+  {/* Anchors the composition. Unrotated, right-aligned. */}
   <p class="bfh__stamp t-mono">The Gambia · Dalasis · Wave · Offline-first</p>
 </section>
 
@@ -114,185 +181,167 @@ const rows: Row[] = [
       max-inline-size: 22ch;
     }
 
-    /* --- the ledger -------------------------------------------------------- */
+    /* --- the notes ---------------------------------------------------------
+       MOBILE FIRST is the stack. The scatter needs room to be asymmetric
+       without clipping or squashing, so below 900px it is not attempted at all
+       — notes centre, alternate a slight rotation, and sit --space-6 apart.
+       ---------------------------------------------------------------------- */
 
-    .ledger {
+    .board {
+      display: grid;
+      justify-items: center;
+      gap: var(--space-6);
       margin: 0;
     }
 
-    .ledger__row {
+    .note {
+      --rot: var(--rot-sm);
       position: relative;
-      display: grid;
-      gap: var(--space-3);
-      padding-block: var(--space-6);
+      inline-size: min(100%, 340px);
+      padding: var(--space-5);
+      border-radius: var(--r-sm);
+      /* Paper objects on the night ground. */
+      background-color: var(--paper);
+      color: var(--on-paper);
+      /* --shadow-lift's geometry, with the x-offset counter-rotated per note.
+         box-shadow rotates with its element, so four rotated notes would
+         otherwise read as lit from four different directions; --note-tilt is
+         sin(rotation) and cancels that, holding one light source across the
+         board. Composed here rather than as a whole token because a var()
+         inside a :root token resolves at :root, where --note-tilt is unset. */
+      box-shadow:
+        calc(2px * var(--note-tilt, 0)) 2px 4px var(--shadow-ink-near),
+        calc(16px * var(--note-tilt, 0)) 16px 40px -20px var(--shadow-ink-far);
+      transform: rotate(var(--rot));
     }
 
-    /* The rules are drawn as pseudo-elements rather than borders, because they
-       have to animate: a border cannot scaleX. They are what hold the section
-       together, especially at mobile width. */
-    .ledger__row::before,
-    .ledger__row:last-child::after {
-      content: "";
-      position: absolute;
-      inset-inline: 0;
-      block-size: 1px;
-      background-color: var(--hairline);
-      transform: scaleX(0);
-      transform-origin: left;
-      transition: transform var(--dur-base) var(--ease-out);
-    }
-
-    .ledger__row::before {
-      inset-block-start: 0;
-    }
-
-    .ledger__row:last-child::after {
-      inset-block-end: 0;
-    }
-
-    .ledger__condition {
+    .note__condition {
       display: flex;
       align-items: baseline;
-      gap: var(--space-4);
-      font-size: var(--fs-h3);
+      gap: var(--space-3);
+      font-size: 1.125rem;
       font-weight: var(--fw-semibold);
-      line-height: var(--lh-h3);
-      color: var(--on-ink);
+      line-height: 1.25;
       text-wrap: balance;
     }
 
-    .ledger__index {
+    .note__index {
       flex: none;
-      color: var(--muted);
+      color: var(--on-paper-muted);
       font-size: var(--fs-label);
       letter-spacing: var(--track-label);
       font-variant-numeric: tabular-nums;
     }
 
-    .ledger__response {
+    .note__tack {
+      position: absolute;
+      inset-block-start: calc(var(--space-3) * -1);
+      inset-inline-start: 50%;
+      /* The hand-authored offset is what stops four tacks landing on one
+         invisible centre line. */
+      margin-inline-start: calc(-7px + var(--tack));
+    }
+
+    .note__response {
       margin: 0;
-      /* The spec caps the response at 46ch. Measured, 46/44/42ch all wrap
-         every response to exactly two lines, which makes four identical 147px
-         rows — a uniform grid, which is the one shape this section exists to
-         avoid. 40ch is inside the cap and lets the longest response take the
-         third line it needs, so the rows come out uneven the way a ledger's
-         entries are: 147 / 173 / 147 / 147. Nothing sets a row height. */
-      max-inline-size: 40ch;
-      color: var(--muted);
+      margin-block-start: var(--space-4);
+      padding-block-start: var(--space-4);
+      border-block-start: var(--border-paper);
+      color: var(--on-paper-muted);
+      font-size: 0.9375rem;
+      line-height: var(--lh-body);
     }
 
     /* --- the stamp --------------------------------------------------------- */
 
     .bfh__stamp {
-      margin-block-start: calc(var(--space-6) * -1);
-      /* The section spec asks for --on-ink-faint here. Measured, that is
-         4.06:1 at 12px and fails the 4.5:1 floor, which is a blocker. The
-         design system's own rule already says muted text stops at .68 on ink,
-         so --faint was never a text colour and this is the second place the
-         section specs reach for it. Using --muted (about 11:1) costs a little
-         of the intended whisper and keeps the line readable in daylight on a
-         cheap phone, which is the audience. */
-      color: var(--muted);
+      /* The section spec asks for --on-ink-faint. Measured, that is 4.06:1 at
+         12px and fails the floor, which is a blocker. --on-ink-quiet is the
+         token added for exactly this: the quietest text that still clears
+         4.5:1 on ink, measured 4.9:1. Keeps the whisper, passes the gate. */
+      color: var(--on-ink-quiet);
       font-size: var(--fs-label);
       letter-spacing: var(--track-label);
       text-align: end;
       text-transform: uppercase;
     }
 
-    /* --- desktop: two columns ---------------------------------------------- */
+    /* --- 900–1023: compressed two-column scatter --------------------------- */
 
-    @media (min-width: 768px) {
-      .ledger__row {
-        grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
-        gap: var(--space-7);
-        align-items: start;
-        padding-block: var(--space-7);
+    @media (min-width: 900px) {
+      .board {
+        display: block;
+        position: relative;
+        min-block-size: 420px;
       }
 
-      /* The index moves out of the flow of the condition and sits in the
-         gutter, so the conditions all start on one vertical line. */
-      .ledger__condition {
-        gap: var(--space-5);
+      .note {
+        --rot: var(--rot-lg);
+        position: absolute;
+        inset-inline-start: var(--x-md);
+        inset-block-start: var(--y-md);
+        inline-size: var(--w-md);
+        z-index: var(--z);
+      }
+    }
+
+    /* --- >= 1024: the full scatter ----------------------------------------- */
+
+    @media (min-width: 1024px) {
+      .board {
+        min-block-size: 450px;
+      }
+
+      .note {
+        inset-inline-start: var(--x-lg);
+        inset-block-start: var(--y-lg);
+        inline-size: var(--w-lg);
       }
     }
 
     /* --- motion ------------------------------------------------------------
-       The rows are being WRITTEN, like entries in a book. Per the section spec
-       the hairline rule draws first, left to right, and the text wipes in
-       behind it. Direction is the meaning here, which is why this is one of the
-       few places a directional reveal earns its place.
+       Each note drops into place: from 24px above, unrotated and transparent,
+       to its authored position and rotation. 60ms stagger, four steps, inside
+       the six-item limit. transform and opacity only. Fires once via the shared
+       observer; nothing re-animates on scroll-back.
 
-       The row is only the observer target — the animation is on its parts. It
-       cannot carry the wipe itself, because a clip-path on the row would clip
-       the rule pseudo-elements along with the text and the two beats would
-       collapse into one. So the base [data-reveal] transform/opacity is
-       cancelled here and the row just carries `.is-in` for its children.
-
-       scaleX and clip-path are both compositable. Fired once by the shared
-       observer in reveal.ts; nothing re-animates on scroll-back. Four rows,
-       four steps, inside the six-item stagger limit.
+       No hover state. These are pinned notes, not controls — a card that lifts
+       under the cursor turns the section into a toy and implies an interaction
+       that does not exist.
        ---------------------------------------------------------------------- */
 
-    .ledger__row[data-reveal] {
-      opacity: 1;
-      transform: none;
-    }
-
-    .ledger__condition,
-    .ledger__response {
+    .note[data-reveal] {
       opacity: 0;
-      clip-path: inset(0 100% 0 0);
+      transform: translateY(-24px) rotate(0deg);
       transition:
         opacity var(--dur-slow) var(--ease-out),
-        clip-path var(--dur-slow) var(--ease-out);
+        transform var(--dur-slow) var(--ease-out);
     }
 
-    .ledger__row.is-in .ledger__condition,
-    .ledger__row.is-in .ledger__response {
+    .note[data-reveal].is-in {
       opacity: 1;
-      clip-path: inset(0);
+      transform: rotate(var(--rot));
     }
 
-    .ledger__row.is-in::before,
-    .ledger__row.is-in:last-child::after {
-      transform: scaleX(1);
+    .note:nth-child(1) {
+      transition-delay: 0ms;
+    }
+    .note:nth-child(2) {
+      transition-delay: calc(var(--stagger) * 1);
+    }
+    .note:nth-child(3) {
+      transition-delay: calc(var(--stagger) * 2);
+    }
+    .note:nth-child(4) {
+      transition-delay: calc(var(--stagger) * 3);
     }
 
-    /* Stagger: the rule leads, the text follows one beat behind it. */
-    .ledger__row:nth-child(1)::before { transition-delay: 0ms; }
-    .ledger__row:nth-child(2)::before { transition-delay: calc(var(--stagger) * 1); }
-    .ledger__row:nth-child(3)::before { transition-delay: calc(var(--stagger) * 2); }
-    .ledger__row:nth-child(4)::before { transition-delay: calc(var(--stagger) * 3); }
-    .ledger__row:last-child::after { transition-delay: calc(var(--stagger) * 4); }
-
-    .ledger__row:nth-child(1) :is(.ledger__condition, .ledger__response) {
-      transition-delay: var(--dur-base);
-    }
-    .ledger__row:nth-child(2) :is(.ledger__condition, .ledger__response) {
-      transition-delay: calc(var(--dur-base) + var(--stagger) * 1);
-    }
-    .ledger__row:nth-child(3) :is(.ledger__condition, .ledger__response) {
-      transition-delay: calc(var(--dur-base) + var(--stagger) * 2);
-    }
-    .ledger__row:nth-child(4) :is(.ledger__condition, .ledger__response) {
-      transition-delay: calc(var(--dur-base) + var(--stagger) * 3);
-    }
-
-    /* No-JS safety net. reveal.ts never runs, so `.is-in` never arrives and
-       the rows would sit invisible behind a rule that never draws. motion.css
-       covers [data-reveal] itself; these are its children. */
-    :global(html:not([data-js])) .ledger__condition,
-    :global(html:not([data-js])) .ledger__response {
+    /* No-JS safety net: reveal.ts never runs, so `.is-in` never arrives.
+       motion.css neutralises [data-reveal] generically, but this section
+       overrides transform, so it needs its own landing state. */
+    :global(html:not([data-js])) .note[data-reveal] {
       opacity: 1;
-      clip-path: none;
+      transform: rotate(var(--rot));
     }
-
-    :global(html:not([data-js])) .ledger__row::before,
-    :global(html:not([data-js])) .ledger__row:last-child::after {
-      transform: none;
-    }
-
-    /* No hover state on the rows. They are not interactive and must not
-       pretend to be. */
   }
 </style>

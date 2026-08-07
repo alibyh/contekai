@@ -1,187 +1,209 @@
 /**
- * deck.ts — the capabilities card deck.
+ * deck.ts — the capabilities deck, three-up stacked.
  *
- * Contract (kit/skills/motion/SKILL.md §2C, kit/sections/02-capabilities.md):
- *  - snapping is CSS (`scroll-snap-type: x mandatory`). JS never scroll-jacks.
- *  - JS wires only the arrows, the counter, the scrub bar and the active index
- *  - adjacent cards sit at opacity .55 / scale(.97); the active card at 1.
- *    That is the entire effect: no 3D, no perspective, no coverflow.
- *  - NEVER auto-advance
- *  - with JS off the track is a plain horizontally scrollable snapping row and
- *    every card is fully readable, so nothing here is load-bearing
- *  - `will-change: transform` goes on the track only while dragging, then off
+ * The active card sits centred and full size; the previous and next cards peek
+ * from either side, scaled down and BEHIND it, so it reads as flipping through
+ * a stack rather than scrolling a row. The other three stay in the DOM at
+ * opacity 0.
+ *
+ * PROGRESSIVE ENHANCEMENT
+ * The stacked layout exists only once this file sets `[data-stacked]`. Until
+ * then — and forever, if JS never runs — the stage is a plain horizontally
+ * scrolling snap row showing all six cards, fully readable and navigable.
+ *
+ * AUTO-ADVANCE, AND WHY IT IS HERE
+ * kit/skills/motion/SKILL.md §2C says "Never auto-advance", and it is right
+ * about why: auto-advancing carousels are a documented usability failure and
+ * steal control from someone reading on a phone. This component overrides that
+ * rule on the client's explicit instruction. The override is bounded so it
+ * takes as little control as possible:
+ *   - 6s cadence, and it stops the moment the reader shows any sign of reading:
+ *     pointer over the deck, focus inside it, or the tab hidden
+ *   - any manual navigation (arrow, key, scrub) suspends it for 15s
+ *   - under prefers-reduced-motion it never starts at all
+ * See NOTES.md for the full argument.
+ *
+ * Everything else follows §2C: no 3D rotation, no perspective, no coverflow.
  */
 
 import { prefersReducedMotion } from "./reveal";
 
-const track = document.querySelector<HTMLElement>("[data-deck-track]");
+const stage = document.querySelector<HTMLElement>("[data-deck-track]");
 
-if (track) {
-  const cards = [...track.querySelectorAll<HTMLElement>("[data-deck-card]")];
-  const prev = document.querySelector<HTMLButtonElement>("[data-deck-prev]");
-  const next = document.querySelector<HTMLButtonElement>("[data-deck-next]");
+if (stage) {
+  const cards = [...stage.querySelectorAll<HTMLElement>("[data-deck-card]")];
+  const prevBtn = document.querySelector<HTMLButtonElement>("[data-deck-prev]");
+  const nextBtn = document.querySelector<HTMLButtonElement>("[data-deck-next]");
   const count = document.querySelector<HTMLElement>("[data-deck-count]");
   const scrub = document.querySelector<HTMLElement>("[data-deck-scrub]");
-  const scrubFill = document.querySelector<HTMLElement>("[data-deck-scrub-fill]");
+  const segments = [...document.querySelectorAll<HTMLElement>("[data-deck-seg]")];
   const total = cards.length;
+  const reduced = prefersReducedMotion();
+
+  const AUTO_MS = 6000;
+  const MANUAL_COOLDOWN_MS = 15000;
+
+  let active = 0;
+  let lastManualAt = 0;
+  let hovering = false;
+  let focusWithin = false;
+  let timer: number | undefined;
 
   const pad = (n: number) => String(n).padStart(2, "0");
-  const maxScroll = () => Math.max(1, track.scrollWidth - track.clientWidth);
-  const step = () =>
-    cards.length > 1
-      ? cards[1].offsetLeft - cards[0].offsetLeft
-      : track.clientWidth;
+  const mod = (n: number) => ((n % total) + total) % total;
 
-  // -1 rather than 0, so the first render actually applies [data-active].
-  // Starting at 0 made render() early-return on its own first call, which left
-  // every card without the attribute and therefore dimmed by the falloff rule.
-  let active = -1;
+  // Switch off the scrolling row and take over positioning. Everything below
+  // assumes this has happened; nothing above it does.
+  stage.setAttribute("data-stacked", "");
+  stage.removeAttribute("data-falloff");
 
-  /** Index of the card nearest the track's left edge, measured visually. */
-  function nearestIndex(): number {
-    const left = track!.getBoundingClientRect().left;
-    let best = 0;
-    let bestDist = Infinity;
+  function paint(): void {
     cards.forEach((card, i) => {
-      const d = Math.abs(card.getBoundingClientRect().left - left);
-      if (d < bestDist) {
-        bestDist = d;
-        best = i;
-      }
+      const pos =
+        i === active
+          ? "active"
+          : i === mod(active - 1)
+            ? "prev"
+            : i === mod(active + 1)
+              ? "next"
+              : "off";
+      card.dataset.pos = pos;
+
+      // Only the active card is real content. The peeking pair are a visual
+      // preview and the rest are off-stage, so both are taken out of the
+      // accessibility tree and the tab order: it keeps reading order sane, and
+      // it stops a 0.45-opacity card being audited as unreadable body text.
+      const isActive = pos === "active";
+      card.toggleAttribute("inert", !isActive);
+      if (isActive) card.removeAttribute("aria-hidden");
+      else card.setAttribute("aria-hidden", "true");
     });
-    return best;
+
+    if (count) count.textContent = `${pad(active + 1)} / ${pad(total)}`;
+    segments.forEach((seg, i) => seg.toggleAttribute("data-on", i <= active));
+
+    // The deck wraps, so neither arrow is ever a dead end.
+    prevBtn?.setAttribute("aria-disabled", "false");
+    nextBtn?.setAttribute("aria-disabled", "false");
   }
 
-  function render(): void {
-    const max = maxScroll();
-
-    // Ends are measured from the cards, not from scrollLeft. With
-    // `scroll-snap-type: mandatory` the browser settles on the last card's
-    // snap point, which sits short of true max scroll by the track's trailing
-    // padding — so `scrollLeft >= max` is never reached and the Next arrow
-    // would never disable. "The last card is fully in view" is both robust and
-    // what the control actually means.
-    const trackRect = track!.getBoundingClientRect();
-    const atStart = cards[0].getBoundingClientRect().left >= trackRect.left - 2;
-    const atEnd =
-      cards[total - 1].getBoundingClientRect().right <= trackRect.right + 2;
-
-    const progress = atEnd ? 1 : Math.min(1, Math.max(0, track!.scrollLeft / max));
-    if (scrubFill) scrubFill.style.inlineSize = `${progress * 100}%`;
-
-    prev?.setAttribute("aria-disabled", String(atStart));
-    next?.setAttribute("aria-disabled", String(atEnd));
-
-    // The counter names the card at the left edge. At the extremes that is
-    // clamped to the first and last card: with 3.2 cards visible the leftmost
-    // at max scroll is card 3, and reporting "03 / 06" when you have reached
-    // the end reads as broken even though it is literally true.
-    const i = atEnd ? total - 1 : atStart ? 0 : nearestIndex();
-    if (i === active) return;
-    active = i;
-    if (count) count.textContent = `${pad(i + 1)} / ${pad(total)}`;
-    cards.forEach((c, n) => c.toggleAttribute("data-active", n === i));
+  function go(index: number, manual = false): void {
+    active = mod(index);
+    if (manual) lastManualAt = Date.now();
+    paint();
   }
 
-  // The falloff is opt-in via an attribute so the CSS cannot dim cards before
-  // JS has decided which one is active, and stays off entirely for reduced
-  // motion (where the deck still snaps and still scrolls — only the falloff
-  // goes).
-  if (!prefersReducedMotion()) track.setAttribute("data-falloff", "");
+  /* --- auto-advance -------------------------------------------------------- */
 
-  track.addEventListener("scroll", () => requestAnimationFrame(render), {
-    passive: true,
+  function mayAdvance(): boolean {
+    if (reduced) return false;
+    if (hovering || focusWithin) return false;
+    if (document.visibilityState !== "visible") return false;
+    return Date.now() - lastManualAt >= MANUAL_COOLDOWN_MS;
+  }
+
+  function startAuto(): void {
+    if (reduced || timer !== undefined) return;
+    timer = window.setInterval(() => {
+      if (!mayAdvance()) return;
+      go(active + 1);
+    }, AUTO_MS);
+  }
+
+  function stopAuto(): void {
+    if (timer === undefined) return;
+    clearInterval(timer);
+    timer = undefined;
+  }
+
+  stage.addEventListener("pointerenter", () => {
+    hovering = true;
   });
-  addEventListener("resize", render, { passive: true });
+  stage.addEventListener("pointerleave", () => {
+    hovering = false;
+  });
+  /**
+   * Only KEYBOARD focus pauses. Clicking an arrow focuses it in Chrome, and
+   * treating that as "the reader is in the deck" pinned the pause on forever:
+   * one click and auto-advance never resumed, because focusWithin stayed true
+   * long after the pointer had left. :focus-visible is exactly the distinction
+   * — someone tabbing through is reading, someone who clicked is not
+   * necessarily still there.
+   */
+  const isKeyboardFocus = (t: EventTarget | null): boolean =>
+    t instanceof Element && t.matches(":focus-visible");
 
-  function scrollByCards(dir: 1 | -1): void {
-    track!.scrollBy({
-      left: dir * step(),
-      behavior: prefersReducedMotion() ? "auto" : "smooth",
+  stage.addEventListener("focusin", (e) => {
+    focusWithin = isKeyboardFocus(e.target);
+  });
+  stage.addEventListener("focusout", (e) => {
+    if (!stage.contains(e.relatedTarget as Node)) focusWithin = false;
+  });
+  // The controls sit outside the stage but are part of the deck.
+  for (const el of [prevBtn, nextBtn, scrub]) {
+    el?.addEventListener("pointerenter", () => {
+      hovering = true;
+    });
+    el?.addEventListener("pointerleave", () => {
+      hovering = false;
+    });
+    el?.addEventListener("focusin", (e) => {
+      focusWithin = isKeyboardFocus(e.target);
+    });
+    el?.addEventListener("focusout", () => {
+      focusWithin = false;
     });
   }
 
-  prev?.addEventListener("click", () => scrollByCards(-1));
-  next?.addEventListener("click", () => scrollByCards(1));
+  document.addEventListener("visibilitychange", () => {
+    // Nothing to resume explicitly: mayAdvance() reads visibilityState each
+    // tick, so a hidden tab simply stops advancing and picks up when shown.
+    if (document.visibilityState === "visible") startAuto();
+    else stopAuto();
+  });
 
-  // Keyboard. Left/Right move one card, Home/End jump to the ends.
-  track.addEventListener("keydown", (e) => {
-    const keys: Record<string, () => void> = {
-      ArrowRight: () => scrollByCards(1),
-      ArrowLeft: () => scrollByCards(-1),
-      Home: () => track!.scrollTo({ left: 0, behavior: "smooth" }),
-      End: () => track!.scrollTo({ left: maxScroll(), behavior: "smooth" }),
+  /* --- controls ------------------------------------------------------------ */
+
+  prevBtn?.addEventListener("click", () => go(active - 1, true));
+  nextBtn?.addEventListener("click", () => go(active + 1, true));
+
+  stage.addEventListener("keydown", (e) => {
+    const moves: Record<string, number> = {
+      ArrowRight: active + 1,
+      ArrowLeft: active - 1,
+      Home: 0,
+      End: total - 1,
     };
-    const fn = keys[e.key];
-    if (!fn) return;
+    const target = moves[e.key];
+    if (target === undefined) return;
     e.preventDefault();
-    fn();
+    go(target, true);
   });
-
-  // Focusing anything inside an off-screen card must bring it into view.
-  track.addEventListener("focusin", (e) => {
-    const card = (e.target as HTMLElement).closest<HTMLElement>("[data-deck-card]");
-    card?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
-  });
-
-  /* --- pointer drag ---------------------------------------------------------
-     Desktop affordance only. Touch keeps native scrolling: intercepting it is
-     how carousels end up trapping vertical scroll on a phone. */
-  let dragging = false;
-  let startX = 0;
-  let startScroll = 0;
-
-  track.addEventListener("pointerdown", (e) => {
-    if (e.pointerType === "touch") return;
-    dragging = true;
-    startX = e.clientX;
-    startScroll = track.scrollLeft;
-    track.setPointerCapture(e.pointerId);
-    track.style.willChange = "scroll-position";
-    track.style.cursor = "grabbing";
-    track.style.scrollSnapType = "none";
-  });
-
-  track.addEventListener("pointermove", (e) => {
-    if (!dragging) return;
-    track.scrollLeft = startScroll - (e.clientX - startX);
-  });
-
-  function endDrag(e: PointerEvent): void {
-    if (!dragging) return;
-    dragging = false;
-    if (track!.hasPointerCapture(e.pointerId)) track!.releasePointerCapture(e.pointerId);
-    track!.style.willChange = "";
-    track!.style.cursor = "";
-    // Restoring snap lets the browser settle on the nearest card itself.
-    track!.style.scrollSnapType = "";
-  }
-
-  track.addEventListener("pointerup", endDrag);
-  track.addEventListener("pointercancel", endDrag);
 
   /* --- scrub bar ------------------------------------------------------------
-     Also a drag target, per the section spec. */
+     Click or drag anywhere along it to jump. Six segments, one per card. */
+
   function scrubTo(clientX: number): void {
     if (!scrub) return;
     const r = scrub.getBoundingClientRect();
-    const ratio = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
-    track!.scrollTo({ left: ratio * maxScroll(), behavior: "auto" });
+    const ratio = Math.min(0.999, Math.max(0, (clientX - r.left) / r.width));
+    go(Math.floor(ratio * total), true);
   }
 
   let scrubbing = false;
   scrub?.addEventListener("pointerdown", (e) => {
     scrubbing = true;
     scrub.setPointerCapture(e.pointerId);
-    track.style.scrollSnapType = "none";
     scrubTo(e.clientX);
   });
-  scrub?.addEventListener("pointermove", (e) => scrubbing && scrubTo(e.clientX));
+  scrub?.addEventListener("pointermove", (e) => {
+    if (scrubbing) scrubTo(e.clientX);
+  });
   scrub?.addEventListener("pointerup", (e) => {
     scrubbing = false;
     if (scrub.hasPointerCapture(e.pointerId)) scrub.releasePointerCapture(e.pointerId);
-    track.style.scrollSnapType = "";
   });
 
-  render();
+  paint();
+  startAuto();
 }
