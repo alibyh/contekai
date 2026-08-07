@@ -3,6 +3,7 @@ dist/
 .astro/
 .DS_Store
 *.log
+contekai-kit
 .env
 .env.production
 contekai-kit/
