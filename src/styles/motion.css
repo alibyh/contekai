@@ -58,7 +58,17 @@
   [data-reveal-stagger].is-in > :nth-child(6) { transition-delay: calc(var(--stagger) * 5); }
 
   /* Directional variants. Direction carries meaning: ledger rows are being
-     written (left), the receipt is being printed (top). Both compositable. */
+     written (left), the receipt is being printed (top). Both compositable.
+
+     !! NEVER PUT THESE ON THE OBSERVED ELEMENT ITSELF. Chrome's
+     IntersectionObserver applies the target's own clip-path when it computes
+     the intersection, so an element that starts at inset(... 100% ...) reports
+     a ratio of exactly 0, never fires, and therefore never gets .is-in to
+     unclip itself. Measured: 0 while clipped, 0.67 with the clip removed.
+
+     The pattern that works, and the one §03 and §04 both use: put [data-reveal]
+     on a wrapper that is NOT clipped, and drive the child's clip-path from
+     `.is-in` on that wrapper. */
   [data-reveal="write"] {
     transform: none;
     clip-path: inset(0 100% 0 0);

@@ -206,6 +206,19 @@
     --shadow-ink-near: rgb(10 21 30 / 0.1);
     --shadow-ink-far: rgb(10 21 30 / 0.28);
 
+    /* --shadow-lift expressed as filter drop-shadows. The receipt is masked
+       into a torn edge, and box-shadow would trace its square border box
+       instead of the scallops; drop-shadow follows the alpha channel. */
+    --shadow-lift-drop: drop-shadow(0 2px 4px rgb(10 21 30 / 0.1))
+      drop-shadow(0 16px 40px -20px rgb(10 21 30 / 0.28));
+
+    /* The opaque stop in an alpha mask. Not a colour anyone sees — only its
+       alpha is used — but it lives here so no component writes a literal. */
+    --mask-opaque: #000;
+
+    /* --laterite at 8%: the one-shot flash on a changed receipt line. */
+    --flash-laterite: rgb(179 74 38 / 0.08);
+
     /* Dark surfaces separate by VALUE (--ink-900 → --ink-700), not by shadow.
        No backdrop-filter anywhere. No glass panels. */
 

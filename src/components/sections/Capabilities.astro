@@ -35,7 +35,6 @@ interface Card {
   icon: string;
   tag: string;
   fragment: "pos" | "stock" | "profit" | "branches" | "trends" | "offline";
-  dark?: boolean;
 }
 
 /** Facts from CONTEXT.md §4. Titles name an action, never a category. */
@@ -81,16 +80,15 @@ const cards: Card[] = [
     fragment: "trends",
   },
   {
-    /* The thesis card. Last, so the deck closes on the differentiator, and the
-       one dark card in a paper deck — echoing the hero. The only variation in
-       the set; a second would make it a pattern instead of an accent. */
+    /* The thesis card. Last, so the deck closes on the differentiator.
+       It used to be the one dark card in a paper deck; now every card is dark,
+       so it no longer stands apart visually — see NOTES.md. */
     index: "06",
     title: "Keep going when the network doesn't",
     body: "Sales and stock updates carry on offline. Everything syncs the moment you're back.",
     icon: "wifi-off",
     tag: "Offline · Sync",
     fragment: "offline",
-    dark: true,
   },
 ];
 ---
@@ -142,7 +140,7 @@ const cards: Card[] = [
   >
     {
       cards.map((card) => (
-        <article class:list={["card", card.dark && "card--dark"]} data-deck-card>
+        <article class="card" data-deck-card>
           <p class="card__index t-mono" aria-hidden="true">
             {card.index}
           </p>
@@ -521,22 +519,24 @@ const cards: Card[] = [
       inline-size: var(--card-w);
       block-size: 500px;
       padding: var(--space-5);
-      border: var(--border-paper);
+      /* Every card is ink. The deck sits on a paper section, so this is six
+         dark objects on a light ground rather than paper cards on paper.
+         Republishing the ground tokens locally is what lets everything inside —
+         the eyebrow rule, muted body copy, fragment borders — pick up ink
+         values without any component branching on where it happens to be. */
+      border: var(--border-ink);
       border-radius: var(--r-md);
-      background-color: var(--paper-hi);
+      background-color: var(--ink-700);
+      color: var(--on-ink);
+      --muted: var(--on-ink-muted);
+      --hairline: var(--hairline-ink);
+      --border-current: var(--border-ink);
       scroll-snap-align: start;
       transition:
         background-color var(--dur-base) var(--ease-out),
         transform var(--dur-base) var(--ease-out);
     }
 
-    .card--dark {
-      background-color: var(--ink-700);
-      color: var(--on-ink);
-      border-color: var(--hairline-ink);
-      --muted: var(--on-ink-muted);
-      --hairline: var(--hairline-ink);
-    }
 
     .card__index {
       display: flex;
@@ -586,13 +586,10 @@ const cards: Card[] = [
       text-transform: uppercase;
     }
 
+    /* --laterite measures 2.79:1 on --ink-700 — under the 3:1 a graphic needs,
+       let alone text. On ink the accent job goes to the link blue, which is
+       verified at 6.2:1. */
     .card__tag :global(.card__icon) {
-      color: var(--laterite);
-    }
-
-    /* --laterite on --ink-700 is not a text pair. On the dark card the icon
-       takes the link blue, which is verified on ink. */
-    .card--dark .card__tag :global(.card__icon) {
       color: var(--kai-400);
     }
 
@@ -605,15 +602,13 @@ const cards: Card[] = [
       block-size: 100%;
       min-block-size: 0;
       padding: var(--space-3);
-      border: var(--border-paper);
+      border: var(--border-ink);
       border-radius: var(--r-sm);
-      background-color: var(--paper);
-      overflow: hidden;
-    }
-
-    .card--dark .frag {
-      border-color: var(--hairline-ink);
+      /* One value below the card, the way dark surfaces are meant to separate:
+         --ink-700 card, --ink-900 fragment. No shadow — shadows on dark are
+         invisible and only cost paint. */
       background-color: var(--ink-900);
+      overflow: hidden;
     }
 
     .frag__label {
@@ -661,7 +656,7 @@ const cards: Card[] = [
       font-size: 1rem;
       letter-spacing: var(--track-figure);
       text-transform: none;
-      color: var(--on-paper);
+      color: var(--on-ink);
     }
 
 
@@ -673,19 +668,17 @@ const cards: Card[] = [
       white-space: nowrap;
     }
 
+    /* --laterite is 3.48:1 on --ink-900, under the floor for 12px text. The
+       alert reads from its words ("3 left", "Expiring"), which is the rule
+       anyway: nothing conveyed by colour alone. */
     .frag__state--low {
-      color: var(--laterite);
+      color: var(--on-ink);
     }
 
-    /* --signal measures 3.05:1 on --paper: enough for a graphic (>= 3:1),
-       not for 12px text (needs 4.5:1). So the word takes the normal ink colour
-       and the tick carries the green. The state is still never colour alone.
-       On ink it is 5.5:1 and can colour text, which is what card 06 does. */
+    /* --signal is 5.5:1 on --ink-900, so on this ground it can colour the text
+       as well as the tick. (It measures only 3.05:1 on --paper, which is why
+       the paper version of this had to split them.) */
     .frag__state--ok {
-      color: var(--on-paper);
-    }
-
-    .frag__state--ok :global(.icon) {
       color: var(--signal);
     }
 

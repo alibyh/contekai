@@ -1037,3 +1037,182 @@ what the revision asks for and what the section can carry.
 **Gate:** passed. Hand-authored rotations · `--paper` on `--ink-900` · one inline
 SVG tack per note in `--laterite`, nothing else · DOM order 01→04 · stack below
 900px · no hover animation · substitution test answered above.
+
+---
+
+## Tweaks — dark deck cards, squarer overlapping notes
+
+**Deck (§02): every card is now `--ink-700`, not just card 06.** The fragments
+drop to `--ink-900` so dark surfaces still separate by value rather than by
+shadow, and the card republishes the ground tokens locally so everything inside
+picks up ink values without any component branching on where it sits.
+
+Three colours had to move, all measured rather than assumed:
+
+| Was | On ink | Now |
+|---|---|---|
+| `--laterite` tag icon | **2.79:1** on `--ink-700` — under the 3:1 a graphic needs | `--kai-400` (6.2:1) |
+| `--laterite` low-stock state | **3.48:1** on `--ink-900` at 12px | `--on-ink`; the words "3 left" / "Expiring" carry it |
+| `--signal` + separate ink word | 5.5:1 on ink, so no longer needs splitting | `--signal` colours the whole state |
+
+That last one is the mirror of the problem the paper version had: `--signal` is
+3.05:1 on paper and 5.5:1 on ink, so the same component needed opposite
+treatments on the two grounds.
+
+**Worth flagging: card 06 has lost its accent.** It was the one dark card in a
+paper deck — the thesis card, visually singled out, echoing the hero. Now that
+every card is dark it is just the last card. It still closes the sequence and it
+still holds the offline fragment, but the visual argument that it is *the*
+important one is gone. If that mattered, the cheapest way back is to make 06 the
+one card that stays `--paper-hi`, inverting the accent rather than removing it.
+
+**Notes (§03): squarer and overlapping properly.** Widths came down from
+300/280/320/260 to 252/236/264/228, which lets each note's text wrap onto more
+lines and brings its height up toward its width: measured aspect ratios went
+from ~1.4–1.5 to **1.24 / 1.17 / 1.32 / 1.03**. Positions were re-authored so the
+corner overlap roughly doubled, to **22px and 21px** at 1440 and 18/20px in the
+two-column range, which is as deep as it can go before a note's own bottom
+padding stops protecting the text underneath. Verified no note's text is covered
+at any width.
+
+---
+
+## Step 5 — Pricing (the signature)
+
+**Built:** a calculator that prints a receipt. Locations stepper, term selector,
+and a thermal docket that reprints — torn top and bottom edge, `--paper-hi`
+face, DM Mono throughout, dotted leaders, `TOTAL DUE` under a double rule, the
+CTA inside the paper.
+
+Contekai's pricing has one genuinely unusual property: it is per location and
+every plan has every feature. A three-column comparison table would have nothing
+to compare, which is exactly why the standard SaaS pricing table would be both
+ugly and dishonest here. The buyer's real question is *how many locations, how
+long, what do I pay* — so the section answers that directly.
+
+### The maths, hand-checked
+
+Every combination was verified against figures worked out by hand, not spot
+checked:
+
+| Locations | Term | List | Discount | Total | Per location / month |
+|---|---|---|---|---|---|
+| 1 | 1 month | D 1,500 | — | **D 1,500** | D 1,500 |
+| 3 | 1 month | D 4,500 | — | **D 4,500** | D 1,500 |
+| 12 | 1 month | D 18,000 | — | **D 18,000** | D 1,500 |
+| 1 | 12 months | D 18,000 | −D 1,800 | **D 16,200** | D 1,350 |
+| 3 | 12 months | D 54,000 | −D 5,400 | **D 48,600** | D 1,350 |
+| 12 | 12 months | D 216,000 | −D 21,600 | **D 194,400** | D 1,350 |
+
+All six pass. `18,000 → 16,200` is exactly 10%, which is why the term chip can
+say `−10%` — it is the only discount stated anywhere in `CONTEXT.md`.
+
+### What is deliberately absent
+
+- **The 6-month tier.** `CONTEXT.md` §4 marks its price `[VERIFY]`. Two terms
+  ship rather than three. An invented number on a pricing page is the most
+  damaging error this build could make.
+- **The multi-location discount.** The current site promises one and never
+  states it. There is no `MULTI-LOCATION DISCOUNT` line and the copy does not
+  hint at one: the footnote says plainly that adding a location later is billed
+  at the same rate from the day you add it. Either the client supplies the
+  number or the promise stays gone.
+- **No "Most popular" ribbon.** The maths is doing that job — the receipt opens
+  on 12 months because that is the best value, which is more persuasive than a
+  badge.
+
+### Two bugs, one of them systemic
+
+**The receipt could never reveal itself.** `[data-reveal="print"]` starts at
+`clip-path: inset(0 0 100% 0)`, and Chrome's IntersectionObserver **applies the
+target's own clip-path when computing intersection**. So the receipt reported an
+intersection ratio of exactly **0**, never fired, never got `.is-in`, and
+therefore never unclipped — a deadlock that rendered the entire section's
+centrepiece invisible while every figure inside it computed correctly.
+
+Measured, on the same element in the same scroll position: ratio **0** while
+clipped, **0.67** with the clip removed.
+
+The fix is the pattern §03 already stumbled into for its own reasons: the
+observed element is never the clipped one. `[data-reveal]` goes on `.receipt`,
+which stays unclipped; the clip animates on `.receipt__face` off `.is-in`.
+`motion.css` now carries a loud warning on both directional variants, because
+the next section that reaches for `write` or `print` will hit this otherwise.
+
+**The total was stale.** The count-up was gated behind the same observer, so
+`setTotal` only ran once `totalIsLive` flipped — and when the observer did not
+fire, the receipt cheerfully displayed `D 16,200` for every combination while
+the list, discount, per-unit figure and the `aria-live` sentence all updated
+correctly. On a pricing page that is the worst possible failure, so correctness
+no longer depends on anything asynchronous: the total is written on every
+render, and the count-up is a separate one-shot flourish. It also now skips
+entirely if the reader has already touched a control — scrolling the receipt
+into view after someone has set their locations should not rewind their total to
+zero and count it back up at them.
+
+### Verification
+
+| | |
+|---|---|
+| Lighthouse mobile | **100 / 100 / 100 / 100** (three consecutive runs) |
+| LCP / CLS / TBT / total | 1.7 s · 0 · 0 ms · 120 KB |
+| JS | 3 requests, 3.5 KB transferred |
+| Controls | real `<input type="number">`, real `<input type="radio">` ×2 |
+| Table | real `<table>` with a visually-hidden caption and 7 scoped `<th>` |
+| Announcement | `aria-live="polite"`, one sentence: *"Total due, 194,400 dalasi for 12 locations over 12 months."* |
+| Figures | `tabular-nums` throughout |
+| Bounds | `aria-disabled` at 1 and 99; clicking past either does nothing |
+| Keyboard only | ArrowUp on the input → 3 locations, D 48,600; Tab → radios; ArrowLeft → 1 month, D 4,500 |
+| Receipt radius | `0px`, torn edges from a CSS mask, no image |
+| Narrow widths | 420px max, 335 at 375, 280 at 320; tear 12px → 9px below 380 |
+| Figure wrapping | none at 375, 420 or 1440 even at the widest total (D 216,000 / D 194,400) |
+| Reduced motion / JS off | total renders, receipt visible, no clip stranding |
+| "Most popular" / 6-month | neither appears anywhere in the section |
+
+At 320px two item *labels* wrap to a second line ("Location × 12 months", "Per
+location / month"). Figures never do, which is what the spec asks. A receipt
+with a wrapped item description is what a real docket looks like; `TOTAL DUE`
+breaking in two was not, and that is fixed by buying 16px of measure back from
+the face padding and dropping the total a size step below 380px.
+
+Also worth recording: one Lighthouse run reported **TBT 730 ms** and performance
+81. It looked like the masked-and-drop-shadowed receipt being expensive to
+raster on a throttled CPU, so I measured it — blocking beyond 50ms was **7ms as
+built, 8ms without the drop-shadow, 7ms without the mask, 12ms without either**.
+The receipt is not the cost; the run was contending with other Chrome instances
+on this machine. Three clean runs since: TBT 0.
+
+### Self-critique
+
+**Distinctive:** the receipt computes. It is not a picture of a receipt — set
+locations to 3 and the qty, the line, the discount, the total and the per-
+location figure all reprint, and the number that comes out is the number the
+client will actually charge. It is also the artifact this product physically
+produces hundreds of times a day, which is why it can carry this much weight
+without reading as decoration. Swap Contekai out and the whole section has to be
+rebuilt as a table.
+
+**Templated:** the segmented term control. Two bordered chips with the discount
+in accent colour is the most conventional thing in the section, and it sits
+right next to the least conventional. It survives because real radios in a
+segmented control are genuinely the right affordance for three-or-fewer mutually
+exclusive options, but it is the part I would redraw first.
+
+**Removed:** the dotted leader from the table header row. I had leaders running
+under `QTY / ITEM / AMOUNT` as well as under the line items, which made the head
+read as another entry rather than as a column heading. A dashed rule under the
+header and dotted leaders only on the lines that carry figures is what an actual
+docket does.
+
+**Gate:** passed. Totals correct for 1, 3 and 12 locations across both terms ·
+no invented prices · real form controls · tabular figures, no jitter ·
+`aria-live` announced · keyboard path complete · tear crisp at 320 and at 200%
+zoom · no "Most Popular" ribbon · trial stated honestly including "first
+location only".
+
+### Needs from the client, still blocking
+
+1. **The 6-month price.** The tier is absent until it is confirmed.
+2. **The multi-location discount**, or confirmation that there isn't one so the
+   promise can stay deleted from the copy.
+3. Confirmation that `/signup` is the real route for the receipt's CTA.
