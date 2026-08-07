@@ -585,3 +585,109 @@ a corporate film, blurred until it is atmosphere. It works, and it is honest
 about being atmosphere rather than pretending to be evidence, but it is not the
 thing the section was designed around. `public/media/README.md` states what to
 ask for, and a new clip drops straight into the build script.
+
+---
+
+## Step 3 — Capabilities deck
+
+**Built:** six-card horizontal deck on paper, CSS scroll-snap, arrows + counter
+right of a left-aligned header, draggable scrub bar, track bleeding off the
+right edge. Card 06 is the one dark card and closes the deck.
+
+### The fragments, and the screenshot problem
+
+The section's central rule is that every card carries a fragment of the real
+product, and the spec asks for cropped 2× screenshots. Those are still a client
+asset (CONTEXT.md §5). Shipping six marked placeholder boxes would have
+reproduced exactly the empty-panel problem the hero just got fixed for.
+
+So the fragments are **built in markup instead of imaged**, from the product
+vocabulary `CONTEXT.md` §4 actually records: the payment methods (Cash / Mobile
+Money / Bank transfer), GMD totals, per-location billing, stock and expiry
+alerts, the offline/synced state. Rendered in this design system they read as
+*specimens* of the product rather than photographs of it, which is more honest
+than a soft screenshot, costs no bandwidth, stays sharp at any density, and
+reflows at 320px.
+
+`GMD 1,580.00` is the one real figure and it comes from the Transactions screen
+in `CONTEXT.md` §4. Every value the source does not record — stock quantities,
+sales-by-hour bar heights, expenses and profit — is marked `data-illustrative`
+in the markup. None of it is a claim about the business, and all of it should be
+replaced by real 2× screenshots when they arrive.
+
+### The falloff had to change, and axe is why
+
+The motion spec asks for non-active cards at `opacity: .55`. Measured, that
+drags a card's muted body text from 5.7:1 to **2.3:1** and its accent text to
+2.3:1. Lighthouse accessibility fell to 96 on `color-contrast`, naming eleven
+elements. The accessibility floor is a BLOCKER and the falloff is an effect, so
+the falloff gave way.
+
+Contrast-safe substitute doing the same job: the inactive card recedes by
+**value** rather than by opacity — dropping from `--paper-hi` to the section's
+own `--paper` and losing its lift, while the active card keeps `--paper-hi` and
+`--shadow-paper`. `scale(.97)` is unchanged from the spec. Every glyph keeps
+full contrast. Still no 3D, no perspective, no coverflow.
+
+Same class of problem, found in the same pass: **`--signal` is 3.05:1 on
+`--paper`**. That is fine for a graphic (≥ 3:1) and fails for 12px text
+(4.5:1). So on the paper cards the word "In stock" takes normal ink and only the
+tick carries the green; on the dark card `--signal` measures 5.5:1 and can
+colour text, which is what card 06 does. The design system's verified-pairs
+table does not cover signal-on-paper — worth adding.
+
+### Two bugs the browser found that reading would not have
+
+- **Every card was dimmed, including the active one.** `active` was initialised
+  to `0`, so `render()` early-returned on its own first call and no card ever
+  received `[data-active]`. The falloff rule then matched all six. It showed up
+  as cards measuring 349px instead of 360 — `scale(.97)` applied to everything.
+- **The Next arrow never disabled at 375px.** With `scroll-snap-type: mandatory`
+  the browser settles on the last card's snap point, which sits short of true
+  max scroll by the track's trailing padding, so `scrollLeft >= maxScroll` was
+  never true. End state is now measured from the cards ("is the last card fully
+  in view"), which is both robust and what the control actually means.
+
+Also: the counter read `03 / 06` at the end of the track on desktop, because
+with 3.2 cards visible the leftmost card at max scroll *is* card 3. Literally
+true, reads as broken. Clamped to first and last at the extremes.
+
+### Verification
+
+| | |
+|---|---|
+| Lighthouse mobile | **100 / 100 / 100 / 100** |
+| LCP / CLS / total | 1.7 s · 0 · 115 KB |
+| JS | 2 requests, 1.4 KB + 0.6 KB transferred |
+| Horizontal page scroll | none at 320, 375, 768, 1440 |
+| Fragment clipping | none at 320, 375, 768, 1440 (checked by comparing scrollHeight to clientHeight, not by eye) |
+| JS disabled | track still scrolls and snaps, all six cards at full opacity, nothing hidden |
+| Reduced motion | falloff dropped, deck still snaps and scrolls |
+| Keyboard | ArrowRight steps one card; End → `06 / 06`; Home → `01 / 06`; focus inside an off-screen card scrolls it in |
+| Semantics | `role="group"` + label, `tabindex="0"`, `<article>` + `<h3>` per card, counter `aria-live="polite"`, arrows 44×44 with `aria-disabled` |
+| Dots | zero |
+
+The card height rose from the spec's 440px to 500px below 480px width. A narrow
+card wraps its title and body onto more lines, and the thing being squeezed out
+was the fragment — the evidence the card exists to show. All cards still share
+one fixed height per breakpoint, so the track never reflows mid-drag.
+
+### Self-critique
+
+**Distinctive:** the fragments. Card 03 shows `GMD 1,580.00` because that is the
+figure on Contekai's own Transactions screen, card 04 lists Serekunda, Banjul and
+Brikama, and card 06 shows a sale sitting in a queue waiting for the network.
+Swap in another company and every one of those has to be rebuilt from scratch,
+which is the substitution test passing.
+
+**Templated:** the tag row at the foot of each card — small icon plus two
+uppercase mono words. It is the most decorative thing in the section and it is
+close to the icon-chip reflex the spec bans, saved only by being small and
+textual. If anything else in this section gets cut, it is that.
+
+**Removed:** the three payment-method chips under the POS fragment. They were
+pill-shaped, they wrapped and clipped at the card's fixed height, and they were
+restating the body copy. One quiet mono line, `Cash · Mobile Money · Bank
+transfer`, says the same thing in a quarter of the space.
+
+**Gate:** passed. No blockers, after the falloff and `--signal` fixes above.

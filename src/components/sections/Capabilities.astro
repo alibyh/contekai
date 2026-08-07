@@ -1,43 +1,768 @@
 ---
 /**
- * 02 — What it does
+ * 02 — Capabilities. The card deck. Paper ground: the first light after the
+ * hero's night.
  *
- * <!-- built in ORDER.md step 3 -->
+ * The rule that stops this collapsing into a feature grid: every card carries a
+ * fragment of the real product. The icon is small and secondary; the evidence
+ * is the subject. If a card would still make sense with its fragment removed,
+ * the fragment is not doing work.
  *
- * Six capabilities, all real (CONTEXT.md §4), as a horizontal card deck.
+ * FRAGMENTS — read before changing them.
+ * The section spec asks for cropped 2x screenshots. Those are a client asset
+ * that has not landed (CONTEXT.md §5), so the fragments here are built in
+ * markup instead of imaged. That is deliberate rather than a stopgap:
+ *   - they are drawn from the real product vocabulary CONTEXT.md §4 records —
+ *     the sidebar, the payment methods (Cash / Mobile Money / Bank Transfer),
+ *     GMD totals, per-location billing, the offline/synced state
+ *   - rendered in this design system they read as specimens of the product,
+ *     not as photographs of it, which is more honest than a soft screenshot
+ *   - they cost no bandwidth, stay sharp on any screen, and reflow at 320px
  *
- * Gate: CSS scroll-snap, never auto-advancing · drag, arrows, keyboard and
- * swipe all work · no vertical scroll trapping on touch · focus never lands on
- * an off-screen card without scrolling it in · each card carries real product
- * substance, not an icon chip · works with JS disabled (degrades to a plain
- * horizontally scrollable row).
- *
- * Blocked on client assets: fresh 2x product screenshots (POS, Transactions,
- * Dashboard, Low-stock alert). Cards are product surfaces, not icon+title+text.
+ * Where a fragment needs row-level data that CONTEXT.md does not record (stock
+ * quantities, hour-by-hour sales), the values are ILLUSTRATIVE and marked
+ * data-illustrative in the markup. GMD 1,580.00 is the one real figure and it
+ * comes from the Transactions screen in CONTEXT.md §4. Nothing here is a claim
+ * about the business. Replace with real 2x screenshots when they arrive.
  */
 import Eyebrow from "../ui/Eyebrow.astro";
+import Icon from "../ui/Icon.astro";
+
+interface Card {
+  index: string;
+  title: string;
+  body: string;
+  icon: string;
+  tag: string;
+  fragment: "pos" | "stock" | "profit" | "branches" | "trends" | "offline";
+  dark?: boolean;
+}
+
+/** Facts from CONTEXT.md §4. Titles name an action, never a category. */
+const cards: Card[] = [
+  {
+    index: "01",
+    title: "Ring up a sale in seconds",
+    body: "Scan the barcode, take cash, Wave, or bank transfer, print the receipt. Done.",
+    icon: "scan-barcode",
+    tag: "Barcode · Receipts",
+    fragment: "pos",
+  },
+  {
+    index: "02",
+    title: "Know what's running out",
+    body: "Live stock counts, low-stock alerts, expiry dates, and a reorder list that writes itself.",
+    icon: "package-search",
+    tag: "Alerts · Expiry",
+    fragment: "stock",
+  },
+  {
+    index: "03",
+    title: "See the day's profit",
+    body: "Sales, expenses, and profit in dalasis. Today, this week, this month.",
+    icon: "receipt",
+    tag: "Dalasis · Reports",
+    fragment: "profit",
+  },
+  {
+    index: "04",
+    title: "Run every branch from one place",
+    body: "Add locations, give staff their own logins and permissions, see who sold what.",
+    icon: "building-2",
+    tag: "Branches · Staff",
+    fragment: "branches",
+  },
+  {
+    index: "05",
+    title: "Find your best sellers",
+    body: "Top products, busiest hours, margins per item. The numbers you'd otherwise guess at.",
+    icon: "trending-up",
+    tag: "Trends · Margins",
+    fragment: "trends",
+  },
+  {
+    /* The thesis card. Last, so the deck closes on the differentiator, and the
+       one dark card in a paper deck — echoing the hero. The only variation in
+       the set; a second would make it a pattern instead of an accent. */
+    index: "06",
+    title: "Keep going when the network doesn't",
+    body: "Sales and stock updates carry on offline. Everything syncs the moment you're back.",
+    icon: "wifi-off",
+    tag: "Offline · Sync",
+    fragment: "offline",
+    dark: true,
+  },
+];
 ---
 
 <section
-  class="capabilities"
-  id="capabilities"
+  class="cap"
+  id="what-it-does"
   data-section="capabilities"
   data-ground="paper"
-  aria-labelledby="capabilities-title"
+  aria-labelledby="cap-title"
 >
-  <div class="container">
-    <Eyebrow index="02">What it does</Eyebrow>
-    <h2 id="capabilities-title"><!-- COPY: written in ORDER.md step 3 -->What it does</h2>
+  <div class="cap__head">
+    <div class="cap__headings">
+      <Eyebrow index="02">What it does</Eyebrow>
+      <h2 id="cap-title">From the counter to the books.</h2>
+    </div>
+
+    {/* Controls sit right, on the heading's baseline. A centred header over a
+        horizontal deck is the template shape; this asymmetry is the point. */}
+    <div class="cap__controls">
+      <button
+        type="button"
+        class="cap__arrow"
+        data-deck-prev
+        aria-label="Previous capability"
+      >
+        <Icon name="arrow-left" size={20} />
+      </button>
+      <button
+        type="button"
+        class="cap__arrow"
+        data-deck-next
+        aria-label="Next capability"
+      >
+        <Icon name="arrow-right" size={20} />
+      </button>
+      <p class="cap__count t-mono" data-deck-count aria-live="polite">
+        01 / 06
+      </p>
+    </div>
+  </div>
+
+  <div
+    class="cap__track"
+    data-deck-track
+    tabindex="0"
+    role="group"
+    aria-label="Capabilities"
+  >
+    {
+      cards.map((card) => (
+        <article class:list={["card", card.dark && "card--dark"]} data-deck-card>
+          <p class="card__index t-mono" aria-hidden="true">
+            {card.index}
+          </p>
+
+          <div class="card__fragment">
+            {card.fragment === "pos" && (
+              <div class="frag frag--rows">
+                <p class="frag__label t-mono">Sale · POS</p>
+                <ul class="frag__list">
+                  <li data-illustrative>
+                    <span>Item scanned</span>
+                    <span class="t-figure">D 500.00</span>
+                  </li>
+                  <li data-illustrative>
+                    <span>Item scanned</span>
+                    <span class="t-figure">D 1,080.00</span>
+                  </li>
+                </ul>
+                <p class="frag__total">
+                  <span class="t-mono">Total</span>
+                  <span class="t-figure frag__total-value">GMD 1,580.00</span>
+                </p>
+                <p class="frag__note t-mono">Cash · Mobile Money · Bank transfer</p>
+              </div>
+            )}
+
+            {card.fragment === "stock" && (
+              <div class="frag frag--rows">
+                <p class="frag__label t-mono">Stock · alerts</p>
+                <ul class="frag__list frag__list--stock">
+                  <li data-illustrative>
+                    <span>Below reorder level</span>
+                    <span class="frag__state frag__state--low t-mono">
+                      3 left
+                    </span>
+                  </li>
+                  <li data-illustrative>
+                    <span>Expires in 6 days</span>
+                    <span class="frag__state frag__state--low t-mono">
+                      Expiring
+                    </span>
+                  </li>
+                  <li data-illustrative>
+                    <span>Count matches</span>
+                    <span class="frag__state frag__state--ok t-mono">
+                      <Icon name="check" size={14} />
+                      In stock
+                    </span>
+                  </li>
+                </ul>
+                <p class="frag__note t-mono">Reorder list updated</p>
+              </div>
+            )}
+
+            {card.fragment === "profit" && (
+              <div class="frag frag--figure">
+                <p class="frag__label t-mono">Total sales · today</p>
+                {/* The one real figure on the page, from the Transactions
+                    screen recorded in CONTEXT.md §4. */}
+                <p class="frag__big t-figure">GMD 1,580.00</p>
+                <dl class="frag__pair">
+                  <div>
+                    <dt class="t-mono">Expenses</dt>
+                    <dd class="t-figure" data-illustrative>
+                      D 410.00
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="t-mono">Profit</dt>
+                    <dd class="t-figure" data-illustrative>
+                      D 1,170.00
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            )}
+
+            {card.fragment === "branches" && (
+              <div class="frag frag--rows">
+                <p class="frag__label t-mono">Locations · staff</p>
+                <ul class="frag__list">
+                  <li data-illustrative>
+                    <span>Serekunda</span>
+                    <span class="frag__role t-mono">Manager</span>
+                  </li>
+                  <li data-illustrative>
+                    <span>Banjul</span>
+                    <span class="frag__role t-mono">Cashier</span>
+                  </li>
+                  <li data-illustrative>
+                    <span>Brikama</span>
+                    <span class="frag__role t-mono">Cashier</span>
+                  </li>
+                </ul>
+                <p class="frag__note t-mono">Per-location billing</p>
+              </div>
+            )}
+
+            {card.fragment === "trends" && (
+              <div class="frag frag--chart">
+                <p class="frag__label t-mono">Sales by hour</p>
+                {/* Shape only. Bar heights are illustrative, not measured. */}
+                <ul class="frag__bars" data-illustrative aria-hidden="true">
+                  <li style="--h: 22%"></li>
+                  <li style="--h: 38%"></li>
+                  <li style="--h: 54%"></li>
+                  <li style="--h: 92%"></li>
+                  <li style="--h: 71%"></li>
+                  <li style="--h: 45%"></li>
+                  <li style="--h: 63%"></li>
+                  <li style="--h: 34%"></li>
+                </ul>
+                <p class="frag__axis t-mono">
+                  <span>8am</span>
+                  <span>Busiest 1pm</span>
+                  <span>8pm</span>
+                </p>
+              </div>
+            )}
+
+            {card.fragment === "offline" && (
+              <div class="frag frag--offline">
+                <p class="frag__label t-mono">Connection</p>
+                <p class="frag__status frag__status--off t-mono">
+                  <Icon name="wifi-off" size={16} />
+                  Offline · still selling
+                </p>
+                <ul class="frag__list frag__list--queue">
+                  <li data-illustrative>
+                    <span>Sale recorded</span>
+                    <span class="t-mono">Queued</span>
+                  </li>
+                  <li data-illustrative>
+                    <span>Stock updated</span>
+                    <span class="t-mono">Queued</span>
+                  </li>
+                </ul>
+                {/* --signal is state only, and never colour alone: the word
+                    "Synced" and the tick carry it too. */}
+                <p class="frag__status frag__status--ok t-mono">
+                  <Icon name="check" size={16} />
+                  Synced when back online
+                </p>
+              </div>
+            )}
+          </div>
+
+          <h3 class="card__title">{card.title}</h3>
+          <p class="card__body">{card.body}</p>
+
+          <p class="card__tag t-mono">
+            <Icon name={card.icon} size={20} class="card__icon" />
+            {card.tag}
+          </p>
+        </article>
+      ))
+    }
+  </div>
+
+  {/* The only progress indicator. Six dots under a carousel is filler. */}
+  <div class="cap__scrub" data-deck-scrub aria-hidden="true">
+    <div class="cap__scrub-fill" data-deck-scrub-fill></div>
   </div>
 </section>
+
+<script>
+  import "../../scripts/deck.ts";
+</script>
 
 <style>
   @layer sections {
     /* Padding comes from the single [data-section] rule in base.css.
-       Do not add padding-block here. */
-    .capabilities > .container {
+       This section sets its own inline padding to zero on the right so the
+       track can bleed; the head keeps the gutter. */
+    .cap {
+      padding-inline: 0;
+      display: grid;
+      gap: var(--space-6);
+    }
+
+    /* --- header ------------------------------------------------------------ */
+
+    .cap__head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      justify-content: space-between;
+      gap: var(--space-5);
+      padding-inline: var(--gutter);
+    }
+
+    .cap__headings {
       display: grid;
       gap: var(--space-4);
+      max-inline-size: 42rem;
+    }
+
+    /* Constrained on the H2 itself. A ch cap on the block above measured
+       against the 12px mono eyebrow instead and folded the heading into five
+       lines. 20ch is narrower than the full string, so balance splits it in
+       two even lines. */
+    .cap__headings h2 {
+      max-inline-size: 20ch;
+    }
+
+    .cap__controls {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .cap__arrow {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      inline-size: var(--tap-min);
+      block-size: var(--tap-min);
+      padding: 0;
+      border: var(--border-current);
+      border-radius: var(--r-sm);
+      background: none;
+      color: inherit;
+      cursor: pointer;
+      transition:
+        border-color var(--dur-fast) var(--ease-out),
+        opacity var(--dur-fast) var(--ease-out);
+    }
+
+    .cap__arrow:hover {
+      border-color: currentColor;
+    }
+
+    /* Disabled at the ends, never hidden: a control that disappears makes the
+       layout jump. aria-disabled rather than disabled, so it stays focusable
+       and its label is still announced. */
+    .cap__arrow[aria-disabled="true"] {
+      opacity: 0.35;
+      cursor: default;
+    }
+
+    .cap__count {
+      margin-inline-start: var(--space-3);
+      color: var(--muted);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* --- track ------------------------------------------------------------- */
+
+    .cap__track {
+      display: flex;
+      gap: var(--space-5);
+      overflow-x: auto;
+      /* Snap is CSS. JS only wires the arrows and the progress state. */
+      scroll-snap-type: x mandatory;
+      scroll-padding-inline-start: var(--gutter);
+      padding-inline: var(--gutter);
+      /* The track bleeds off the right edge. The partial card is the
+         affordance that says it moves. */
+      padding-inline-end: var(--space-7);
+      /* Never trap vertical scroll on touch. */
+      touch-action: pan-x pan-y;
+      scrollbar-width: none;
+      list-style: none;
+    }
+
+    .cap__track::-webkit-scrollbar {
+      display: none;
+    }
+
+    .cap__track:focus-visible {
+      outline: var(--focus-ring);
+      outline-offset: -3px;
+    }
+
+    /* --- card -------------------------------------------------------------- */
+
+    .card {
+      display: grid;
+      grid-template-rows: auto 1fr auto auto auto;
+      gap: var(--space-4);
+      flex: none;
+      inline-size: 84vw;
+      /* Fixed per breakpoint so the track never reflows mid-drag. Taller than
+         the spec's 440px below 480px because a narrow card wraps its title and
+         body onto more lines, and the fragment — which is the evidence the
+         card exists to show — was the thing getting clipped for it. */
+      block-size: 500px;
+      padding: var(--space-5);
+      border: var(--border-paper);
+      border-radius: var(--r-md);
+      background-color: var(--paper-hi);
+      scroll-snap-align: start;
+      transition:
+        background-color var(--dur-base) var(--ease-out),
+        box-shadow var(--dur-base) var(--ease-out),
+        transform var(--dur-base) var(--ease-out);
+    }
+
+    .card[data-active] {
+      box-shadow: var(--shadow-paper);
+    }
+
+    /* Adjacent-card falloff. The motion spec asks for opacity .55, and that
+       cannot ship: measured with axe, dimming a card drags its muted text from
+       5.7:1 to 2.3:1 and its accent text to 2.3:1. The accessibility floor is a
+       blocker and the falloff is an effect, so the falloff gives way.
+       Contrast-safe substitute, same job: the inactive card recedes by VALUE,
+       dropping to the section's own paper and losing its lift, while every
+       glyph keeps its full contrast. Scale is unchanged from the spec.
+       Still no 3D, no perspective, no coverflow. */
+    .cap__track[data-falloff] .card:not([data-active]) {
+      transform: scale(0.97);
+      background-color: var(--paper);
+      box-shadow: none;
+    }
+
+    .cap__track[data-falloff] .card--dark:not([data-active]) {
+      background-color: var(--ink-800);
+    }
+
+    .card--dark {
+      background-color: var(--ink-700);
+      color: var(--on-ink);
+      border-color: var(--hairline-ink);
+      --muted: var(--on-ink-muted);
+      --hairline: var(--hairline-ink);
+    }
+
+    .card__index {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      color: var(--muted);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+    }
+
+    .card__index::after {
+      content: "";
+      flex: 1;
+      block-size: 1px;
+      background-color: var(--hairline);
+    }
+
+    .card__fragment {
+      display: grid;
+      min-block-size: 0;
+    }
+
+    .card__title {
+      text-wrap: balance;
+    }
+
+    .card__body {
+      max-inline-size: 38ch;
+      color: var(--muted);
+      font-size: var(--fs-small);
+      line-height: var(--lh-small);
+      /* Capped so the fragment absorbs the difference and the track never
+         reflows mid-drag. */
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      overflow: hidden;
+    }
+
+    .card__tag {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--muted);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+      text-transform: uppercase;
+    }
+
+    .card__tag :global(.card__icon) {
+      color: var(--laterite);
+    }
+
+    /* --laterite on --ink-700 is not a text pair. On the dark card the icon
+       takes the link blue, which is verified on ink. */
+    .card--dark .card__tag :global(.card__icon) {
+      color: var(--kai-400);
+    }
+
+    /* --- fragments --------------------------------------------------------- */
+
+    .frag {
+      display: grid;
+      align-content: start;
+      gap: var(--space-2);
+      block-size: 100%;
+      min-block-size: 0;
+      padding: var(--space-3);
+      border: var(--border-paper);
+      border-radius: var(--r-sm);
+      background-color: var(--paper);
+      overflow: hidden;
+    }
+
+    .card--dark .frag {
+      border-color: var(--hairline-ink);
+      background-color: var(--ink-900);
+    }
+
+    .frag__label {
+      color: var(--muted);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+      text-transform: uppercase;
+    }
+
+    .frag__list {
+      display: grid;
+      gap: 0;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .frag__list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding-block: var(--space-2);
+      border-block-start: 1px solid var(--hairline);
+      font-size: var(--fs-small);
+    }
+
+    .frag__list li:last-child {
+      border-block-end: 1px solid var(--hairline);
+    }
+
+    .frag__total {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--space-3);
+      padding-block-start: var(--space-1);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .frag__total-value {
+      font-size: 1rem;
+      letter-spacing: var(--track-figure);
+      text-transform: none;
+      color: var(--on-paper);
+    }
+
+
+    .frag__state {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-1);
+      font-size: var(--fs-label);
+      white-space: nowrap;
+    }
+
+    .frag__state--low {
+      color: var(--laterite);
+    }
+
+    /* --signal measures 3.05:1 on --paper: enough for a graphic (>= 3:1),
+       not for 12px text (needs 4.5:1). So the word takes the normal ink colour
+       and the tick carries the green. The state is still never colour alone.
+       On ink it is 5.5:1 and can colour text, which is what card 06 does. */
+    .frag__state--ok {
+      color: var(--on-paper);
+    }
+
+    .frag__state--ok :global(.icon) {
+      color: var(--signal);
+    }
+
+    .frag__note {
+      color: var(--muted);
+      font-size: var(--fs-label);
+    }
+
+    .frag--figure {
+      align-content: center;
+      gap: var(--space-4);
+    }
+
+    .frag__big {
+      font-size: clamp(1.5rem, 4.4vw, 1.875rem);
+      letter-spacing: var(--track-figure);
+      line-height: var(--lh-flat);
+    }
+
+    .frag__pair {
+      display: flex;
+      gap: var(--space-6);
+      margin: 0;
+    }
+
+    .frag__pair dt {
+      color: var(--muted);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+      text-transform: uppercase;
+    }
+
+    .frag__pair dd {
+      margin: 0;
+      margin-block-start: var(--space-1);
+      font-size: 1rem;
+    }
+
+    .frag--chart {
+      align-content: end;
+      gap: var(--space-4);
+    }
+
+    .frag__bars {
+      display: flex;
+      align-items: end;
+      gap: var(--space-2);
+      block-size: 96px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .frag__bars li {
+      flex: 1;
+      block-size: var(--h);
+      background-color: var(--hairline);
+      border-radius: 1px;
+    }
+
+    /* The peak is the only bar that takes the accent — it is the answer the
+       card is about, not decoration. */
+    .frag__bars li:nth-child(4) {
+      background-color: var(--laterite);
+    }
+
+    .frag__axis {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-2);
+      color: var(--muted);
+      font-size: var(--fs-label);
+    }
+
+    .frag--offline {
+      align-content: center;
+      gap: var(--space-3);
+    }
+
+    .frag__status {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--fs-small);
+    }
+
+    .frag__status--off {
+      color: var(--on-ink);
+    }
+
+    .frag__status--ok {
+      color: var(--signal);
+    }
+
+    .frag__list--queue li {
+      color: var(--muted);
+      /* Card 06 has the longest title and the fullest fragment; at 320px it
+         was the only one still clipping. Tightening its own rows fixes it
+         without making all six cards taller for one card's sake. */
+      padding-block: var(--space-1);
+    }
+
+    /* --- scrub ------------------------------------------------------------- */
+
+    .cap__scrub {
+      block-size: 4px;
+      margin-inline: var(--gutter);
+      background-color: var(--hairline-paper);
+      cursor: pointer;
+      touch-action: none;
+    }
+
+    .cap__scrub-fill {
+      block-size: 100%;
+      inline-size: 0;
+      background-color: var(--laterite);
+      transform-origin: left;
+    }
+
+    /* --- responsive -------------------------------------------------------- */
+
+    @media (min-width: 480px) {
+      .card {
+        inline-size: 72vw;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .card {
+        inline-size: 340px;
+        block-size: 480px;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .cap {
+        gap: var(--space-7);
+      }
+
+      .card {
+        inline-size: 360px;
+      }
     }
   }
 </style>
