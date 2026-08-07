@@ -2,43 +2,476 @@
 /**
  * 01 — Hero. The most important section in the build.
  *
- * <!-- built in ORDER.md step 2 -->
+ * One job, one second: say that this shop keeps selling when the lights go out.
  *
- * Gate for that step: LCP is the headline or the poster, never the video · the
- * poster-only composition (video removed entirely) still looks finished ·
- * reduced-motion path verified · text contrast holds on every frame of the
- * video, not just the poster · works at 375x667 and in landscape · the headline
- * reads as a claim about this product, not about the category.
+ * The composition is NOT centred. The type block holds columns 1–7, left
+ * aligned; the video window holds 8–12 and bleeds off the right and bottom
+ * edges of the viewport, so it reads as a window into the shop rather than a
+ * background behind the words.
  *
- * Blocked on client assets: hero video (landscape + portrait crops, MP4 H.264 +
- * WebM, poster frame). Until it lands the section is built poster-first.
+ * VIDEO STATE — read before touching `footage` below.
+ * The client supplied `hero_vid.MOV`. It is rejected under
+ * sections/01-hero.md §"Video handling" rule 2: the ConteKai logo is burned
+ * into every frame and English subtitles are burned into ~90% of them. It is
+ * also a founders-to-camera brand film in a bright office, not a counter at
+ * dusk, and it carries an audio track. Cropping cannot save it: the bug sits
+ * top-left and the captions bottom-centre, leaving an 819x305 sliver of an
+ * already-soft 213 kbps source. See NOTES.md.
+ *
+ * So the window carries the marked placeholder panel the section spec
+ * prescribes. Everything else — poster-first loading, save-data gating, the
+ * scrim, the reduced-motion play control — is built and tested. Dropping in the
+ * clean export is a one-object change to `footage`.
  */
 import Eyebrow from "../ui/Eyebrow.astro";
+import Button from "../ui/Button.astro";
+import Icon from "../ui/Icon.astro";
+
+interface HeroFootage {
+  /** AVIF, an actually good frame, <= 60 KB. The LCP candidate. */
+  poster: string;
+  /** VP9 or AV1. */
+  webm: string;
+  /** H.264 baseline. */
+  mp4: string;
+  /** Intrinsic dimensions. Required: they reserve the box, CLS budget < 0.1. */
+  width: number;
+  height: number;
+}
+
+/**
+ * Return the real footage here to switch the window from the placeholder panel
+ * to the video. Everything downstream keys off it: the <video>, the scrim, and
+ * the "lights coming up" beat all render only when footage exists.
+ *
+ * Requirements before it may return anything (all four, no exceptions):
+ *   - no watermark, no logo bug, no burned-in captions
+ *   - no audio track at all (strip it: saves weight, removes autoplay risk)
+ *   - 9:16, <= 12 s, <= 2.5 MB, WebM (VP9/AV1) + MP4 (H.264 baseline)
+ *   - a poster frame that is an actually good frame, AVIF, <= 60 KB
+ *
+ * To exercise the machinery against the hazard-stripe placeholders in
+ * public/media, return:
+ *   { poster: "/media/poster.avif", webm: "/media/hero.webm",
+ *     mp4: "/media/hero.mp4", width: 1920, height: 1080 }
+ */
+function heroFootage(): HeroFootage | null {
+  return null;
+}
+
+const footage = heroFootage();
 ---
 
 <section
-  class="hero"
+  class:list={["hero", footage && "hero--has-video"]}
   id="top"
   data-section="hero"
   data-ground="dark"
   aria-labelledby="hero-title"
 >
-  <div class="container">
-    <Eyebrow index="01">Hero</Eyebrow>
-    {/* The page's only <h1>. Real headline is written in step 2. */}
-    <h1 id="hero-title">
-      <!-- COPY: written in ORDER.md step 2 -->Contekai
-    </h1>
+  <div class="hero__grid">
+    <div class="hero__type">
+      <div class="mask">
+        <Eyebrow index="01" class="hero__eyebrow">Works offline</Eyebrow>
+      </div>
+
+      {/*
+        One <h1> containing all three lines. The breaks are authored rather
+        than left to the browser, and each line still reflows on its own below
+        400px. The mask wrappers carry no aria attributes and there is no
+        per-character splitting, so the accessible name stays one sentence.
+      */}
+      <h1 id="hero-title" class="hero__title">
+        <span class="mask"><span class="hero__line">Keep selling</span></span>
+        <span class="mask"><span class="hero__line">when the lights</span></span>
+        <span class="mask"><span class="hero__line">go out.</span></span>
+      </h1>
+
+      <p class="hero__sub t-body-lg">
+        Point of sale and stock control for shops in The Gambia. Every sale,
+        every item, every dalasi, online or off.
+      </p>
+
+      <div class="hero__actions">
+        {/* Same label as the header CTA. That repetition is correct. */}
+        <Button variant="primary" href="/signup">Start 7 days free</Button>
+        <Button variant="quiet" href="#pricing" icon="arrow-right">
+          See pricing
+        </Button>
+      </div>
+
+      <p class="hero__trust t-small">
+        No card needed. Pay with Wave when you're ready.
+      </p>
+    </div>
+
+    <div class="hero__window">
+      {
+        footage ? (
+          <>
+            <video
+              class="hero__video"
+              data-hero-video
+              data-webm={footage.webm}
+              data-mp4={footage.mp4}
+              poster={footage.poster}
+              width={footage.width}
+              height={footage.height}
+              preload="none"
+              muted
+              loop
+              playsinline
+              disablepictureinpicture
+              aria-hidden="true"
+            />
+            {/* The one permitted gradient in the build. */}
+            <div class="hero__scrim" data-hero-scrim aria-hidden="true" />
+            {/*
+              Reduced-motion path: the poster stands and playback is offered
+              explicitly. Hidden by default; hero-video.ts reveals it when
+              autoplay is withheld.
+            */}
+            <button type="button" class="hero__play" data-hero-play hidden>
+              <Icon name="play" size={20} />
+              <span>Play video, 12 seconds, no sound</span>
+            </button>
+          </>
+        ) : (
+          <div class="hero__awaiting">
+            <p class="t-mono">
+              Awaiting client footage<br />
+              9:16 · no watermark · no subtitles · no audio · ≤ 12s
+            </p>
+          </div>
+        )
+      }
+    </div>
   </div>
 </section>
 
+{/*
+  Always imported rather than gated on `footage`: it is ~0.4 KB gzipped, it
+  no-ops when the window carries the placeholder, and shipping it unconditionally
+  means it is type-checked and bundled now instead of being written blind on the
+  day the real export lands.
+*/}
+<script>
+  import "../../scripts/hero-video.ts";
+</script>
+
 <style>
   @layer sections {
-    /* min-height and padding come from base.css. Nothing here sets either. */
-    .hero > .container {
+    /*
+      min-height and padding-block come from base.css. Nothing here sets either.
+    */
+    .hero {
+      position: relative;
+      overflow: clip; /* the window bleeds; the page must not scroll sideways */
+    }
+
+    .hero__grid {
       display: grid;
       align-content: center;
+      gap: var(--space-7);
+      inline-size: 100%;
+      /* Fills the hero (which is a flex container) so the window has a full
+         column height to stretch into and crop against. */
+      flex: 1;
+    }
+
+    .hero__type {
+      display: grid;
       gap: var(--space-5);
+      /* No justify-items: start here. It sizes every child to max-content,
+         which stops the headline and the sub from wrapping and scrolls the
+         page sideways at 375px. Width is controlled per element instead. */
+      min-inline-size: 0;
+    }
+
+    /* --- type ------------------------------------------------------------- */
+
+    .hero__title {
+      /* Authored line breaks; balance would fight them. */
+      text-wrap: initial;
+    }
+
+    .hero__line {
+      display: block;
+    }
+
+    .hero__sub {
+      max-inline-size: 46ch;
+      color: var(--muted);
+    }
+
+    .hero__actions {
+      display: grid;
+      gap: var(--space-3);
+      inline-size: 100%;
+      margin-block-start: var(--space-2);
+    }
+
+    /* The primary takes the full width on a phone: it is the one action that
+       matters and it should be a large, unmissable tap target. The quiet
+       action stays a text action and sits left under it — stretching a text
+       link across the screen makes it read as a second button of equal
+       weight, which is exactly what "one primary per viewport" forbids. */
+    .hero__actions :global(.btn--quiet) {
+      justify-self: start;
+    }
+
+    .hero__trust {
+      color: var(--muted);
+    }
+
+    @media (min-width: 480px) {
+      .hero__actions {
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+        inline-size: auto;
+      }
+    }
+
+    /* --- the window ------------------------------------------------------- */
+
+    .hero__window {
+      position: relative;
+      overflow: clip;
+      /* Bleeds to the right edge of the viewport on every width. */
+      margin-inline-end: calc(var(--gutter) * -1);
+    }
+
+    .hero__video {
+      inline-size: 100%;
+      block-size: 100%;
+      object-fit: cover;
+      /* Graded toward the palette. One filter, once. No duotone, no wash. */
+      filter: saturate(0.9) contrast(1.05);
+    }
+
+    .hero__scrim {
+      position: absolute;
+      inset: 0;
+      /* THE ONE PERMITTED GRADIENT IN THE BUILD. */
+      background: var(--scrim-hero);
+    }
+
+    .hero__play {
+      position: absolute;
+      inset-block-end: var(--space-4);
+      inset-inline-end: var(--space-4);
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      min-block-size: var(--tap-min);
+      padding-inline: var(--space-4);
+      border: var(--border-ink);
+      border-radius: var(--r-sm);
+      background-color: var(--ink-900);
+      color: var(--on-ink);
+      font-size: var(--fs-small);
+      font-weight: var(--fw-semibold);
+      cursor: pointer;
+    }
+
+    /* Placeholder panel. Obvious, and ugly on purpose. Not a stock video, not
+       a gradient. It goes when the clean export arrives. */
+    .hero__awaiting {
+      display: grid;
+      /* align-content, not place-items: centring the ITEM sizes it to
+         max-content, and a long mono label at max-content pushes the whole
+         page into horizontal scroll at 375px. Centre the row, stretch the
+         text, let it wrap. */
+      align-content: center;
+      block-size: 100%;
+      min-block-size: 180px;
+      padding: var(--space-5);
+      border: var(--border-ink);
+      background-color: var(--ink-800);
+    }
+
+    .hero__awaiting p {
+      /* --muted, not --faint: the design system stops muted text at .68 on ink
+         and says anything below that fails contrast. --on-ink-faint is .44 and
+         is not a text colour. Measured: --faint here failed axe outright. */
+      color: var(--muted);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+      line-height: 1.8;
+      text-align: center;
+      text-transform: uppercase;
+      text-wrap: balance;
+    }
+
+    /* --- mobile, with footage: the video IS the ground --------------------
+       A six-column split does not exist at 375px, so the window stops being a
+       window and becomes the surface the words sit on. The scrim switches to
+       the vertical variant and works harder for it.
+
+       Without footage this does not apply: the placeholder panel stays in
+       flow, because a full-bleed "AWAITING FOOTAGE" ground would be absurd.
+       --------------------------------------------------------------------- */
+
+    @media (max-width: 1279.98px) {
+      .hero--has-video .hero__window {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        margin: 0;
+      }
+
+      .hero--has-video .hero__type {
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero--has-video .hero__scrim {
+        background: var(--scrim-hero-mobile);
+      }
+    }
+
+    /* --- desktop: the two-column composition ------------------------------
+       The section spec draws the type across columns 1–6 and the window across
+       7–12. Measured, that does not survive its own headline: "when the
+       lights" at the design system's H1 scale needs about 640px, and a
+       6-column block only reaches that at 1440px and up. Below it the authored
+       three lines break into four at exactly the width where the composition
+       is supposed to arrive.
+
+       Two ways out: retune the H1 clamp, or widen the type block. Widening
+       wins — the type scale is the token system's spine and a column span is a
+       per-section layout decision. So: type 1–7, window 8–12, and the split
+       waits for 1280 rather than 1024. Below 1280 the stacked layout gives the
+       headline the full measure and it holds three lines down to 414px.
+       --------------------------------------------------------------------- */
+
+    @media (min-width: 1280px) {
+      .hero__grid {
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        /* One row that fills the hero, so align-self on each item decides its
+           own vertical behaviour: the type centres, the window stretches. */
+        grid-template-rows: minmax(0, 1fr);
+        align-content: stretch;
+        column-gap: var(--space-5);
+      }
+
+      .hero__type {
+        grid-column: 1 / span 7;
+        align-self: center;
+      }
+
+      .hero__window {
+        grid-column: 8 / -1;
+        align-self: stretch;
+        /* Runs past the section's bottom padding so the viewport fold crops it.
+           With object-fit: cover, that crop is the bleed. Top stays inside the
+           padding: the window hangs from the header, it does not fill the
+           screen. */
+        margin-block-end: calc(var(--space-8) * -1);
+      }
+    }
+
+    /* --- the hero load sequence (motion SKILL.md §2A) ---------------------- */
+
+    /*
+      Pure CSS, fired at parse. No JS, so it cannot be stranded by a failed
+      module, and there is nothing to strand with JS disabled.
+
+      0ms    scrim at full
+      80ms   eyebrow   mask-reveal up, 320ms
+      200ms  h1 line 1 mask-reveal up, 420ms
+      260ms  h1 line 2
+      320ms  h1 line 3   (the kit's table enumerates two lines; the headline
+                          has three, so the 60ms stagger continues)
+      340ms  sub       fade + 12px up, 380ms
+      440ms  actions   fade + 12px up, 320ms
+      520ms  trust     fade, 240ms
+      600ms  scrim eases 1.0 -> 0.82 over 700ms — the lights coming up
+    */
+
+    .mask {
+      display: block;
+      overflow: hidden;
+    }
+
+    @keyframes hero-mask-up {
+      from {
+        transform: translateY(110%);
+      }
+    }
+
+    @keyframes hero-rise {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+    }
+
+    @keyframes hero-fade {
+      from {
+        opacity: 0;
+      }
+    }
+
+    @keyframes hero-lights-up {
+      from {
+        opacity: 1;
+      }
+      to {
+        opacity: 0.82;
+      }
+    }
+
+    .hero__eyebrow,
+    .hero__line,
+    .hero__sub,
+    .hero__actions,
+    .hero__trust {
+      animation-fill-mode: both;
+      animation-timing-function: var(--ease-out);
+    }
+
+    .hero__eyebrow {
+      animation-name: hero-mask-up;
+      animation-duration: 320ms;
+      animation-delay: 80ms;
+    }
+
+    .hero__line {
+      animation-name: hero-mask-up;
+      animation-duration: var(--dur-slow);
+    }
+    .hero__title .mask:nth-of-type(1) .hero__line {
+      animation-delay: 200ms;
+    }
+    .hero__title .mask:nth-of-type(2) .hero__line {
+      animation-delay: 260ms;
+    }
+    .hero__title .mask:nth-of-type(3) .hero__line {
+      animation-delay: 320ms;
+    }
+
+    .hero__sub {
+      animation-name: hero-rise;
+      animation-duration: 380ms;
+      animation-delay: 340ms;
+    }
+
+    .hero__actions {
+      animation-name: hero-rise;
+      animation-duration: 320ms;
+      animation-delay: 440ms;
+    }
+
+    .hero__trust {
+      animation-name: hero-fade;
+      animation-duration: var(--dur-base);
+      animation-delay: 520ms;
+    }
+
+    .hero__scrim {
+      animation: hero-lights-up var(--dur-stage) var(--ease-out) 600ms both;
     }
   }
 </style>

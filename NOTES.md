@@ -292,3 +292,212 @@ Blocking or near-blocking, in priority order:
    alert, on a light background. Blocks step 3's cards carrying real substance.
 8. Confirm **Pilore Solutions** as the attribution, and whether privacy and
    terms pages exist.
+
+---
+
+## Step 2 — Hero
+
+**Built:** the full hero. Not-centred two-column composition, authored three-line
+headline with the mask-reveal load sequence, sub, two actions, trust line, and
+the complete video apparatus (poster-first loading, connection gating, the
+scrim, the reduced-motion play control) behind a single `footage` switch.
+
+### The client footage: rejected, with reasons
+
+`hero_vid.MOV` was inspected frame by frame (a 27-frame contact sheet across the
+whole 15.4 s, plus format probing) rather than assumed. It is:
+
+- a **founders-to-camera brand film** — Pa Sulay Jobe and Muhammad Basheer in a
+  bright office, with lower-third name cards, plus laptop/phone b-roll. Not a
+  counter, not a shop, not dusk, no transaction, no till.
+- carrying the **ConteKai logo bug burned into every single frame**, top-left.
+- carrying **burned-in English subtitles on roughly 90% of frames**. One of them
+  reads *"So the vision of Contekai is to empower small and medium-sized
+  business owners"* — "empower" is on the quality-gate banned-word list, so the
+  page would be displaying banned copy as pixels.
+- 16:9 landscape at 1024×576 and 213 kbps (soft), with an **AAC audio track**,
+  running **15.4 s** against a ≤ 12 s budget.
+
+`sections/01-hero.md` §"Video handling" rule 2 is unambiguous: reject any clip
+with a watermark or a burned-in caption and ask for the original export. The
+audio and the runtime are trivially fixable; the other three are not.
+
+Cropping was evaluated and does not work. The bug sits top-left and the captions
+bottom-centre, so the only clean region is roughly **819×305** of an already-soft
+source — wrong aspect for the desktop window and useless for the mobile
+full-bleed. And no crop fixes the deeper problem: a **silent** talking-head is
+someone mouthing words, and it argues for the company rather than for continuity.
+
+**Decision (confirmed with the client):** build video-ready, request the clean
+export. The window carries the marked placeholder panel meanwhile. This clip is
+genuinely good material and should go to Proof (step 6), played on demand with
+sound, where its captions become an asset instead of a defect.
+
+### The video apparatus is built and tested, not aspirational
+
+`footage` in `Hero.astro` is a single switch. It was flipped to the hazard-stripe
+placeholders in `public/media`, every branch exercised in headless Chrome, then
+flipped back. Measured:
+
+| Case | Result |
+|---|---|
+| At DOMContentLoaded | 0 `<source>` elements, `preload="none"` |
+| After load, normal connection | 2 sources attached, playing, `muted` `loop` `aria-hidden` |
+| `prefers-reduced-motion` | paused; play control revealed, labelled *"Play video, 12 seconds, no sound"* |
+| `saveData: true` | **0 sources ever fetched**; the poster stands |
+| `effectiveType: slow-2g` | **0 sources ever fetched**; the poster stands |
+| Scrim, desktop | `100deg` diagonal, settles at `0.82` after the beat |
+| Scrim, mobile | vertical `0.92 → 0.55`, video becomes the full ground |
+
+### Scrim contrast: a threshold, computed, not eyeballed
+
+The gate says to test contrast against the brightest video frame. There is no
+real footage yet, so the worst case was computed instead and recorded in
+`tokens.css` beside the token:
+
+The mobile scrim settles at `0.82` opacity, so the effective ink alpha at the
+bottom stop is `0.82 × 0.55 = 0.45`. Over a **white** frame that puts `--on-ink`
+text at **2.7:1 — a failure**. The top stop is fine (`0.82 × 0.92 = 0.75`, about
+7.3:1). For 4.5:1 against white the effective alpha must be ≥ 0.61, so the lower
+stop must be **≥ 0.75**.
+
+The spec's `.55` is correct for the dusk-lit shop the section is written around.
+If the delivered footage is bright, raise it. The number is in the file so
+whoever drops the export in does not have to rediscover it.
+
+On desktop this cannot bite: the type occupies columns 1–7 and the video 8–12,
+so the headline never overlaps the footage at all.
+
+### Deviations from the section spec, and why
+
+1. **Columns 1–7 / 8–12, split at 1280, not 1–6 / 7–12 at 1024.** Measured, the
+   6/6 split does not survive its own headline: *"when the lights"* at the design
+   system's H1 scale needs about 640px, and a 6-column type block only reaches
+   that at 1440px and up. At 1024 and 1280 the authored three lines broke into
+   four — at exactly the width where the composition is supposed to arrive.
+   Two ways out: retune the H1 clamp, or widen the type block. Widening wins;
+   the type scale is the token system's spine and a column span is a per-section
+   layout decision. Below 1280 the stacked layout gives the headline the full
+   measure. Verified: three lines hold at 414, 768, 1024, 1280, 1366, 1440, 1920.
+
+2. **The CTA label is now "Start 7 days free" everywhere.** `00-shell.md` names
+   the header action *"Start free trial"*, `01-hero.md` names the hero action
+   *"Start 7 days free"*, and `00-shell.md` §Accessibility also requires the two
+   to be identical. All three cannot hold. The hero's label wins: it carries a
+   real quantity, which the copy rules explicitly prefer over vague phrasing.
+   Header and footer were changed to match. It is also kept at **every** width
+   rather than shortened to "Start free" below 480px as the shell's responsive
+   table suggests — a label that changes at a breakpoint is precisely the
+   inconsistency the rule exists to prevent, and it was measured to fit at 320px.
+
+3. **"when the lights" reflows to two lines at 375 and 320.** Left as is: the
+   section spec explicitly anticipates this ("each `<span>` must still reflow
+   gracefully below 400px"). Holding three lines at 375 would need the H1 floor
+   below the design system's 2.75rem, which is token drift on the page's most
+   load-bearing type decision.
+
+4. **The "lights coming up" beat does not exist yet.** It animates the scrim,
+   and there is no scrim without footage. Deliberate: putting the beat on the
+   placeholder would mean animating an `--ink-800` panel to slightly-less-ink,
+   which communicates nothing. It arrives with the export.
+
+### The load sequence is pure CSS
+
+No JS at all. CSS animations start at parse, so the sequence cannot be stranded
+by a failed module and there is nothing to strand with JS disabled. The kit's
+§2A table enumerates two headline lines; the headline has three, so the 60ms
+stagger continues to a third at 320ms. That makes seven beats in the chain
+against the "max 6" rule — §2A is the named orchestrated moment and is the
+sanctioned exception to it.
+
+The global reduced-motion block collapses durations but leaves **delays**
+intact, which would have held the hero at opacity 0 for 600ms before snapping
+in. `motion.css` now zeroes animation and transition delays under reduced motion
+too. Verified: at 150ms with reduced motion every element is already at
+opacity 1.
+
+### Two defects found by measuring, not by looking
+
+- **Horizontal scroll at 320–375.** `justify-items: start` on the type block and
+  `place-items: center` on the placeholder panel both size children to
+  **max-content**, so the headline and the mono label refused to wrap and pushed
+  the document past the viewport. Both replaced with alignment that does not
+  resize the item. Verified 0 horizontal overflow at 320, 375, 414, 768, 1024,
+  1280, 1366, 1440, 1920.
+  Worth recording how this was nearly missed: `chrome --headless --screenshot`
+  renders at a layout viewport that does not match `--window-size`, so its
+  images showed clipping that was not real and hid overflow that was. Puppeteer
+  with an explicit `setViewport` is the measurement of record.
+- **`--faint` used as a text colour** in the placeholder panel. It is
+  `--on-ink-faint` at `.44` alpha, and the design system's own rule stops muted
+  text at `.68`. axe caught it: accessibility dropped to 95 on `color-contrast`.
+  Switched to `--muted`, back to 100. `base.css` now says in the token's own
+  comment that `--faint` is not a text colour.
+
+### Verification
+
+| | Placeholder state (ships) | With footage (proven) |
+|---|---|---|
+| Performance / A11y / Best practices / SEO | **100 / 100 / 100 / 100** | 100 / 100 / 100 |
+| LCP (Slow 4G, 4× CPU) | 1.4 s | 1.5 s |
+| CLS | **0** | **0** |
+| Total transfer | 67 KB | 67 KB + poster + post-LCP video |
+| JS requests | **0** (both scripts inlined into the HTML) | 0 |
+
+**On the LCP element, precisely.** The gate asks for the H1 or the poster, never
+the video. With footage, Chrome attributes LCP to the `<video>` box — and the
+pixels painted at that moment are the **poster**, because the sources are not
+attached until after `load` (measured above: 0 sources at DOMContentLoaded).
+So the video's own frames never block LCP. In the placeholder state LCP is the
+panel's label, which is an artifact of having no footage and disappears with it.
+The H1 is never the LCP element in either state, because the mask-reveal means
+it is not painted at first paint. That is a consequence of the specified motion,
+not a regression.
+
+Also verified: one `<h1>` whose accessible text is the unfragmented sentence
+"Keep selling when the lights go out."; headings descend `H1 > H2 ×5`; tab order
+runs skip link → logo → Log in → header CTA → menu → hero CTA → See pricing;
+exactly one gradient rule in the whole stylesheet and it is on `:root` (the
+scrim tokens); no emoji in the DOM; complete and legible with JS disabled and
+with reduced motion on.
+
+### Self-critique
+
+**Distinctive:** the headline is a claim about a power cut, and the section is
+built so that the claim is what survives when everything else is taken away.
+With no video, no JS and no motion, the page still says *keep selling when the
+lights go out* over a blue-black ground with a hairline till-rail beside it.
+That sentence cannot appear on another company's site, and the composition is
+arranged around it rather than around a product shot.
+
+**Templated:** the action row. Filled primary next to a text link with a right
+arrow is the most ordinary thing in the section, and the arrow in particular is
+doing no work that the words are not already doing. It stays for now because
+"See pricing" needs to read as a jump rather than a second button, but it is the
+first thing I would cut in step 8.
+
+**Removed:** the container. The hero has no `.container` at all now — the type
+block is measured by its own column span and the sub by `46ch`, and the window
+runs to the viewport edge. That is what turns the section from a centred band
+into a composition, and it is the difference the gate's "is every section a
+full-width band with a max-width container and nothing else?" is asking about.
+
+**Gate:** passed. No blockers. Deliberately deferred, and dependent on the clean
+export rather than on anything in the code: contrast against the brightest video
+frame (threshold computed and recorded), and the "no watermark, no burned-in
+caption, no audio track in the shipped video" check, which the current clip
+fails and is why it is not shipped.
+
+### What I need from the client, in priority order
+
+1. **The clean hero export.** No logo bug, no burned-in subtitles, no audio
+   track. **9:16 vertical** — the delivered clip is 16:9, and vertical is what
+   both the desktop window and the mobile full-bleed want. ≤ 12 s, ≤ 2.5 MB,
+   MP4 (H.264 baseline) + WebM (VP9/AV1), plus one good poster frame as AVIF.
+   Shot at a counter, at dusk, with a real transaction, if that footage exists.
+2. **Confirm `/signup` and `/login`** are the real routes. Both hero and header
+   CTAs point there on assumption.
+3. **The logo as clean SVG.** The header lockup and the favicon are still the
+   stand-in drawn from the written description.
+4. Permission to use `hero_vid.MOV` in Proof with sound and its existing
+   captions, and the co-founders' names as they should be spelled.

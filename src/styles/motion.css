@@ -101,6 +101,16 @@
     scroll-behavior: auto !important;
   }
 
+  /* The block above collapses durations but leaves DELAYS intact, which would
+     hold the hero load sequence at opacity 0 for 600ms before snapping in.
+     Zeroing the delays is what turns "instant" into actually instant. */
+  *,
+  *::before,
+  *::after {
+    animation-delay: 0ms !important;
+    transition-delay: 0ms !important;
+  }
+
   @layer base {
     /* Never leave content stranded at opacity 0 if JS has not run. */
     [data-reveal] {

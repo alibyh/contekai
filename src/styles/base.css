@@ -300,6 +300,9 @@
   [data-ground="dark"],
   [data-ground="dark-alt"] {
     --muted: var(--on-ink-muted);
+    /* NOT A TEXT COLOUR. Muted text stops at .68 on ink; --on-ink-faint is .44
+       and fails contrast on its own ground. Use it for rules, dividers and
+       disabled affordances only. Reach for --muted for anything readable. */
     --faint: var(--on-ink-faint);
     --hairline: var(--hairline-ink);
     --link: var(--kai-400);
@@ -378,10 +381,13 @@
     }
   }
 
-  /* Hero is the one section sized by viewport rather than padding. It shrinks
-     below 100svh on short (landscape phone) viewports instead of clipping. */
+  /* Hero is the one section sized by viewport rather than padding. svh, not
+     vh, because of mobile browser chrome. The sticky header takes 64px of flow
+     above it, so the hero fills what is left of the first screen rather than
+     pushing a 64px scroll onto every visitor. It shrinks below that on short
+     (landscape phone) viewports instead of crushing the type. */
   [data-section="hero"] {
-    min-height: 100svh;
+    min-height: calc(100svh - var(--header-h));
     display: flex;
   }
 

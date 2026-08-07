@@ -38,6 +38,37 @@
     /* status — only ever status */
     --signal: #2f9e6b;
 
+    /* THE ONE PERMITTED GRADIENT IN THE WHOLE BUILD: the hero video scrim.
+       Specified in sections/01-hero.md; it lives here so it is a token rather
+       than a magic value in a component. Nothing else in this build may carry
+       a gradient, and never on text. */
+    --scrim-hero: linear-gradient(
+      100deg,
+      var(--ink-900) 0%,
+      rgb(10 21 30 / 0.94) 34%,
+      rgb(10 21 30 / 0.62) 58%,
+      rgb(10 21 30 / 0.28) 100%
+    );
+    /* Mobile: the video is the full ground, so the scrim runs vertically and
+       harder.
+
+       CONTRAST THRESHOLD — check this the day real footage lands. These stops
+       are specified for the dusk-lit shop the section is written around. The
+       scrim settles at 0.82 opacity after the load beat, so the effective ink
+       alpha at the bottom stop is 0.82 x 0.55 = 0.45. Over a WHITE frame that
+       puts --on-ink text at 2.7:1, which fails. The top stop is fine
+       (0.82 x 0.92 = 0.75, about 7.3:1 over white).
+
+       For 4.5:1 against a white frame the effective alpha must be >= 0.61,
+       i.e. the lower stop must be >= 0.75. So: if the delivered footage is
+       bright, raise the bottom stop to 0.75 rather than trusting these values.
+       Measure against the brightest frame, not the poster. */
+    --scrim-hero-mobile: linear-gradient(
+      180deg,
+      rgb(10 21 30 / 0.92) 0%,
+      rgb(10 21 30 / 0.55) 100%
+    );
+
     /* derived text — opacity ramps, not new hues */
     --on-ink: #f6f3ec;
     --on-ink-muted: rgb(246 243 236 / 0.68);
