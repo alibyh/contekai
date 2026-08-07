@@ -501,3 +501,87 @@ fails and is why it is not shipped.
    stand-in drawn from the written description.
 4. Permission to use `hero_vid.MOV` in Proof with sound and its existing
    captions, and the co-founders' names as they should be spelled.
+
+---
+
+## Step 2, revision — video as the hero ground
+
+Client feedback: the design was bad, and the video belongs in the **background**
+of the hero, not in a panel under it. Both fair. The previous version put a
+large empty panel where footage should be, which read as unfinished because it
+was, and the "window in columns 8–12" reading was mine, not something the brief
+demanded.
+
+### What changed
+
+- **The video is the ground.** Full-bleed behind the whole section at every
+  width, scrim over it, type on top. No window, no panel.
+- **The column split is gone entirely**, and with it the 7/5 deviation logged
+  above. There is no 12-column grid in the hero any more: the type block is
+  capped at `50rem` by its own measure and sits left. That is simpler, it
+  removes a breakpoint, and the headline now holds its three authored lines at
+  **414px and up, including 1024 and 1280** where the old split broke it.
+- The **"lights coming up" beat is real now.** It animates a scrim that covers
+  the viewport, so at +600ms the whole shop comes up out of the dark as the
+  words settle. In the panel version it would have been animating a small dark
+  rectangle to a slightly less dark rectangle.
+- The awaiting-footage placeholder is deleted. `heroFootage()` returning `null`
+  now drops to a plain `--ink-900` ground, which is a composition that stands.
+
+### Using the client's clip without shipping its problems
+
+The clip was asked for twice, so it is in. It is not in as delivered. The encode
+lives in `scripts/build-hero-video.sh`, is reproducible, and self-checks:
+
+| Problem in the source | What the encode does |
+|---|---|
+| ConteKai logo burned into every frame, measured at x 50–205, y 50–85 | Crops to y 90–420. The bug is **out of frame**, not hidden under blur. |
+| Subtitles burned into ~90% of frames, x 270–755, y 424–488 | Same crop. The caption band is out of frame. |
+| Mostly founders talking to camera | Dropped. Only the two b-roll segments with lit screens survive (1.5–4.2s, 11.5–15.0s). A silent talking head is someone mouthing words. |
+| Bright office, which argues against "when the lights go out" | Blurred hard and graded to night: desaturated, shadows pushed blue toward `--ink-900`, output white capped near 0.40. It reads as light and shadow in a room. |
+| AAC audio track | `-an`. No audio stream at all. Verified by the script. |
+| Hard cut between segments, and at the loop point | Both crossfaded. The tail is crossfaded back into the head, so the loop has no visible seam. |
+
+Result: **5.2s, 77 KB MP4 / 30 KB WebM / 4.4 KB poster**, against a 2.5 MB budget.
+
+### Contrast is won in the encode, not by the scrim
+
+Measured peak luma of the graded video is **103/255**. That puts `--on-ink` text
+at **4.9:1 against the brightest pixel with no scrim at all**; the scrim only
+improves it. So the scrim is doing composition rather than rescue, which is why
+the spec's `.55` bottom stop is safe here when the arithmetic in the previous
+entry said it would fail against bright footage.
+
+That coupling is now documented in `tokens.css` beside the token, and the build
+script fails loudly if a future clip grades brighter than 120/255.
+
+### One more thing measuring caught
+
+The poster at crf 30 was 1.4 KB, which is **0.046 bits per pixel**. Chrome
+discards LCP candidates below roughly 0.05 bpp as low-entropy placeholders, so
+the LCP element fell through to the header wordmark — neither the H1 nor the
+poster, which the section gate requires. Re-encoded at crf 8: 4.4 KB, 0.105 bpp,
+and the LCP element is the poster again. It also stops a dark gradient banding.
+
+### Verification after the change
+
+| | |
+|---|---|
+| Lighthouse mobile (Slow 4G, 4× CPU) | **100 / 100 / 100 / 100** |
+| LCP | 1.5 s, element is the poster |
+| CLS | **0** |
+| Total transfer | 102 KB |
+| Horizontal scroll | none at 320, 375, 414, 768, 1024, 1440, 1920 |
+| Headline | three authored lines at 414 and up; reflows at 375 and 320, which the spec permits below 400px |
+| `saveData` / `slow-2g` | 0 video bytes fetched; poster stands |
+| `prefers-reduced-motion` | no autoplay, labelled play control, all text visible at 150ms |
+| JS disabled | complete and legible |
+
+### Still open
+
+The best version of this section is still a purpose-shot **9:16 clip of a real
+counter at dusk with a real transaction**. What ships now is salvaged b-roll from
+a corporate film, blurred until it is atmosphere. It works, and it is honest
+about being atmosphere rather than pretending to be evidence, but it is not the
+thing the section was designed around. `public/media/README.md` states what to
+ask for, and a new clip drops straight into the build script.

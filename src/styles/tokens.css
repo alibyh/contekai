@@ -52,17 +52,21 @@
     /* Mobile: the video is the full ground, so the scrim runs vertically and
        harder.
 
-       CONTRAST THRESHOLD — check this the day real footage lands. These stops
-       are specified for the dusk-lit shop the section is written around. The
-       scrim settles at 0.82 opacity after the load beat, so the effective ink
-       alpha at the bottom stop is 0.82 x 0.55 = 0.45. Over a WHITE frame that
-       puts --on-ink text at 2.7:1, which fails. The top stop is fine
-       (0.82 x 0.92 = 0.75, about 7.3:1 over white).
+       CONTRAST — measured, not assumed. The scrim settles at 0.82 opacity
+       after the load beat, so the effective ink alpha at the weakest (bottom)
+       stop is only 0.82 x 0.55 = 0.45. Against a WHITE frame that would put
+       --on-ink text at 2.7:1 and fail.
 
-       For 4.5:1 against a white frame the effective alpha must be >= 0.61,
-       i.e. the lower stop must be >= 0.75. So: if the delivered footage is
-       bright, raise the bottom stop to 0.75 rather than trusting these values.
-       Measure against the brightest frame, not the poster. */
+       It does not fail here, because the contrast is won in the ENCODE rather
+       than by the scrim: the hero video is graded so its peak luma is 106/255,
+       which already puts --on-ink at 4.85:1 with no scrim at all. The scrim is
+       doing composition, not rescue.
+
+       That coupling is the thing to preserve. If footage is ever swapped in
+       without that grade, re-measure — `ffmpeg -vf signalstats` reports peak
+       luma per frame — and either regrade it or raise this bottom stop to
+       >= 0.75, which is what 4.5:1 against white requires. Measure the
+       brightest frame, not the poster. */
     --scrim-hero-mobile: linear-gradient(
       180deg,
       rgb(10 21 30 / 0.92) 0%,

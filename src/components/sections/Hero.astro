@@ -4,31 +4,39 @@
  *
  * One job, one second: say that this shop keeps selling when the lights go out.
  *
- * The composition is NOT centred. The type block holds columns 1–7, left
- * aligned; the video window holds 8–12 and bleeds off the right and bottom
- * edges of the viewport, so it reads as a window into the shop rather than a
- * background behind the words.
+ * The video is the GROUND. It runs full-bleed behind the whole section at every
+ * width, with the scrim over it and the type on top. There is no video "window"
+ * and no column split — the type block is capped by its own measure and sits
+ * left, so the footage stays visible to its right without being boxed.
  *
- * VIDEO STATE — read before touching `footage` below.
- * The client supplied `hero_vid.MOV`. It is rejected under
- * sections/01-hero.md §"Video handling" rule 2: the ConteKai logo is burned
- * into every frame and English subtitles are burned into ~90% of them. It is
- * also a founders-to-camera brand film in a bright office, not a counter at
- * dusk, and it carries an audio track. Cropping cannot save it: the bug sits
- * top-left and the captions bottom-centre, leaving an 819x305 sliver of an
- * already-soft 213 kbps source. See NOTES.md.
+ * VIDEO — processed from the client's hero_vid.MOV, which could not be used as
+ * delivered: the ConteKai logo is burned into every frame (measured at
+ * x 50–205, y 50–85), English subtitles into ~90% of them (x 270–755,
+ * y 424–488), and it carries an audio track. The encode, in
+ * scripts/build-hero-video.sh, therefore:
+ *   - crops to y 90–420, removing the bug and the caption band outright rather
+ *     than hiding them behind blur
+ *   - keeps only the two b-roll segments that contain lit screens
+ *     (1.5–4.2s, 11.5–15.0s) and drops every talking-to-camera shot: a silent
+ *     talking head is someone mouthing words
+ *   - crossfades the join AND the loop point, so it cycles with no visible cut
+ *   - blurs hard and grades toward night, so it reads as light and shadow in a
+ *     room rather than a bright office arguing against the headline
+ *   - strips audio entirely
  *
- * So the window carries the marked placeholder panel the section spec
- * prescribes. Everything else — poster-first loading, save-data gating, the
- * scrim, the reduced-motion play control — is built and tested. Dropping in the
- * clean export is a one-object change to `footage`.
+ * 5.2s, 77 KB MP4 / 30 KB WebM, no audio track. Measured peak luma 103/255,
+ * which puts --on-ink text at 4.9:1 against the brightest pixel BEFORE the
+ * scrim applies — the contrast is won in the grade, not by the scrim.
+ *
+ * See NOTES.md. A purpose-shot 9:16 clip of a real counter would still be
+ * better than salvaged b-roll, and is still worth asking for.
  */
 import Eyebrow from "../ui/Eyebrow.astro";
 import Button from "../ui/Button.astro";
 import Icon from "../ui/Icon.astro";
 
 interface HeroFootage {
-  /** AVIF, an actually good frame, <= 60 KB. The LCP candidate. */
+  /** AVIF, the LCP candidate. */
   poster: string;
   /** VP9 or AV1. */
   webm: string;
@@ -40,23 +48,18 @@ interface HeroFootage {
 }
 
 /**
- * Return the real footage here to switch the window from the placeholder panel
- * to the video. Everything downstream keys off it: the <video>, the scrim, and
- * the "lights coming up" beat all render only when footage exists.
- *
- * Requirements before it may return anything (all four, no exceptions):
- *   - no watermark, no logo bug, no burned-in captions
- *   - no audio track at all (strip it: saves weight, removes autoplay risk)
- *   - 9:16, <= 12 s, <= 2.5 MB, WebM (VP9/AV1) + MP4 (H.264 baseline)
- *   - a poster frame that is an actually good frame, AVIF, <= 60 KB
- *
- * To exercise the machinery against the hazard-stripe placeholders in
- * public/media, return:
- *   { poster: "/media/poster.avif", webm: "/media/hero.webm",
- *     mp4: "/media/hero.mp4", width: 1920, height: 1080 }
+ * Return null to drop back to a plain --ink-900 ground. Nothing else needs to
+ * change: the background layer, the scrim and the play control all render only
+ * when footage exists, and the composition is built to stand without them.
  */
 function heroFootage(): HeroFootage | null {
-  return null;
+  return {
+    poster: "/media/poster.avif",
+    webm: "/media/hero.webm",
+    mp4: "/media/hero.mp4",
+    width: 1024,
+    height: 330,
+  };
 }
 
 const footage = heroFootage();
@@ -69,91 +72,81 @@ const footage = heroFootage();
   data-ground="dark"
   aria-labelledby="hero-title"
 >
-  <div class="hero__grid">
-    <div class="hero__type">
-      <div class="mask">
-        <Eyebrow index="01" class="hero__eyebrow">Works offline</Eyebrow>
+  {
+    footage && (
+      <div class="hero__bg" aria-hidden="true">
+        <video
+          class="hero__video"
+          data-hero-video
+          data-webm={footage.webm}
+          data-mp4={footage.mp4}
+          poster={footage.poster}
+          width={footage.width}
+          height={footage.height}
+          preload="none"
+          muted
+          loop
+          playsinline
+          disablepictureinpicture
+        />
+        {/* The one permitted gradient in the build. */}
+        <div class="hero__scrim" data-hero-scrim />
       </div>
+    )
+  }
 
-      {/*
-        One <h1> containing all three lines. The breaks are authored rather
-        than left to the browser, and each line still reflows on its own below
-        400px. The mask wrappers carry no aria attributes and there is no
-        per-character splitting, so the accessible name stays one sentence.
-      */}
-      <h1 id="hero-title" class="hero__title">
-        <span class="mask"><span class="hero__line">Keep selling</span></span>
-        <span class="mask"><span class="hero__line">when the lights</span></span>
-        <span class="mask"><span class="hero__line">go out.</span></span>
-      </h1>
-
-      <p class="hero__sub t-body-lg">
-        Point of sale and stock control for shops in The Gambia. Every sale,
-        every item, every dalasi, online or off.
-      </p>
-
-      <div class="hero__actions">
-        {/* Same label as the header CTA. That repetition is correct. */}
-        <Button variant="primary" href="/signup">Start 7 days free</Button>
-        <Button variant="quiet" href="#pricing" icon="arrow-right">
-          See pricing
-        </Button>
-      </div>
-
-      <p class="hero__trust t-small">
-        No card needed. Pay with Wave when you're ready.
-      </p>
+  <div class="hero__type">
+    <div class="mask">
+      <Eyebrow index="01" class="hero__eyebrow">Works offline</Eyebrow>
     </div>
 
-    <div class="hero__window">
-      {
-        footage ? (
-          <>
-            <video
-              class="hero__video"
-              data-hero-video
-              data-webm={footage.webm}
-              data-mp4={footage.mp4}
-              poster={footage.poster}
-              width={footage.width}
-              height={footage.height}
-              preload="none"
-              muted
-              loop
-              playsinline
-              disablepictureinpicture
-              aria-hidden="true"
-            />
-            {/* The one permitted gradient in the build. */}
-            <div class="hero__scrim" data-hero-scrim aria-hidden="true" />
-            {/*
-              Reduced-motion path: the poster stands and playback is offered
-              explicitly. Hidden by default; hero-video.ts reveals it when
-              autoplay is withheld.
-            */}
-            <button type="button" class="hero__play" data-hero-play hidden>
-              <Icon name="play" size={20} />
-              <span>Play video, 12 seconds, no sound</span>
-            </button>
-          </>
-        ) : (
-          <div class="hero__awaiting">
-            <p class="t-mono">
-              Awaiting client footage<br />
-              9:16 · no watermark · no subtitles · no audio · ≤ 12s
-            </p>
-          </div>
-        )
-      }
+    {/*
+      One <h1> containing all three lines. The breaks are authored rather than
+      left to the browser, and each line still reflows on its own below 400px.
+      The mask wrappers carry no aria attributes and there is no per-character
+      splitting, so the accessible name stays one sentence.
+    */}
+    <h1 id="hero-title" class="hero__title">
+      <span class="mask"><span class="hero__line">Keep selling</span></span>
+      <span class="mask"><span class="hero__line">when the lights</span></span>
+      <span class="mask"><span class="hero__line">go out.</span></span>
+    </h1>
+
+    <p class="hero__sub t-body-lg">
+      Point of sale and stock control for shops in The Gambia. Every sale,
+      every item, every dalasi, online or off.
+    </p>
+
+    <div class="hero__actions">
+      {/* Same label as the header CTA. That repetition is correct. */}
+      <Button variant="primary" href="/signup">Start 7 days free</Button>
+      <Button variant="quiet" href="#pricing" icon="arrow-right">
+        See pricing
+      </Button>
     </div>
+
+    <p class="hero__trust t-small">
+      No card needed. Pay with Wave when you're ready.
+    </p>
   </div>
+
+  {
+    footage && (
+      /*
+        Reduced-motion path: the poster stands and playback is offered
+        explicitly. Hidden by default; hero-video.ts reveals it when autoplay
+        is withheld.
+      */
+      <button type="button" class="hero__play" data-hero-play hidden>
+        <Icon name="play" size={20} />
+        <span>Play video, 5 seconds, no sound</span>
+      </button>
+    )
+  }
 </section>
 
 {/*
-  Always imported rather than gated on `footage`: it is ~0.4 KB gzipped, it
-  no-ops when the window carries the placeholder, and shipping it unconditionally
-  means it is type-checked and bundled now instead of being written blind on the
-  day the real export lands.
+  ~0.4 KB gzipped. No-ops when there is no video in the ground.
 */}
 <script>
   import "../../scripts/hero-video.ts";
@@ -166,29 +159,57 @@ const footage = heroFootage();
     */
     .hero {
       position: relative;
-      overflow: clip; /* the window bleeds; the page must not scroll sideways */
+      overflow: clip;
+      align-items: center;
     }
 
-    .hero__grid {
-      display: grid;
-      align-content: center;
-      gap: var(--space-7);
-      inline-size: 100%;
-      /* Fills the hero (which is a flex container) so the window has a full
-         column height to stretch into and crop against. */
-      flex: 1;
+    /* --- the ground -------------------------------------------------------- */
+
+    .hero__bg {
+      position: absolute;
+      /* Escapes the section's own gutter so the video reaches every edge. */
+      inset: 0;
+      z-index: 0;
     }
+
+    .hero__video {
+      inline-size: 100%;
+      block-size: 100%;
+      object-fit: cover;
+      object-position: 50% 50%;
+    }
+
+    .hero__scrim {
+      position: absolute;
+      inset: 0;
+      /* Vertical by default: on a phone the video is the whole ground and the
+         type runs down the middle of it. */
+      background: var(--scrim-hero-mobile);
+    }
+
+    @media (min-width: 1024px) {
+      .hero__scrim {
+        /* Wide enough for the type to sit left of the footage, so the scrim
+           runs across instead of down: solid behind the words, opening up on
+           the right where the shop shows through. */
+        background: var(--scrim-hero);
+      }
+    }
+
+    /* --- type -------------------------------------------------------------- */
 
     .hero__type {
+      position: relative;
+      z-index: 1;
       display: grid;
       gap: var(--space-5);
-      /* No justify-items: start here. It sizes every child to max-content,
-         which stops the headline and the sub from wrapping and scrolls the
-         page sideways at 375px. Width is controlled per element instead. */
+      /* No justify-items: start — it sizes children to max-content, which stops
+         the headline wrapping and scrolls the page sideways at 375px.
+         The measure is what caps this block, not a column span. */
       min-inline-size: 0;
+      inline-size: 100%;
+      max-inline-size: 50rem;
     }
-
-    /* --- type ------------------------------------------------------------- */
 
     .hero__title {
       /* Authored line breaks; balance would fight them. */
@@ -212,10 +233,10 @@ const footage = heroFootage();
     }
 
     /* The primary takes the full width on a phone: it is the one action that
-       matters and it should be a large, unmissable tap target. The quiet
-       action stays a text action and sits left under it — stretching a text
-       link across the screen makes it read as a second button of equal
-       weight, which is exactly what "one primary per viewport" forbids. */
+       matters and it should be a large, unmissable tap target. The quiet action
+       stays a text action and sits left under it — stretching a text link
+       across the screen makes it read as a second button of equal weight,
+       which is exactly what "one primary per viewport" forbids. */
     .hero__actions :global(.btn--quiet) {
       justify-self: start;
     }
@@ -233,34 +254,13 @@ const footage = heroFootage();
       }
     }
 
-    /* --- the window ------------------------------------------------------- */
-
-    .hero__window {
-      position: relative;
-      overflow: clip;
-      /* Bleeds to the right edge of the viewport on every width. */
-      margin-inline-end: calc(var(--gutter) * -1);
-    }
-
-    .hero__video {
-      inline-size: 100%;
-      block-size: 100%;
-      object-fit: cover;
-      /* Graded toward the palette. One filter, once. No duotone, no wash. */
-      filter: saturate(0.9) contrast(1.05);
-    }
-
-    .hero__scrim {
-      position: absolute;
-      inset: 0;
-      /* THE ONE PERMITTED GRADIENT IN THE BUILD. */
-      background: var(--scrim-hero);
-    }
+    /* --- the play control (reduced motion only) ---------------------------- */
 
     .hero__play {
       position: absolute;
-      inset-block-end: var(--space-4);
-      inset-inline-end: var(--space-4);
+      z-index: 2;
+      inset-block-end: var(--space-5);
+      inset-inline-end: var(--gutter);
       display: inline-flex;
       align-items: center;
       gap: var(--space-2);
@@ -275,101 +275,8 @@ const footage = heroFootage();
       cursor: pointer;
     }
 
-    /* Placeholder panel. Obvious, and ugly on purpose. Not a stock video, not
-       a gradient. It goes when the clean export arrives. */
-    .hero__awaiting {
-      display: grid;
-      /* align-content, not place-items: centring the ITEM sizes it to
-         max-content, and a long mono label at max-content pushes the whole
-         page into horizontal scroll at 375px. Centre the row, stretch the
-         text, let it wrap. */
-      align-content: center;
-      block-size: 100%;
-      min-block-size: 180px;
-      padding: var(--space-5);
-      border: var(--border-ink);
-      background-color: var(--ink-800);
-    }
-
-    .hero__awaiting p {
-      /* --muted, not --faint: the design system stops muted text at .68 on ink
-         and says anything below that fails contrast. --on-ink-faint is .44 and
-         is not a text colour. Measured: --faint here failed axe outright. */
-      color: var(--muted);
-      font-size: var(--fs-label);
-      letter-spacing: var(--track-label);
-      line-height: 1.8;
-      text-align: center;
-      text-transform: uppercase;
-      text-wrap: balance;
-    }
-
-    /* --- mobile, with footage: the video IS the ground --------------------
-       A six-column split does not exist at 375px, so the window stops being a
-       window and becomes the surface the words sit on. The scrim switches to
-       the vertical variant and works harder for it.
-
-       Without footage this does not apply: the placeholder panel stays in
-       flow, because a full-bleed "AWAITING FOOTAGE" ground would be absurd.
-       --------------------------------------------------------------------- */
-
-    @media (max-width: 1279.98px) {
-      .hero--has-video .hero__window {
-        position: absolute;
-        inset: 0;
-        z-index: 0;
-        margin: 0;
-      }
-
-      .hero--has-video .hero__type {
-        position: relative;
-        z-index: 1;
-      }
-
-      .hero--has-video .hero__scrim {
-        background: var(--scrim-hero-mobile);
-      }
-    }
-
-    /* --- desktop: the two-column composition ------------------------------
-       The section spec draws the type across columns 1–6 and the window across
-       7–12. Measured, that does not survive its own headline: "when the
-       lights" at the design system's H1 scale needs about 640px, and a
-       6-column block only reaches that at 1440px and up. Below it the authored
-       three lines break into four at exactly the width where the composition
-       is supposed to arrive.
-
-       Two ways out: retune the H1 clamp, or widen the type block. Widening
-       wins — the type scale is the token system's spine and a column span is a
-       per-section layout decision. So: type 1–7, window 8–12, and the split
-       waits for 1280 rather than 1024. Below 1280 the stacked layout gives the
-       headline the full measure and it holds three lines down to 414px.
-       --------------------------------------------------------------------- */
-
-    @media (min-width: 1280px) {
-      .hero__grid {
-        grid-template-columns: repeat(12, minmax(0, 1fr));
-        /* One row that fills the hero, so align-self on each item decides its
-           own vertical behaviour: the type centres, the window stretches. */
-        grid-template-rows: minmax(0, 1fr);
-        align-content: stretch;
-        column-gap: var(--space-5);
-      }
-
-      .hero__type {
-        grid-column: 1 / span 7;
-        align-self: center;
-      }
-
-      .hero__window {
-        grid-column: 8 / -1;
-        align-self: stretch;
-        /* Runs past the section's bottom padding so the viewport fold crops it.
-           With object-fit: cover, that crop is the bleed. Top stays inside the
-           padding: the window hangs from the header, it does not fill the
-           screen. */
-        margin-block-end: calc(var(--space-8) * -1);
-      }
+    .hero__play[hidden] {
+      display: none;
     }
 
     /* --- the hero load sequence (motion SKILL.md §2A) ---------------------- */
@@ -387,7 +294,9 @@ const footage = heroFootage();
       340ms  sub       fade + 12px up, 380ms
       440ms  actions   fade + 12px up, 320ms
       520ms  trust     fade, 240ms
-      600ms  scrim eases 1.0 -> 0.82 over 700ms — the lights coming up
+      600ms  scrim eases 1.0 -> 0.82 over 700ms — the lights coming up. Now that
+             the scrim covers the whole viewport, this beat is the thesis
+             performed: the shop comes up out of the dark as the words settle.
     */
 
     .mask {
