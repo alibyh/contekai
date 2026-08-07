@@ -1387,3 +1387,144 @@ only continuously-moving thing on the page.
 
 **Gate:** passed. No gradient · no blur · tokens throughout · real anchors ·
 focus trapped and restored · `inert` when closed · reduced motion handled.
+
+---
+
+## Step 7 — Footer + closing action
+
+**Built:** one dark block that opens with the closing action and settles into the
+utility rows. No separate full-height CTA band above it — that is padding, and
+it is a template shape.
+
+### The contact channel is the point, and it is still missing
+
+`sections/06-footer.md` opens by naming this "the single most important missing
+element on the current site: **a way to talk to a human**", and in this market
+WhatsApp is the conversion path — a shop owner who has read the whole page and
+still has a question will message, not fill in a form.
+
+The number is still `[VERIFY]`. There is no email either. So the slot renders a
+marked awaiting state next to the CTA rather than a dead `wa.me/` link or a
+quietly-dropped action:
+
+> `AWAITING WHATSAPP NUMBER — THE HIGHEST-VALUE ELEMENT ON THIS PAGE FOR THIS MARKET`
+
+It is deliberately visible on the page. `contact` in the component takes
+`whatsapp` (digits, international, no `+`) or `email` as a fallback, and filling
+either turns the note into a real action in both the closing block and the
+Company column, with `rel="noopener"` and an aria-label that says it opens in a
+new tab.
+
+### Everything else marked [VERIFY] is absent, not guessed
+
+- **Privacy and Terms**: no evidence either page exists. A dead legal link is
+  worse than no link, so both are out.
+- **"Built by Pilore Solutions"**: `CONTEXT.md` §1 sources it from the app's own
+  footer but marks it `[VERIFY]`, and the step gate says it ships only once
+  confirmed. The legal row is `© 2026 Contekai` alone.
+- **No social icons.** The client's TikTok/Instagram are implied by the hero
+  footage but no handles were supplied, and the gate forbids unconfirmed ones.
+
+### The two-band footer and the one padding rule
+
+The footer is two stacked grounds — the closing action on `--ink-800`, the rows
+on `--ink-900` — each needing its own vertical rhythm and a full-bleed
+background. Rather than break the "all section padding comes from one rule"
+discipline, `data-section` moved onto the two inner bands
+(`footer-close` / `footer-rows`), which the existing `[data-section]` rule
+already matches. One rule still owns every padding value on the page.
+
+### Two adjustments after looking at it
+
+- The closing headline wrapped to three lines: `22ch` was narrower than the
+  second sentence, so the authored `<br>` was not the only break. Widened to
+  `34ch`, which is now two lines as specified.
+- A 44px minimum on every footer link row is right for touch and loose on a
+  desktop pointer, where it spread four links over 224px of nothing. Tightened
+  to 34px **only under `(pointer: fine)`** — the touch floor is untouched on
+  phones, tablets and hybrids, `target-size` passes, and 34px still clears
+  WCAG 2.2's 24px comfortably.
+
+### The CLS bug, finally pinned down
+
+Worth recording in full, because it was misdiagnosed twice.
+
+Roughly four Lighthouse runs in ten reported **CLS 0.608 and performance 77**,
+always that exact value, always attributed to `.cap__stage`. Earlier passes
+blamed a font swap and then a stray Chrome instance, hardened the stage's height
+twice, and each time a few clean runs made it look solved. It was not.
+
+`0.6075` is `500 / 823` — one card height over the mobile viewport, i.e.
+everything below the deck jumping by exactly one card.
+
+What finally isolated it: **disabling `deck.ts` entirely gave CLS 0 in 4/4
+runs.** The cause was `deck.ts` setting `data-stacked` on the stage *after*
+first paint, flipping the deck from a scrolling flex row to an
+absolutely-positioned stack. A post-paint layout-mode change, and whether it
+landed inside Lighthouse's CLS window was the coin-flip.
+
+Things that did **not** reproduce it, and are therefore ruled out: a faithful
+replication of Lighthouse's emulation (412×823, DPR 2.625, Slow 4G, 4× CPU,
+cold cache, 20s window) with a `layout-shift` PerformanceObserver — 0.0000; the
+6-second auto-advance; and the full-page-screenshot viewport resize, which grows
+the `100svh` hero from 759px to 5623px but is correctly excluded from CLS.
+
+**The fix removes the switch rather than timing it better.** The stacked layout
+is now plain CSS keyed on `html[data-js]`, which a blocking inline script in
+`<head>` sets before first paint. `deck.ts` no longer touches the layout mode at
+all — it only assigns `data-pos` — so it cannot move anything after paint. With
+JS off, `data-js` is never set and the stage stays the scrolling snap row, which
+is the same fallback as before. A card with no `data-pos` yet shows alone rather
+than six piling up, so a failed script degrades sanely too.
+
+**6/6 Lighthouse runs at CLS 0** since, against 3/6 before.
+
+### Verification
+
+| | |
+|---|---|
+| Lighthouse mobile | **100 / 100 / 100 / 100** |
+| LCP / CLS / TBT / total | 1.7 s · **0** (6 consecutive runs) · 0 ms · 124 KB |
+| JS | 5 requests, 5.1 KB |
+| CTA label | one label, `Start 7 days free`, in all six places it appears |
+| Grounds | closing `rgb(15,31,43)` = `--ink-800`; rows `--ink-900` |
+| Last element | the 2px `--laterite` rail, `footer.lastElementChild` |
+| Touch targets at 375 | none under 44px |
+| Legal links / newsletter / social / emoji | none |
+| navs | `aria-label="Product"` and `"Company"` |
+| Footer tab order | CTA → 4 product links → Log in → Start 7 days free |
+| Focus ring | `2px solid rgb(78,155,220)` = `--kai-400` |
+| JS off / reduced motion | closing block fully visible, no stranding |
+
+### Self-critique
+
+**Distinctive:** the rail closing the page. A 2px `--laterite` line across the
+very bottom is the till roll running out — it answers the vertical rail that has
+been feeding down the left gutter since the hero, and it is the only ornament in
+the footer. Nothing else on the page would explain why that line is there.
+
+**Templated:** the three-column identity/Product/Company block. It is the
+default footer shape and nothing about it is Contekai's; it survives because a
+footer that tries to be interesting is worse than one that is quick to scan.
+
+**Removed:** the "Multi-branch" link. The spec lists four Product links and one
+of them pointed at `#what-it-does`, the same destination as "What it does" — two
+labels for one anchor, which makes a reader think they missed something.
+Replaced with "Shops using it" pointing at `#shops`, so all four labels name
+four different places and each one matches its section's eyebrow exactly.
+
+**Gate:** passed. One CTA label everywhere · a contact channel is *slotted and
+visibly pending* rather than faked · no invented links · no newsletter, social
+icons or emoji · all footer targets ≥44px at 375 · the closing block is part of
+the footer, not a separate band.
+
+### What the client still owes, in priority order
+
+1. **The WhatsApp number.** Highest-value item on the page for this market and
+   the only thing standing between the footer and being finished.
+2. **Do Privacy and Terms pages exist?** If yes, the links go back.
+3. **Confirm "Built by Pilore Solutions"** for the legal row.
+4. TikTok/Instagram handles, if those accounts should be linked.
+5. Still outstanding from earlier steps: the 6-month price, the multi-location
+   discount, Bubacarr Jaith's quote/business/town/permission, the logo SVG, and
+   confirmation that `/signup` and `/login` are the real routes.

@@ -1,44 +1,401 @@
 ---
 /**
- * Footer — closing action + contact.
+ * 06 — Closing action + footer.
  *
- * <!-- built in ORDER.md step 7 -->
+ * Two jobs, one block: repeat the action for anyone who read the whole page,
+ * and give them a way to talk to a human. There is no separate full-height CTA
+ * band above it — that is padding, and it is a template shape.
  *
- * Gate for that step: one primary CTA whose label matches the header's exactly
- * ("Start free trial"); a contact channel present (WhatsApp is the highest-value
- * element on this page for this market); legal links resolve or are removed;
- * attribution to Pilore Solutions confirmed before it ships.
+ * WHATSAPP IS THE POINT OF THIS SECTION. In this market a shop owner who has
+ * read the page and still has a question will message, not fill a form, and
+ * `CONTEXT.md` §5 records that the current site has no contact channel at all —
+ * which the kit calls a conversion problem. The number is still [VERIFY], so
+ * rather than invent one or quietly drop the action, the slot renders a marked
+ * awaiting state. It is visible on the page so it cannot be forgotten. Set
+ * `contact` below and it becomes the real thing.
  *
- * Open questions blocking the real build (CONTEXT.md §5, §6):
- *  - WhatsApp number / phone [VERIFY — none exists on the current site]
- *  - do privacy and terms pages exist? [VERIFY]
- *  - Pilore Solutions attribution [VERIFY]
+ * Everything else the spec marks [VERIFY] is absent rather than guessed:
+ *   - Privacy and Terms: no evidence either page exists. A dead legal link is
+ *     worse than no link, so they are out and on the [VERIFY] list.
+ *   - "Built by Pilore Solutions": CONTEXT.md attributes it from the app's own
+ *     footer but marks it [VERIFY], and the step gate says it ships only once
+ *     confirmed. Withheld.
+ *   - No social icons: the client's accounts are implied but no handles were
+ *     supplied, and the gate forbids unconfirmed ones.
  */
-import Eyebrow from "../ui/Eyebrow.astro";
+import Button from "../ui/Button.astro";
+import Icon from "../ui/Icon.astro";
+
+/**
+ * The contact channel. Fill this in and the awaiting note becomes a real
+ * action in both the closing block and the Company column.
+ *
+ *   whatsapp: digits only, international format, no + or spaces — wa.me wants
+ *             e.g. "2203xxxxxx" for The Gambia.
+ *   email:    only as a fallback. Push for WhatsApp; it is worth more than
+ *             anything else in this footer.
+ */
+const contact: { whatsapp?: string; email?: string } = {};
+
+const waHref = contact.whatsapp ? `https://wa.me/${contact.whatsapp}` : null;
+const mailHref = contact.email ? `mailto:${contact.email}` : null;
+const contactHref = waHref ?? mailHref;
+const contactLabel = waHref ? "Ask a question on WhatsApp" : "Email us a question";
+
+/** Labels match the destination's eyebrow exactly. That is what the eyebrows
+    are for — the footer link and the section heading name the same thing. */
+const productLinks = [
+  { href: "#what-it-does", label: "What it does" },
+  { href: "#built-for-here", label: "Offline mode" },
+  { href: "#pricing", label: "Pricing" },
+  { href: "#shops", label: "Shops using it" },
+];
+
+const year = new Date().getFullYear();
 ---
 
-<footer
-  class="footer"
-  role="contentinfo"
-  id="start"
-  data-section="footer"
-  data-ground="paper"
-  aria-labelledby="footer-title"
->
-  <div class="container">
-    <Eyebrow index="06">Start</Eyebrow>
-    <h2 id="footer-title">Start 7 days free</h2>
-    {/* <!-- built in ORDER.md step 7 --> */}
+<footer class="footer" role="contentinfo" id="start" data-ground="dark">
+  {/* --- closing action ------------------------------------------------- */}
+  <div
+    class="closing"
+    data-section="footer-close"
+    data-ground="dark-alt"
+    aria-labelledby="footer-title"
+  >
+    <div class="closing__inner">
+      <h2 id="footer-title" class="closing__title" data-reveal>
+        Try it for seven days.<br />Nothing to pay until you decide.
+      </h2>
+
+      <div class="closing__actions" data-reveal>
+        {/* The same label as the header and the hero. Three instances of one
+            action with one name. */}
+        <Button variant="primary" href="/signup">Start 7 days free</Button>
+
+        {
+          contactHref ? (
+            <a
+              class="closing__contact"
+              href={contactHref}
+              target="_blank"
+              rel="noopener"
+              aria-label={`${contactLabel} (opens in a new tab)`}
+            >
+              <Icon name="message-circle" size={20} />
+              <span>{contactLabel}</span>
+              <Icon name="arrow-up-right" size={16} />
+            </a>
+          ) : (
+            <p class="closing__awaiting t-mono">
+              Awaiting WhatsApp number — the highest-value element on this page
+              for this market
+            </p>
+          )
+        }
+      </div>
+    </div>
   </div>
+
+  {/* --- utility rows ---------------------------------------------------- */}
+  <div class="foot" data-section="footer-rows">
+    <div class="foot__inner">
+      <div class="foot__identity">
+        <span class="foot__lockup">
+          {/*
+            PLACEHOLDER MARK — same stand-in as the header, awaiting the real
+            SVG (CONTEXT.md §5). Inverted variant here.
+          */}
+          <svg
+            class="foot__mark"
+            width="24"
+            height="24"
+            viewBox="0 0 32 32"
+            fill="none"
+            aria-hidden="true"
+            data-placeholder="awaiting client logo SVG"
+          >
+            <g stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <path d="M16 16 16 6M16 16 24.7 21M16 16 7.3 21M16 16 25.4 11.5M16 16 6.6 11.5"></path>
+            </g>
+            <g fill="currentColor">
+              <circle cx="16" cy="16" r="3.4"></circle>
+              <circle cx="16" cy="5" r="2.2"></circle>
+              <circle cx="25.5" cy="10.8" r="2.2"></circle>
+              <circle cx="24.9" cy="21.6" r="2.2"></circle>
+              <circle cx="7.1" cy="21.6" r="2.2"></circle>
+              <circle cx="6.5" cy="10.8" r="2.2"></circle>
+            </g>
+          </svg>
+          <span class="foot__word">Contekai</span>
+        </span>
+        <p class="foot__line">
+          Point of sale and stock control for shops in The Gambia.
+        </p>
+      </div>
+
+      <nav class="foot__col" aria-label="Product">
+        <h3 class="foot__heading t-mono">Product</h3>
+        <ul class="foot__list">
+          {
+            productLinks.map((l) => (
+              <li>
+                <a href={l.href}>{l.label}</a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+
+      <nav class="foot__col" aria-label="Company">
+        <h3 class="foot__heading t-mono">Company</h3>
+        <ul class="foot__list">
+          <li><a href="/login">Log in</a></li>
+          <li><a href="/signup">Start 7 days free</a></li>
+          {
+            contactHref && (
+              <li>
+                <a
+                  href={contactHref}
+                  target="_blank"
+                  rel="noopener"
+                  aria-label={`${contactLabel} (opens in a new tab)`}
+                >
+                  {waHref ? "Ask on WhatsApp" : "Email us"}
+                </a>
+              </li>
+            )
+          }
+          {/* Privacy and Terms are absent until those pages exist. A dead legal
+              link is worse than no link. */}
+        </ul>
+      </nav>
+    </div>
+
+    <p class="foot__legal t-mono">
+      <span>&copy; {year} Contekai</span>
+      {/* "Built by Pilore Solutions" ships once CONTEXT.md §1 is confirmed. */}
+    </p>
+  </div>
+
+  {/*
+    The last element on the page: the rail's fill, completed. The till roll
+    ends. This is the footer's only ornament and it closes the motif the rail
+    opened at the top.
+  */}
+  <div class="footer__rail" aria-hidden="true"></div>
 </footer>
 
 <style>
   @layer sections {
-    /* Padding comes from the single [data-section] rule in base.css.
-       Do not add padding-block here. */
-    .footer > .container {
+    /* Padding for both bands comes from the single [data-section] rule in
+       base.css — the attribute is on the two inner blocks rather than on
+       <footer>, because this section is two stacked grounds and each needs its
+       own vertical rhythm and a full-bleed background. One rule still owns
+       every value; see the --section-pad entries in base.css. */
+
+    .footer {
+      position: relative;
+    }
+
+    /* --- closing action ---------------------------------------------------
+       One value step off the page ground: enough separation without a border. */
+
+    .closing__inner,
+    .foot__inner {
+      max-inline-size: var(--container);
+      margin-inline: auto;
+    }
+
+    .closing__inner {
+      display: grid;
+      gap: var(--space-6);
+    }
+
+    .closing__title {
+      /* Wide enough that the authored <br> is the only break: at 22ch the
+         second sentence wrapped and the two-line headline became three. */
+      max-inline-size: 34ch;
+      font-size: clamp(1.5rem, 3.2vw, 2.5rem);
+      font-weight: var(--fw-bold);
+      font-variation-settings: "wdth" var(--wdth-h2);
+      letter-spacing: var(--track-h2);
+      line-height: 1.15;
+    }
+
+    .closing__actions {
       display: grid;
       gap: var(--space-4);
+      transition-delay: var(--stagger);
+    }
+
+    .closing__contact {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      min-block-size: var(--tap-min);
+      color: var(--kai-400);
+      font-weight: var(--fw-medium);
+      text-decoration: none;
+    }
+
+    .closing__contact:hover span {
+      text-decoration: underline;
+      text-underline-offset: 0.2em;
+    }
+
+    .closing__awaiting {
+      max-inline-size: 40ch;
+      padding: var(--space-4);
+      border: var(--border-ink);
+      color: var(--muted);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+      line-height: 1.7;
+      text-transform: uppercase;
+    }
+
+    /* --- utility rows ------------------------------------------------------ */
+
+    .foot__inner {
+      display: grid;
+      gap: var(--space-7);
+    }
+
+    .foot__identity {
+      display: grid;
+      gap: var(--space-4);
+      align-content: start;
+    }
+
+    .foot__lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .foot__mark {
+      color: var(--laterite);
+    }
+
+    .foot__word {
+      font-size: 1rem;
+      font-weight: var(--fw-bold);
+      font-variation-settings: "wdth" var(--wdth-h2);
+    }
+
+    .foot__line {
+      max-inline-size: 30ch;
+      color: var(--muted);
+      font-size: var(--fs-small);
+      line-height: var(--lh-small);
+    }
+
+    .foot__col {
+      display: grid;
+      gap: var(--space-4);
+      align-content: start;
+    }
+
+    .foot__heading {
+      color: var(--muted);
+      font-size: var(--fs-label);
+      font-weight: var(--fw-regular);
+      letter-spacing: var(--track-label);
+      text-transform: uppercase;
+    }
+
+    .foot__list {
+      display: grid;
+      /* --space-3 between rows so every target clears 44px at 375. */
+      gap: var(--space-3);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .foot__list a {
+      display: inline-flex;
+      align-items: center;
+      /* The footer is where mis-sized touch targets hide. */
+      min-block-size: var(--tap-min);
+      /* Functional links never use --faint; that is reserved for the
+         copyright row, which is not essential content. */
+      color: var(--muted);
+      text-decoration: none;
+      transition: color var(--dur-fast) var(--ease-out);
+    }
+
+    /* Hover is never colour-only. */
+    .foot__list a:hover {
+      color: var(--on-ink);
+      text-decoration: underline;
+      text-underline-offset: 0.2em;
+    }
+
+    .foot__legal {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2) var(--space-5);
+      max-inline-size: var(--container);
+      margin-inline: auto;
+      margin-block-start: var(--space-7);
+      padding-block-start: var(--space-5);
+      border-block-start: var(--border-ink);
+      /* The section spec allows --on-ink-faint here on the grounds that the
+         copyright row is not essential content. It still measures 4.06:1 and
+         axe still fails it, so this uses --on-ink-quiet (4.9:1) — the token
+         added for exactly this, quiet enough to recede and readable enough to
+         pass. */
+      color: var(--on-ink-quiet);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+    }
+
+    /* --- the closing rail --------------------------------------------------- */
+
+    .footer__rail {
+      block-size: 2px;
+      background-color: var(--laterite);
+    }
+
+    /* --- responsive --------------------------------------------------------- */
+
+    @media (max-width: 767.98px) {
+      /* Both actions go full width, WhatsApp second. */
+      .closing__actions :global(.btn),
+      .closing__contact {
+        inline-size: 100%;
+        justify-content: center;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .closing__actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-6);
+      }
+
+      .foot__inner {
+        grid-template-columns: 2fr 1fr 1fr;
+        gap: var(--space-8);
+      }
+    }
+
+    /* A 44px minimum on every link row is right for touch and loose on a
+       desktop pointer, where it spreads four links over 224px of nothing.
+       Tightened only where the pointer is fine — the touch floor is untouched
+       on phones, tablets and hybrids. */
+    @media (pointer: fine) and (min-width: 768px) {
+      .foot__list {
+        gap: var(--space-2);
+      }
+
+      .foot__list a {
+        min-block-size: auto;
+        padding-block: var(--space-1);
+      }
     }
   }
 </style>

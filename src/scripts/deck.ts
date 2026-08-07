@@ -7,9 +7,11 @@
  * opacity 0.
  *
  * PROGRESSIVE ENHANCEMENT
- * The stacked layout exists only once this file sets `[data-stacked]`. Until
- * then — and forever, if JS never runs — the stage is a plain horizontally
- * scrolling snap row showing all six cards, fully readable and navigable.
+ * The stacked layout is CSS, applied at first paint when `html[data-js]` is
+ * present. With JS off that attribute is never set and the stage stays a plain
+ * horizontally scrolling snap row showing all six cards, fully readable and
+ * navigable. This file never changes the layout mode — it only assigns
+ * positions — so it can never shift the page after paint.
  *
  * AUTO-ADVANCE, AND WHY IT IS HERE
  * kit/skills/motion/SKILL.md §2C says "Never auto-advance", and it is right
@@ -52,10 +54,10 @@ if (stage) {
   const pad = (n: number) => String(n).padStart(2, "0");
   const mod = (n: number) => ((n % total) + total) % total;
 
-  // Switch off the scrolling row and take over positioning. Everything below
-  // assumes this has happened; nothing above it does.
-  stage.setAttribute("data-stacked", "");
-  stage.removeAttribute("data-falloff");
+  // The stacked layout is already on screen — CSS applies it at first paint via
+  // html[data-js]. This file only moves cards between positions, so there is no
+  // layout mode to switch and nothing below the deck can be pushed around after
+  // paint. See the note in Capabilities.astro.
 
   function paint(): void {
     cards.forEach((card, i) => {

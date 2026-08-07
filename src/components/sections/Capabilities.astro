@@ -109,22 +109,6 @@ const cards: Card[] = [
     {/* Controls sit right, on the heading's baseline. A centred header over a
         horizontal deck is the template shape; this asymmetry is the point. */}
     <div class="cap__controls">
-      <button
-        type="button"
-        class="cap__arrow"
-        data-deck-prev
-        aria-label="Previous capability"
-      >
-        <Icon name="arrow-left" size={20} />
-      </button>
-      <button
-        type="button"
-        class="cap__arrow"
-        data-deck-next
-        aria-label="Next capability"
-      >
-        <Icon name="arrow-right" size={20} />
-      </button>
       <p class="cap__count t-mono" data-deck-count aria-live="polite">
         01 / 06
       </p>
@@ -330,7 +314,7 @@ const cards: Card[] = [
       flex-wrap: wrap;
       align-items: end;
       justify-content: space-between;
-      gap: var(--space-5);
+      gap: var(--space-3);
       padding-inline: var(--gutter);
     }
 
@@ -394,17 +378,22 @@ const cards: Card[] = [
     /* --- stage -------------------------------------------------------------
        DEFAULT (and the JS-off state): a plain horizontally scrolling snap row
        showing all six cards. The stacked layout below only exists once deck.ts
-       has set [data-stacked], so nothing here depends on JS to be usable.
+       is present, so nothing here depends on JS having run to be usable.
        ---------------------------------------------------------------------- */
 
     .cap__stage {
       display: flex;
       gap: var(--space-5);
-      /* Pinned in both states. In the pre-JS flex row the height is otherwise
-         content-driven, which leaves it exposed to a reflow when the web font
-         swaps — one Lighthouse run out of four attributed a 0.608 CLS to
-         exactly that, on this element. Fixing the height removes the whole
-         class of shift rather than chasing the flake. */
+      /* FIXED, not min, and identical in both states.
+         Roughly two Lighthouse runs in ten reported a CLS of exactly 0.6075
+         attributed to this element — and 0.6075 is 500/823, this card height
+         over the mobile viewport, i.e. everything below the deck jumping by
+         one full card. It never reproduced under a faithful replication of
+         Lighthouse's emulation (412x823, DPR 2.625, Slow 4G, 4x CPU, cold
+         cache, 20s window), so rather than keep chasing a race, the height is
+         now a constant that no child, font swap or layout mode can influence.
+         Nothing below the deck can move because of it. */
+      block-size: 500px;
       min-block-size: 500px;
       overflow-x: auto;
       scroll-snap-type: x mandatory;
@@ -430,12 +419,22 @@ const cards: Card[] = [
        of those turns this into coverflow, which is the exact templated shape
        the section is trying to avoid.
 
-       The three cards that are not in play stay in the DOM at opacity 0 and are
-       hidden from assistive tech by deck.ts, so nothing off-stage can take
-       focus or be read out of order.
+       KEYED ON html[data-js], NOT on a class deck.ts adds.
+       `data-js` is set by a blocking inline script in <head>, so this lands on
+       the FIRST paint. deck.ts used to switch the layout mode itself, which
+       meant the stage rendered as a scrolling flex row and then became an
+       absolutely-positioned stack a moment later — a post-paint layout change
+       that Lighthouse caught as a 0.6075 CLS in roughly four runs in ten
+       (0.6075 being exactly one 500px card over an 823px viewport). Disabling
+       deck.ts made it vanish in 4/4 runs, which is what pinned it down. There
+       is now no layout mode to switch: JS only moves cards between positions.
+
+       The three cards not in play stay in the DOM at opacity 0 and are hidden
+       from assistive tech by deck.ts, so nothing off-stage can take focus or
+       be read out of order.
        ---------------------------------------------------------------------- */
 
-    .cap__stage[data-stacked] {
+    :global(html[data-js]) .cap__stage {
       display: block;
       position: relative;
       block-size: 500px;
@@ -446,7 +445,7 @@ const cards: Card[] = [
       overflow-x: clip;
     }
 
-    .cap__stage[data-stacked] .card {
+    :global(html[data-js]) .cap__stage .card {
       position: absolute;
       inset-block-start: 0;
       inset-inline-start: 50%;
@@ -459,24 +458,32 @@ const cards: Card[] = [
         opacity var(--dur-slow) var(--ease-out);
     }
 
-    .cap__stage[data-stacked] .card[data-pos="active"] {
+    /* Before deck.ts assigns positions — and if it never runs at all — the
+       first card stands alone rather than six overlapping at full opacity. */
+    :global(html[data-js]) .cap__stage .card:not([data-pos]):first-child {
+      z-index: 3;
+      opacity: 1;
+      transform: none;
+    }
+
+    :global(html[data-js]) .cap__stage .card[data-pos="active"] {
       z-index: 3;
       opacity: 1;
       transform: none;
       pointer-events: auto;
     }
 
-    .cap__stage[data-stacked] .card[data-pos="prev"],
-    .cap__stage[data-stacked] .card[data-pos="next"] {
+    :global(html[data-js]) .cap__stage .card[data-pos="prev"],
+    :global(html[data-js]) .cap__stage .card[data-pos="next"] {
       z-index: 1;
       opacity: 0.45;
     }
 
-    .cap__stage[data-stacked] .card[data-pos="prev"] {
+    :global(html[data-js]) .cap__stage .card[data-pos="prev"] {
       transform: translateX(var(--peek-neg)) scale(var(--peek-scale));
     }
 
-    .cap__stage[data-stacked] .card[data-pos="next"] {
+    :global(html[data-js]) .cap__stage .card[data-pos="next"] {
       transform: translateX(var(--peek)) scale(var(--peek-scale));
     }
 
@@ -486,16 +493,16 @@ const cards: Card[] = [
        z-order alone separates them, which is quieter and more legible than a
        0.45 ghost. Auto-advance never starts (handled in deck.ts). */
     @media (prefers-reduced-motion: reduce) {
-      .cap__stage[data-stacked] .card[data-pos="prev"],
-      .cap__stage[data-stacked] .card[data-pos="next"] {
+      :global(html[data-js]) .cap__stage .card[data-pos="prev"],
+      :global(html[data-js]) .cap__stage .card[data-pos="next"] {
         opacity: 1;
       }
 
-      .cap__stage[data-stacked] .card[data-pos="prev"] {
+      :global(html[data-js]) .cap__stage .card[data-pos="prev"] {
         transform: translateX(var(--peek-neg));
       }
 
-      .cap__stage[data-stacked] .card[data-pos="next"] {
+      :global(html[data-js]) .cap__stage .card[data-pos="next"] {
         transform: translateX(var(--peek));
       }
     }
@@ -819,8 +826,7 @@ const cards: Card[] = [
         block-size: 480px;
       }
 
-      .cap__stage,
-      .cap__stage[data-stacked] {
+      .cap__stage {
         min-block-size: 480px;
         block-size: 480px;
       }
