@@ -1,0 +1,44 @@
+---
+/**
+ * 01 — Hero. The most important section in the build.
+ *
+ * <!-- built in ORDER.md step 2 -->
+ *
+ * Gate for that step: LCP is the headline or the poster, never the video · the
+ * poster-only composition (video removed entirely) still looks finished ·
+ * reduced-motion path verified · text contrast holds on every frame of the
+ * video, not just the poster · works at 375x667 and in landscape · the headline
+ * reads as a claim about this product, not about the category.
+ *
+ * Blocked on client assets: hero video (landscape + portrait crops, MP4 H.264 +
+ * WebM, poster frame). Until it lands the section is built poster-first.
+ */
+import Eyebrow from "../ui/Eyebrow.astro";
+---
+
+<section
+  class="hero"
+  id="top"
+  data-section="hero"
+  data-ground="dark"
+  aria-labelledby="hero-title"
+>
+  <div class="container">
+    <Eyebrow index="01">Hero</Eyebrow>
+    {/* The page's only <h1>. Real headline is written in step 2. */}
+    <h1 id="hero-title">
+      <!-- COPY: written in ORDER.md step 2 -->Contekai
+    </h1>
+  </div>
+</section>
+
+<style>
+  @layer sections {
+    /* min-height and padding come from base.css. Nothing here sets either. */
+    .hero > .container {
+      display: grid;
+      align-content: center;
+      gap: var(--space-5);
+    }
+  }
+</style>

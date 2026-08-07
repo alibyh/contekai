@@ -1,0 +1,67 @@
+---
+/**
+ * Eyebrow — DM Mono, uppercase, .12em tracking, muted, preceded by a 24px
+ * hairline rule.
+ *
+ * This is the one repeated structural device in the build. It earns its place
+ * because it carries the section index from the rail: the `01` here and the
+ * `01` running down the till-rail are the same number, so the eyebrow is a
+ * position marker, not decoration. (Impeccable's brand register bans repeated
+ * tracked labels "unless it's a deliberate, named brand system" — this is the
+ * named system, and the index is what makes it one. See NOTES.md.)
+ *
+ * If an eyebrow ever appears without a section index behind it, it has stopped
+ * doing work and should be deleted.
+ */
+interface Props {
+  /** Section index, e.g. "01". Matches the rail. */
+  index?: string;
+  /** Render as this element. `p` by default; `span` inside a heading block. */
+  as?: "p" | "span" | "div";
+  class?: string;
+}
+
+const { index, as: Tag = "p", class: className }: Props = Astro.props;
+---
+
+<Tag class:list={["eyebrow", "t-mono", className]}>
+  <span class="eyebrow__rule" aria-hidden="true"></span>
+  {index && <span class="eyebrow__index">{index}</span>}
+  <span class="eyebrow__text"><slot /></span>
+</Tag>
+
+<style>
+  @layer components {
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin: 0;
+      color: var(--muted);
+      font-size: var(--fs-label);
+      font-weight: var(--fw-regular);
+      letter-spacing: var(--track-label);
+      line-height: var(--lh-flat);
+      text-transform: uppercase;
+    }
+
+    .eyebrow__rule {
+      inline-size: 24px;
+      block-size: 1px;
+      flex: none;
+      background-color: currentColor;
+      opacity: 0.5;
+    }
+
+    .eyebrow__index {
+      color: var(--laterite);
+    }
+
+    /* --laterite on --ink-900 is banned for text (contrast). On dark grounds
+       the index takes the link blue, which is verified at 6.2:1. */
+    :global([data-ground="dark"]) .eyebrow__index,
+    :global([data-ground="dark-alt"]) .eyebrow__index {
+      color: var(--kai-400);
+    }
+  }
+</style>

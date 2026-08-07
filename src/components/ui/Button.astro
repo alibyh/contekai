@@ -1,0 +1,139 @@
+---
+/**
+ * Button — three variants. There is no fourth.
+ *
+ * primary   — --laterite fill, white label, no border. ONE PER VIEWPORT.
+ * secondary — transparent, current label, hairline border for the ground.
+ * quiet     — no fill, link colour, underline on hover. Inline text actions.
+ *
+ * Not pills: radius is --r-sm. Pill buttons on a dark hero is the template
+ * tell, and this build does not pay it. No scale, no lift on hover.
+ *
+ * Renders <a> when `href` is given, <button> otherwise.
+ */
+import Icon from "./Icon.astro";
+
+interface Props {
+  variant?: "primary" | "secondary" | "quiet";
+  href?: string;
+  type?: "button" | "submit" | "reset";
+  /** 40px header CTA. Everything else uses the full 48/52px height. */
+  compact?: boolean;
+  /** Lucide icon name, rendered after the label. Never instead of it. */
+  icon?: string;
+  class?: string;
+  [key: string]: unknown;
+}
+
+const {
+  variant = "secondary",
+  href,
+  type = "button",
+  compact = false,
+  icon,
+  class: className,
+  ...rest
+} = Astro.props;
+
+const Tag = href ? "a" : "button";
+const tagProps = href ? { href } : { type };
+---
+
+<Tag
+  class:list={["btn", `btn--${variant}`, compact && "btn--compact", className]}
+  {...tagProps}
+  {...rest}
+>
+  <span class="btn__label"><slot /></span>
+  {icon && <Icon name={icon} size={20} class="btn__icon" />}
+</Tag>
+
+<style>
+  @layer components {
+    .btn {
+      /* Touch target is the floor, not the design size. */
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      min-block-size: var(--btn-h);
+      min-inline-size: var(--tap-min);
+      padding-inline: var(--space-5);
+      border: 0;
+      border-radius: var(--r-sm);
+      background: none;
+      color: inherit;
+      font-family: var(--font-sans);
+      font-size: var(--fs-body);
+      font-weight: var(--fw-semibold);
+      font-variation-settings: "wdth" var(--wdth-normal);
+      line-height: var(--lh-flat);
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+      transition:
+        background-color var(--dur-fast) var(--ease-out),
+        border-color var(--dur-fast) var(--ease-out),
+        color var(--dur-fast) var(--ease-out);
+    }
+
+    /* The header CTA is painted at 40px, which is the shell spec, and that is
+       4px under the 44x44 touch minimum in the accessibility floor. Both kit
+       rules are kept: the painted box stays 40px, the hit area is expanded to
+       44px with an overlay that changes no layout. */
+    .btn--compact {
+      position: relative;
+      min-block-size: var(--btn-h-compact);
+      padding-inline: var(--space-4);
+      font-size: var(--fs-small);
+    }
+
+    .btn--compact::after {
+      content: "";
+      position: absolute;
+      inset-inline: 0;
+      inset-block: calc((var(--tap-min) - var(--btn-h-compact)) / -2);
+    }
+
+    /* ---- primary ---------------------------------------------------------- */
+    .btn--primary {
+      background-color: var(--laterite);
+      /* 5.4:1 against --laterite. Verified pair, see tokens.css. */
+      color: var(--on-laterite);
+    }
+
+    .btn--primary:hover {
+      background-color: var(--laterite-hover);
+    }
+
+    /* ---- secondary -------------------------------------------------------- */
+    .btn--secondary {
+      border: var(--border-current);
+      color: inherit;
+    }
+
+    .btn--secondary:hover {
+      border-color: currentColor;
+    }
+
+    /* ---- quiet ------------------------------------------------------------ */
+    .btn--quiet {
+      min-block-size: var(--tap-min);
+      padding-inline: var(--space-2);
+      color: var(--link);
+      font-weight: var(--fw-medium);
+    }
+
+    .btn--quiet:hover .btn__label {
+      text-decoration: underline;
+      text-underline-offset: 0.2em;
+    }
+
+    /* Focus ring is inherited from base.css :focus-visible and never removed. */
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+</style>

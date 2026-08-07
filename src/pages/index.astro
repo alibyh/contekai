@@ -1,0 +1,22 @@
+---
+/**
+ * The page. It composes sections and does nothing else — no styles, no logic,
+ * no copy. Section order is fixed by PLAN.md §5, and the ground alternates
+ * dark / paper / dark / paper / dark / paper so the page has a pulse instead of
+ * uniform bands.
+ */
+import Base from "../layouts/Base.astro";
+import Hero from "../components/sections/Hero.astro";
+import Capabilities from "../components/sections/Capabilities.astro";
+import BuiltForHere from "../components/sections/BuiltForHere.astro";
+import Pricing from "../components/sections/Pricing.astro";
+import Proof from "../components/sections/Proof.astro";
+---
+
+<Base>
+  <Hero />
+  <Capabilities />
+  <BuiltForHere />
+  <Pricing />
+  <Proof />
+</Base>

@@ -1,0 +1,46 @@
+---
+/**
+ * 04 — Pricing
+ *
+ * <!-- built in ORDER.md step 5 -->
+ *
+ * THE SIGNATURE. A real receipt: tear-off edge, monospaced line items, a
+ * locations stepper that re-tallies the total in front of you, TOTAL in the
+ * position a total actually occupies. Not a three-column table. This is where
+ * the boldness is spent — and if the receipt does not compute something real,
+ * it gets cut rather than shipped as a gimmick.
+ *
+ * Gate: stepper is +/- buttons AND a real <input type="number"> · totals use
+ * tabular-nums and never jitter · term switch recomputes correctly and is
+ * announced via aria-live="polite" · receipt is legible at 320px · the tear
+ * edge is CSS/SVG, not an image.
+ *
+ * Open [VERIFY] items that must be confirmed or visibly absent — no invented
+ * numbers: the 6-month price, and the multi-location discount rate.
+ */
+import Eyebrow from "../ui/Eyebrow.astro";
+---
+
+<section
+  class="pricing"
+  id="pricing"
+  data-section="pricing"
+  data-ground="paper"
+  aria-labelledby="pricing-title"
+>
+  <div class="container">
+    <Eyebrow index="04">Pricing</Eyebrow>
+    <h2 id="pricing-title"><!-- COPY: written in ORDER.md step 5 -->Pricing</h2>
+  </div>
+</section>
+
+<style>
+  @layer sections {
+    /* Padding comes from the single [data-section] rule in base.css.
+       Do not add padding-block here. */
+    .pricing > .container {
+      display: grid;
+      gap: var(--space-4);
+    }
+  }
+</style>

@@ -1,0 +1,96 @@
+---
+/**
+ * Icon — Lucide, inlined at build time, one family, no exceptions.
+ *
+ * Geometry comes from `lucide-static` (ISC) read off disk during the build, so
+ * the paths are authentic Lucide and no icon runtime ships to the browser.
+ *
+ * Rules from kit/skills/design-system/SKILL.md §5:
+ *  - 1.5px stroke, 20px in body / 24px in nav, currentColor
+ *  - one family; no mixing filled and outline, no second library, no emoji
+ *  - icons NEVER sit in a coloured rounded chip. That treatment is banned.
+ */
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+
+interface Props {
+  /** Lucide icon name, kebab-case, e.g. "arrow-right". */
+  name: string;
+  /** 20 in body, 24 in nav. */
+  size?: number;
+  strokeWidth?: number;
+  class?: string;
+  /** Give a label only when the icon is the sole meaning of its control. */
+  label?: string;
+}
+
+const {
+  name,
+  size = 20,
+  strokeWidth = 1.5,
+  class: className,
+  label,
+} = Astro.props;
+
+const cache = new Map<string, string>();
+
+function lucideBody(iconName: string): string {
+  const cached = cache.get(iconName);
+  if (cached !== undefined) return cached;
+
+  let raw: string;
+  try {
+    raw = readFileSync(
+      require.resolve(`lucide-static/icons/${iconName}.svg`),
+      "utf8",
+    );
+  } catch {
+    throw new Error(
+      `Icon "${iconName}" is not in the Lucide set. Pick a Lucide name — ` +
+        `mixing icon families is a build rule, not a preference.`,
+    );
+  }
+
+  // Keep only what's inside <svg>…</svg>; presentation comes from this component.
+  const body = raw
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/^[\s\S]*?<svg[^>]*>/, "")
+    .replace(/<\/svg>[\s\S]*$/, "")
+    .trim();
+
+  cache.set(iconName, body);
+  return body;
+}
+
+const body = lucideBody(name);
+/* Labelled only when the icon is the sole meaning of its control; otherwise it
+   is hidden from the accessibility tree and the adjacent text carries it. */
+const a11y = label
+  ? ({ role: "img", "aria-label": label } as const)
+  : ({ "aria-hidden": "true", focusable: "false" } as const);
+---
+
+<svg
+  class:list={["icon", className]}
+  width={size}
+  height={size}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width={strokeWidth}
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  {...a11y}
+  set:html={body}
+/>
+
+<style>
+  @layer components {
+    .icon {
+      display: block;
+      flex: none;
+    }
+  }
+</style>

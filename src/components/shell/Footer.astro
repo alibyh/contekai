@@ -1,0 +1,44 @@
+---
+/**
+ * Footer — closing action + contact.
+ *
+ * <!-- built in ORDER.md step 7 -->
+ *
+ * Gate for that step: one primary CTA whose label matches the header's exactly
+ * ("Start free trial"); a contact channel present (WhatsApp is the highest-value
+ * element on this page for this market); legal links resolve or are removed;
+ * attribution to Pilore Solutions confirmed before it ships.
+ *
+ * Open questions blocking the real build (CONTEXT.md §5, §6):
+ *  - WhatsApp number / phone [VERIFY — none exists on the current site]
+ *  - do privacy and terms pages exist? [VERIFY]
+ *  - Pilore Solutions attribution [VERIFY]
+ */
+import Eyebrow from "../ui/Eyebrow.astro";
+---
+
+<footer
+  class="footer"
+  role="contentinfo"
+  id="start"
+  data-section="footer"
+  data-ground="paper"
+  aria-labelledby="footer-title"
+>
+  <div class="container">
+    <Eyebrow index="06">Start</Eyebrow>
+    <h2 id="footer-title">Start free trial</h2>
+    {/* <!-- built in ORDER.md step 7 --> */}
+  </div>
+</footer>
+
+<style>
+  @layer sections {
+    /* Padding comes from the single [data-section] rule in base.css.
+       Do not add padding-block here. */
+    .footer > .container {
+      display: grid;
+      gap: var(--space-4);
+    }
+  }
+</style>

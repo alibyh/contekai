@@ -1,0 +1,154 @@
+---
+/**
+ * Header — furniture, not a feature.
+ *
+ * SCAFFOLD STATE: structure, focus order and the inert menu button are in
+ * place so the keyboard path is real. The ground switching (header background
+ * following the section behind it via IntersectionObserver on [data-ground])
+ * is <!-- built in ORDER.md step 1 -->.
+ *
+ * Fixed rules from kit/sections/00-shell.md:
+ *  - 64px, sticky from 0, never hides on scroll, never shrinks
+ *  - solid --ink-900 / --paper ground with a hairline bottom. NO backdrop-filter
+ *  - the only thing that changes is the ground
+ */
+import Button from "../ui/Button.astro";
+import Icon from "../ui/Icon.astro";
+---
+
+<header class="header" role="banner" data-ground="dark">
+  <div class="header__inner">
+    <a class="lockup" href="#top" aria-label="Contekai — back to top">
+      {/*
+        PLACEHOLDER MARK. The real logo is a client-supplied asset (CONTEXT.md
+        §5): five nodes radiating from a hub, in rust. This is a stand-in drawn
+        from that written description so the header composes — it is NOT the
+        brand mark and must be replaced before launch. Same geometry as
+        public/favicon.svg.
+      */}
+      <svg
+        class="lockup__mark"
+        width="28"
+        height="28"
+        viewBox="0 0 32 32"
+        fill="none"
+        aria-hidden="true"
+        data-placeholder="awaiting client logo SVG"
+      >
+        <g stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M16 16 16 6M16 16 24.7 21M16 16 7.3 21M16 16 25.4 11.5M16 16 6.6 11.5"></path>
+        </g>
+        <g fill="currentColor">
+          <circle cx="16" cy="16" r="3.4"></circle>
+          <circle cx="16" cy="5" r="2.2"></circle>
+          <circle cx="25.5" cy="10.8" r="2.2"></circle>
+          <circle cx="24.9" cy="21.6" r="2.2"></circle>
+          <circle cx="7.1" cy="21.6" r="2.2"></circle>
+          <circle cx="6.5" cy="10.8" r="2.2"></circle>
+        </g>
+      </svg>
+      <span class="lockup__word">Contekai</span>
+    </a>
+
+    <div class="header__actions">
+      <Button variant="quiet" href="/login" class="header__login">Log in</Button>
+      {/* Label must match the hero CTA and the footer CTA exactly. */}
+      <Button variant="primary" href="/signup" compact>Start free trial</Button>
+
+      <button
+        type="button"
+        class="menu-btn"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="site-menu"
+        data-todo="wiring deferred — client will configure"
+      >
+        <Icon name="menu" size={24} />
+      </button>
+      {/* TODO(client): menu panel not implemented. Button is inert by design.
+          It is not `disabled`, because a disabled control would communicate
+          something false. */}
+    </div>
+  </div>
+</header>
+
+<style>
+  @layer components {
+    .header {
+      position: sticky;
+      inset-block-start: 0;
+      z-index: 50;
+      block-size: var(--header-h);
+      /* Solid. No blur, ever. */
+      background-color: var(--ink-900);
+      color: var(--on-ink);
+      border-block-end: var(--border-ink);
+      transition:
+        background-color var(--dur-fast) var(--ease-out),
+        color var(--dur-fast) var(--ease-out),
+        border-color var(--dur-fast) var(--ease-out);
+    }
+
+    .header__inner {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      block-size: 100%;
+      padding-inline: var(--gutter);
+      /* Clears the till-rail gutter on desktop; --rail is 0 below 900px. */
+      padding-inline-start: calc(var(--gutter) + var(--rail));
+    }
+
+    .lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      min-block-size: var(--tap-min);
+      margin-inline-end: auto;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .lockup__mark {
+      color: var(--laterite);
+    }
+
+    .lockup__word {
+      font-size: 1.125rem;
+      font-weight: var(--fw-bold);
+      font-variation-settings: "wdth" var(--wdth-h2);
+      letter-spacing: var(--track-h3);
+    }
+
+    .header__actions {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .menu-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      inline-size: var(--tap-min);
+      block-size: var(--tap-min);
+      padding: 0;
+      border: 0;
+      border-radius: var(--r-sm);
+      background: none;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    /* Below 480 the "Log in" action moves into the deferred menu panel. */
+    .header__login {
+      display: none;
+    }
+
+    @media (min-width: 900px) {
+      .header__login {
+        display: inline-flex;
+      }
+    }
+  }
+</style>

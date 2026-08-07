@@ -1,0 +1,174 @@
+---
+/**
+ * Base — <head>, meta, fonts, skip link, structured data, shell.
+ *
+ * Every fact on this page traces to kit/CONTEXT.md. Nothing here is invented:
+ * the prices are the real dalasi figures, the offline claim is the product's
+ * actual differentiator, and the 6-month tier is absent because its price is
+ * still [VERIFY].
+ */
+import "../styles/base.css";
+import "../styles/tokens.css";
+import "../styles/motion.css";
+
+import Header from "../components/shell/Header.astro";
+import Rail from "../components/shell/Rail.astro";
+import Footer from "../components/shell/Footer.astro";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "Contekai: point of sale and stock for shops in The Gambia",
+  description = "Point of sale and inventory for shops in The Gambia. Contekai keeps selling through power cuts and outages, then syncs when you are back online. 7 days free.",
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://contekai.com");
+
+/**
+ * Structured data. SoftwareApplication with the real per-location pricing.
+ *
+ * LocalBusiness is deliberately NOT emitted: it requires a real postal address
+ * and telephone, and CONTEXT.md §5 lists both as still missing. Publishing an
+ * invented address would fail the "no invented facts" rule and would be marked
+ * invalid by search engines anyway. Add it in step 7, once the client supplies
+ * the address and the WhatsApp/phone number.
+ *
+ * The 6-month tier is omitted for the same reason: its price is [VERIFY].
+ */
+const softwareApplication = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Contekai",
+  description:
+    "Point of sale and inventory management for businesses in The Gambia. Runs offline through power cuts and internet outages, and syncs when the connection returns.",
+  url: canonical.origin,
+  applicationCategory: "BusinessApplication",
+  applicationSubCategory: "Point of Sale",
+  operatingSystem: "Web browser, Android",
+  areaServed: { "@type": "Country", name: "The Gambia" },
+  featureList: [
+    "Offline point of sale that syncs when the connection returns",
+    "Barcode scanning, multiple payment methods, receipt printing",
+    "Real-time stock levels, low-stock alerts, expiry-date monitoring",
+    "Daily profit, expenses and sales reports in dalasis",
+    "Multiple branches with role-based user accounts",
+  ],
+  offers: [
+    {
+      "@type": "Offer",
+      name: "Free trial",
+      description: "7 days, full access, first location only. No payment.",
+      price: 0,
+      priceCurrency: "GMD",
+      category: "free",
+    },
+    {
+      "@type": "Offer",
+      name: "Monthly",
+      description: "Per location, per month.",
+      price: 1500,
+      priceCurrency: "GMD",
+      priceSpecification: {
+        "@type": "UnitPriceSpecification",
+        price: 1500,
+        priceCurrency: "GMD",
+        unitCode: "MON",
+        referenceQuantity: { "@type": "QuantitativeValue", value: 1, unitText: "location" },
+      },
+    },
+    {
+      "@type": "Offer",
+      name: "12 months",
+      description: "Per location, per year. Saves D 1,800 against monthly billing.",
+      price: 16200,
+      priceCurrency: "GMD",
+      priceSpecification: {
+        "@type": "UnitPriceSpecification",
+        price: 16200,
+        priceCurrency: "GMD",
+        unitCode: "ANN",
+        referenceQuantity: { "@type": "QuantitativeValue", value: 1, unitText: "location" },
+      },
+    },
+  ],
+};
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    {/* Zoom is NOT disabled. No maximum-scale, no user-scalable=no. */}
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical.href} />
+
+    {/*
+      Marks the document as JS-capable before first paint, so [data-reveal]
+      elements can start hidden without ever stranding content when JS is off
+      or fails. See the html:not([data-js]) rule in motion.css.
+    */}
+    <script is:inline>document.documentElement.dataset.js = "";</script>
+
+    {/*
+      Preload Archivo only. DM Mono appears below the fold except in the rail,
+      where a metric-matched fallback mono is fine for the first paint.
+    */}
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/fonts/archivo-var-subset.woff2"
+      crossorigin
+    />
+
+    {/* PLACEHOLDER: awaiting the real logo SVG from the client (CONTEXT.md §5). */}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {/*
+      The only literal colour outside tokens.css. `theme-color` is an HTML
+      attribute and cannot read a custom property. Value is --ink-900; if that
+      token changes, change this with it.
+    */}
+    <meta name="theme-color" content="#0A151E" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Contekai" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical.href} />
+    <meta property="og:locale" content="en_GB" />
+    {/*
+      TODO(step 8): og:image. Omitted rather than pointed at a URL that 404s.
+      Needs a 1200x630 card built from the mark and the night/paper palette.
+    */}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+
+    <script
+      is:inline
+      type="application/ld+json"
+      set:html={JSON.stringify(softwareApplication)}
+    />
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <Rail />
+    <Header />
+    <div class="page">
+      <main id="main">
+        <slot />
+      </main>
+      <Footer />
+    </div>
+    <script>
+      import "../scripts/reveal.ts";
+    </script>
+  </body>
+</html>

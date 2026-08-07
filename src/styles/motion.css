@@ -1,0 +1,122 @@
+/* =============================================================================
+   motion.css — transcribed from kit/skills/motion/SKILL.md
+   -----------------------------------------------------------------------------
+   Motion has one job here: make the page feel like a working instrument rather
+   than a brochure. If an animation does not carry meaning, it is decoration.
+   Animate transform and opacity only.
+   ========================================================================== */
+
+@layer tokens {
+  :root {
+    --dur-instant: 100ms; /* state flips: checked, pressed */
+    --dur-fast: 160ms;    /* hover, focus, colour */
+    --dur-base: 240ms;    /* small position/opacity moves */
+    --dur-slow: 420ms;    /* section reveals, card transitions */
+    --dur-stage: 700ms;   /* the hero load sequence only */
+
+    /* Exits run at 70% of the enter duration. Things leave faster than they
+       arrive. */
+    --dur-fast-exit: 112ms;
+    --dur-base-exit: 168ms;
+    --dur-slow-exit: 294ms;
+
+    --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);     /* default: arriving */
+    --ease-in: cubic-bezier(0.55, 0, 0.85, 0.35);   /* leaving */
+    --ease-snap: cubic-bezier(0.3, 1.2, 0.45, 1);   /* stepper + tally ONLY */
+
+    --stagger: 60ms; /* max 6 items in a chain */
+  }
+}
+
+@layer base {
+  /* The default reveal. Everything that is not one of the three sanctioned
+     moments (hero load, pricing tally, card deck) uses this and nothing else.
+     Fires once, via the single shared IntersectionObserver in reveal.ts. */
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity var(--dur-slow) var(--ease-out),
+      transform var(--dur-slow) var(--ease-out);
+  }
+
+  [data-reveal].is-in {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Staggered children of a revealed group. Six steps, no more — a seventh
+     makes the sequence feel scripted. */
+  [data-reveal-stagger] > * {
+    transition-delay: 0ms;
+  }
+  [data-reveal-stagger].is-in > :nth-child(1) { transition-delay: 0ms; }
+  [data-reveal-stagger].is-in > :nth-child(2) { transition-delay: calc(var(--stagger) * 1); }
+  [data-reveal-stagger].is-in > :nth-child(3) { transition-delay: calc(var(--stagger) * 2); }
+  [data-reveal-stagger].is-in > :nth-child(4) { transition-delay: calc(var(--stagger) * 3); }
+  [data-reveal-stagger].is-in > :nth-child(5) { transition-delay: calc(var(--stagger) * 4); }
+  [data-reveal-stagger].is-in > :nth-child(6) { transition-delay: calc(var(--stagger) * 5); }
+
+  /* Directional variants. Direction carries meaning: ledger rows are being
+     written (left), the receipt is being printed (top). Both compositable. */
+  [data-reveal="write"] {
+    transform: none;
+    clip-path: inset(0 100% 0 0);
+    transition:
+      opacity var(--dur-slow) var(--ease-out),
+      clip-path var(--dur-slow) var(--ease-out);
+  }
+
+  [data-reveal="write"].is-in {
+    clip-path: inset(0 0 0 0);
+  }
+
+  [data-reveal="print"] {
+    transform: none;
+    clip-path: inset(0 0 100% 0);
+    transition:
+      opacity var(--dur-slow) var(--ease-out),
+      clip-path var(--dur-slow) var(--ease-out);
+  }
+
+  [data-reveal="print"].is-in {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   Reduced motion — a real state, not a disclaimer.
+   This block is the floor. The rest of the contract lives in JS: the hero video
+   does not autoplay, the tally renders its final value, the deck keeps snapping
+   but drops the scale/opacity falloff, and every [data-reveal] is set to .is-in
+   before paint.
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  @layer base {
+    /* Never leave content stranded at opacity 0 if JS has not run. */
+    [data-reveal] {
+      opacity: 1;
+      transform: none;
+      clip-path: none;
+    }
+  }
+}
+
+/* No-JS safety net: reveals must not hide content when the observer never
+   runs. reveal.ts sets [data-js] on <html> as its first act. */
+@layer base {
+  html:not([data-js]) [data-reveal] {
+    opacity: 1;
+    transform: none;
+    clip-path: none;
+  }
+}

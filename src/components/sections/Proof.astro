@@ -1,0 +1,42 @@
+---
+/**
+ * 05 — Shops
+ *
+ * <!-- built in ORDER.md step 6 -->
+ *
+ * Testimonials — real shops, one quote at a time.
+ *
+ * Gate: every testimonial has a real name, business and town, or the section
+ * ships in its reduced form · no five-star rows without attribution · no
+ * auto-advance · photos optimised and permissioned.
+ *
+ * Blocked on client assets: full testimonial text, reviewer names, business
+ * names, towns, and photo permission. Unattributed five-star cards read as
+ * fake, so this section does not ship until they land.
+ */
+import Eyebrow from "../ui/Eyebrow.astro";
+---
+
+<section
+  class="proof"
+  id="proof"
+  data-section="proof"
+  data-ground="dark"
+  aria-labelledby="proof-title"
+>
+  <div class="container">
+    <Eyebrow index="05">Shops</Eyebrow>
+    <h2 id="proof-title"><!-- COPY: written in ORDER.md step 6 -->Shops</h2>
+  </div>
+</section>
+
+<style>
+  @layer sections {
+    /* Padding comes from the single [data-section] rule in base.css.
+       Do not add padding-block here. */
+    .proof > .container {
+      display: grid;
+      gap: var(--space-4);
+    }
+  }
+</style>

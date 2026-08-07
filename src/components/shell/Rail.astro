@@ -1,0 +1,55 @@
+---
+/**
+ * Rail — the till roll running down the page.
+ *
+ * <!-- built in ORDER.md step 1 -->
+ *
+ * SCAFFOLD STATE: the 44px gutter and its hairline exist so every section is
+ * laid out against the real coordinate system from the start. The section
+ * index, the label crossfade and the --laterite progress fill arrive in step 1.
+ *
+ * Fixed rules from kit/sections/00-shell.md:
+ *  - desktop only (>= 900px); below that it becomes a 2px whole-page progress
+ *    line under the header
+ *  - contents bottom-aligned, writing-mode: vertical-rl + rotate(180deg)
+ *  - aria-hidden: it is a decorative echo of the nav and must never be the only
+ *    route to anything
+ *  - the ONLY place the receipt motif appears outside pricing
+ */
+---
+
+<div class="rail" aria-hidden="true">
+  <div class="rail__progress"></div>
+  {/* index + label land here in step 1 */}
+</div>
+
+<style>
+  @layer layout {
+    .rail {
+      display: none;
+    }
+
+    @media (min-width: 900px) {
+      .rail {
+        position: fixed;
+        inset-block: 0;
+        inset-inline-start: 0;
+        z-index: 40;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        inline-size: var(--rail);
+        padding-block-end: var(--space-5);
+        border-inline-end: var(--border-ink);
+        pointer-events: none;
+      }
+    }
+
+    .rail__progress {
+      inline-size: 2px;
+      block-size: 0;
+      margin-inline-start: auto;
+      background-color: var(--laterite);
+    }
+  }
+</style>

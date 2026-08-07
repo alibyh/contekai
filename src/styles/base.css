@@ -1,0 +1,449 @@
+/* =============================================================================
+   base.css — cascade layer order, reset, fonts, typography defaults, focus ring
+   ========================================================================== */
+
+/* The one and only layer-order declaration. Everything else must sit inside
+   one of these. Later layers win regardless of selector specificity, which is
+   what keeps section rules from being cancelled by component rules. */
+@layer reset, tokens, base, layout, components, sections, utilities;
+
+/* -----------------------------------------------------------------------------
+   Fonts — self-hosted, subset to latin (+ a lazy latin-ext slice).
+   Archivo is a 2-axis variable font (wght 400–700, wdth 100–112); the axes are
+   instanced down to the range this design system actually uses.
+   -------------------------------------------------------------------------- */
+
+@font-face {
+  font-family: "Archivo Variable";
+  src: url("/fonts/archivo-var-subset.woff2") format("woff2-variations");
+  font-weight: 400 700;
+  font-stretch: 100% 112%;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Latin-ext ships as a separate slice so an English page never pays for it.
+   Not preloaded. Downloads only if a latin-ext codepoint appears. */
+@font-face {
+  font-family: "Archivo Variable";
+  src: url("/fonts/archivo-var-ext-subset.woff2") format("woff2-variations");
+  font-weight: 400 700;
+  font-stretch: 100% 112%;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
+    U+02DD-02FF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+    U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "DM Mono";
+  src: url("/fonts/dm-mono-subset.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DM Mono";
+  src: url("/fonts/dm-mono-500-subset.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Metric-adjusted fallbacks. Overrides computed from the real font tables
+   (Archivo 400/wdth 100 vs Arial and vs Roboto; DM Mono 400 vs Roboto Mono /
+   Courier New, which share a 0.6em advance). CLS on font swap is 0. */
+@font-face {
+  font-family: "Archivo Fallback Arial";
+  src: local("Arial"), local("Helvetica Neue"), local("Helvetica");
+  size-adjust: 101.05%;
+  ascent-override: 86.89%;
+  descent-override: 20.78%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Archivo Fallback Roboto";
+  src: local("Roboto"), local("Droid Sans");
+  size-adjust: 104.33%;
+  ascent-override: 84.15%;
+  descent-override: 20.13%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "DM Mono Fallback";
+  src: local("Roboto Mono"), local("Courier New"), local("Menlo");
+  size-adjust: 99.98%;
+  ascent-override: 99.22%;
+  descent-override: 31.01%;
+  line-gap-override: 0%;
+}
+
+/* -----------------------------------------------------------------------------
+   Reset
+   -------------------------------------------------------------------------- */
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  * {
+    margin: 0;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    tab-size: 4;
+  }
+
+  body {
+    min-height: 100svh;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  input,
+  button,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    overflow-wrap: break-word;
+  }
+
+  ul[class],
+  ol[class] {
+    list-style: none;
+    padding: 0;
+  }
+
+  svg {
+    fill: none;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   Base — typography defaults, ground, focus, anchors
+   -------------------------------------------------------------------------- */
+@layer base {
+  html {
+    /* The night ground. Paper sections are surfaces laid on top of it, never
+       the page's own colour. */
+    background-color: var(--ink-900);
+    color-scheme: dark;
+  }
+
+  /* Smooth anchor scrolling is opt-in, and only when motion is welcome. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  body {
+    background-color: var(--ink-900);
+    color: var(--on-ink);
+    font-family: var(--font-sans);
+    font-size: var(--fs-body);
+    font-weight: var(--fw-regular);
+    font-variation-settings: "wdth" var(--wdth-normal);
+    line-height: var(--lh-body);
+  }
+
+  h1,
+  .t-display {
+    font-size: var(--fs-display);
+    font-weight: var(--fw-bold);
+    font-variation-settings: "wdth" var(--wdth-display);
+    letter-spacing: var(--track-display);
+    line-height: var(--lh-display);
+    text-wrap: balance;
+  }
+
+  h2,
+  .t-h2 {
+    font-size: var(--fs-h2);
+    font-weight: var(--fw-bold);
+    font-variation-settings: "wdth" var(--wdth-h2);
+    letter-spacing: var(--track-h2);
+    line-height: var(--lh-h2);
+    text-wrap: balance;
+  }
+
+  h3,
+  .t-h3 {
+    font-size: var(--fs-h3);
+    font-weight: var(--fw-semibold);
+    font-variation-settings: "wdth" var(--wdth-normal);
+    letter-spacing: var(--track-h3);
+    line-height: var(--lh-h3);
+  }
+
+  /* No text-transform on headings. Uppercase belongs to the mono labels alone. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    text-transform: none;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  .t-body-lg {
+    font-size: var(--fs-body-lg);
+    line-height: var(--lh-body-lg);
+  }
+
+  .t-small {
+    font-size: var(--fs-small);
+    font-weight: var(--fw-medium);
+    line-height: var(--lh-small);
+  }
+
+  /* Mono roles. Figures never jitter: tabular-nums is not optional. */
+  .t-mono,
+  .t-figure,
+  .t-receipt {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  .t-figure {
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--track-figure);
+    line-height: var(--lh-flat);
+  }
+
+  .t-receipt {
+    font-size: var(--fs-receipt);
+    font-weight: var(--fw-regular);
+    letter-spacing: var(--track-receipt);
+    line-height: var(--lh-receipt);
+  }
+
+  a {
+    color: inherit;
+  }
+
+  /* Link colour follows the ground it sits on. */
+  [data-ground="dark"] a:not([class]) {
+    color: var(--kai-400);
+  }
+
+  [data-ground="paper"] a:not([class]) {
+    color: var(--kai-600);
+  }
+
+  /* Focus ring — visible on both grounds, never removed. */
+  :focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+    border-radius: var(--r-sm);
+  }
+
+  /* Anchors clear the sticky header. Set once, here, and nowhere else. */
+  :target,
+  [id] {
+    scroll-margin-top: calc(var(--header-h) + var(--space-4));
+  }
+
+  ::selection {
+    background-color: var(--laterite);
+    color: var(--on-laterite);
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   Layout — grounds, containers, and the single source of section padding
+   -------------------------------------------------------------------------- */
+@layer layout {
+  /* Ground. A section declares which material it is made of; nothing else sets
+     background or text colour at section level.
+
+     Each ground also republishes the four ground-dependent tokens under neutral
+     names (--muted, --faint, --hairline, --link). Components read those and
+     never branch on the ground themselves — that is what stops a component
+     from hardcoding a colour when it lands on the other material. */
+  :root,
+  [data-ground="dark"],
+  [data-ground="dark-alt"] {
+    --muted: var(--on-ink-muted);
+    --faint: var(--on-ink-faint);
+    --hairline: var(--hairline-ink);
+    --link: var(--kai-400);
+    --border-current: var(--border-ink);
+  }
+
+  [data-ground="dark"] {
+    background-color: var(--ink-900);
+    color: var(--on-ink);
+  }
+
+  [data-ground="dark-alt"] {
+    background-color: var(--ink-800);
+    color: var(--on-ink);
+  }
+
+  [data-ground="paper"] {
+    background-color: var(--paper);
+    color: var(--on-paper);
+    --muted: var(--on-paper-muted);
+    --faint: var(--on-paper-muted);
+    --hairline: var(--hairline-paper);
+    --link: var(--kai-600);
+    --border-current: var(--border-paper);
+  }
+
+  /* ===========================================================================
+     THE ONLY PLACE SECTION PADDING IS SET.
+     One rule. Each section overrides --section-pad and nothing else. Adding
+     padding-block to a section component is a bug, not a tweak.
+     `--section-pad` holds the padding-block shorthand: <top> <bottom>.
+     ======================================================================== */
+  [data-section] {
+    padding-block: var(--section-pad, var(--space-8));
+    padding-inline: var(--gutter);
+  }
+
+  /* Mobile-first rhythm. These must not become equal — the pulse is the point. */
+  [data-section="hero"] {
+    --section-pad: var(--space-6);
+  }
+  [data-section="capabilities"] {
+    --section-pad: var(--space-8) var(--space-7);
+  }
+  [data-section="built-for-here"] {
+    --section-pad: var(--space-8);
+  }
+  [data-section="pricing"] {
+    --section-pad: var(--space-8);
+  }
+  [data-section="proof"] {
+    --section-pad: var(--space-7);
+  }
+  [data-section="footer"] {
+    --section-pad: var(--space-8) var(--space-5);
+  }
+
+  @media (min-width: 1024px) {
+    [data-section="hero"] {
+      --section-pad: var(--space-8);
+    }
+    [data-section="capabilities"] {
+      --section-pad: var(--space-9) var(--space-8);
+    }
+    [data-section="built-for-here"] {
+      --section-pad: var(--space-10);
+    }
+    [data-section="pricing"] {
+      --section-pad: var(--space-10) var(--space-9);
+    }
+    [data-section="proof"] {
+      --section-pad: var(--space-8);
+    }
+    [data-section="footer"] {
+      --section-pad: var(--space-9) var(--space-6);
+    }
+  }
+
+  /* Hero is the one section sized by viewport rather than padding. It shrinks
+     below 100svh on short (landscape phone) viewports instead of clipping. */
+  [data-section="hero"] {
+    min-height: 100svh;
+    display: flex;
+  }
+
+  @media (max-height: 560px) {
+    [data-section="hero"] {
+      min-height: auto;
+    }
+  }
+
+  /* Containers. Not everything gets one — only what needs a measure. */
+  .container {
+    width: 100%;
+    max-width: var(--container);
+    margin-inline: auto;
+  }
+
+  .container-wide {
+    width: 100%;
+    max-width: var(--container-wide);
+    margin-inline: auto;
+  }
+
+  .container-text {
+    max-width: var(--container-text);
+  }
+
+  .container-intro {
+    max-width: var(--container-intro);
+  }
+
+  /* The rail gutter. Everything inside main is pushed clear of it on desktop. */
+  .page {
+    padding-inline-start: var(--rail);
+  }
+
+  /* Skip link — first focusable element on the page. */
+  .skip-link {
+    position: fixed;
+    inset-block-start: var(--space-3);
+    inset-inline-start: var(--space-3);
+    z-index: 100;
+    padding: var(--space-3) var(--space-4);
+    background-color: var(--ink-900);
+    color: var(--paper);
+    border: var(--border-ink);
+    border-radius: var(--r-sm);
+    font-weight: var(--fw-semibold);
+    text-decoration: none;
+    transform: translateY(calc(-100% - var(--space-5)));
+  }
+
+  .skip-link:focus-visible {
+    transform: none;
+  }
+
+  /* Screen-reader-only, still focusable. */
+  .visually-hidden:not(:focus):not(:active) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

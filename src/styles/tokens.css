@@ -1,0 +1,186 @@
+/* =============================================================================
+   tokens.css — transcribed from kit/skills/design-system/SKILL.md
+   -----------------------------------------------------------------------------
+   If a value is not in this file, it does not exist. If you need one that isn't
+   here, add it here first, with a one-sentence job description, then use it.
+
+   TRIPWIRE: `--ink-600: #1E3purple;` was present in the source file, marked as
+   deliberately invalid. It has been deleted, not "fixed" — there is no --ink-600.
+   ========================================================================== */
+
+@layer tokens {
+  :root {
+    /* ---------------------------------------------------------------------
+       1. COLOUR — six named hues. Tints come from opacity ramps on
+       --on-ink / --on-paper, never from new hex.
+       --------------------------------------------------------------------- */
+
+    /* ground — night */
+    --ink-900: #0a151e;   /* page ground, dark sections */
+    --ink-800: #0f1f2b;   /* dark section alternate band */
+    --ink-700: #14293a;   /* raised dark surface, cards on dark */
+
+    /* material — paper */
+    --paper: #f6f3ec;     /* light sections, cards, receipt */
+    --paper-hi: #fffdf8;  /* receipt face only, one step brighter than paper */
+
+    /* brand */
+    --laterite: #b34a26;        /* primary action */
+    --laterite-hover: #9c3e1f;
+    --kai-600: #1e6ba8;         /* links + emphasis ON PAPER */
+    --kai-400: #4e9bdc;         /* links + emphasis ON INK */
+
+    /* The label colour on a --laterite fill. The design system specifies
+       #FFFFFF here and verifies it at 5.4:1; it lives in this file as a token
+       so no component ever has to write a raw hex. */
+    --on-laterite: #fff;
+
+    /* status — only ever status */
+    --signal: #2f9e6b;
+
+    /* derived text — opacity ramps, not new hues */
+    --on-ink: #f6f3ec;
+    --on-ink-muted: rgb(246 243 236 / 0.68);
+    --on-ink-faint: rgb(246 243 236 / 0.44);
+    --on-paper: #16232e;
+    --on-paper-muted: rgb(22 35 46 / 0.7);
+    --hairline-ink: rgb(246 243 236 / 0.14);
+    --hairline-paper: rgb(22 35 46 / 0.12);
+
+    /* Verified contrast pairs — do not substitute without re-checking.
+       ┌──────────────────┬───────────┬────────┬──────────────────────┐
+       │ Foreground       │ Backgnd   │ Ratio  │ Use                  │
+       ├──────────────────┼───────────┼────────┼──────────────────────┤
+       │ --paper          │ --ink-900 │ 16.7:1 │ body on dark         │
+       │ --on-ink-muted   │ --ink-900 │ ~11:1  │ secondary on dark    │
+       │ #FFFFFF          │ --laterite│  5.4:1 │ button label         │
+       │ --laterite       │ --paper   │  4.8:1 │ accent text on paper │
+       │ --kai-400        │ --ink-900 │  6.2:1 │ link on dark         │
+       │ --kai-600        │ --paper   │  5.1:1 │ link on paper        │
+       │ --on-paper       │ --paper   │ 14.6:1 │ body on paper        │
+       └──────────────────┴───────────┴────────┴──────────────────────┘
+       Rules: --signal is state, never a background/heading/decoration.
+       Never --laterite text on --ink-900. Muted text stops at .68 / .70.
+       No gradients on text; the hero video scrim is the one permitted
+       gradient in the whole build (--scrim-hero, defined in Hero.astro). */
+
+    /* ---------------------------------------------------------------------
+       2. TYPE — two families, both self-hosted, both subset.
+       Archivo does display AND body; the separation is carried by the width
+       axis, not by a second family.
+       --------------------------------------------------------------------- */
+    /* The two "Fallback" faces are metric-adjusted (see base.css). They are in
+       the stack so the swap is invisible: Arial metrics for desktop, Roboto
+       metrics for the Android devices this audience actually uses. */
+    --font-sans: "Archivo Variable", "Archivo Fallback Arial",
+      "Archivo Fallback Roboto", "Archivo", system-ui, -apple-system,
+      "Segoe UI", sans-serif;
+    --font-mono: "DM Mono", "DM Mono Fallback", ui-monospace, "SF Mono", Menlo,
+      monospace;
+
+    /* size — the mobile column of the type table is the clamp floor */
+    --fs-display: clamp(2.75rem, 6.5vw, 4.75rem);
+    --fs-h2: clamp(2rem, 3.6vw, 2.875rem);
+    --fs-h3: clamp(1.25rem, 0.35vw + 1.18rem, 1.375rem);
+    --fs-body-lg: clamp(1.0625rem, 0.4vw + 0.98rem, 1.1875rem);
+    --fs-body: 1rem;      /* 16px floor. Body never goes below this. */
+    --fs-small: 0.875rem; /* 14px floor for captions. */
+    --fs-label: 0.75rem;  /* DM Mono eyebrow / rail / label */
+    --fs-receipt: 0.8125rem;
+
+    /* weight */
+    --fw-regular: 400;
+    --fw-medium: 500;
+    --fw-semibold: 600;
+    --fw-bold: 700;
+
+    /* width axis — the point of using Archivo */
+    --wdth-display: 112;
+    --wdth-h2: 108;
+    --wdth-normal: 100;
+
+    /* tracking */
+    --track-display: -0.02em;
+    --track-h2: -0.015em;
+    --track-h3: -0.01em;
+    --track-figure: -0.01em;
+    --track-receipt: 0.02em;
+    --track-label: 0.12em; /* mono eyebrows only. Never letterspace body. */
+
+    /* leading */
+    --lh-display: 0.98;
+    --lh-h2: 1.05;
+    --lh-h3: 1.2;
+    --lh-body-lg: 1.55;
+    --lh-body: 1.6;
+    --lh-small: 1.45;
+    --lh-flat: 1; /* labels, figures, totals */
+    --lh-receipt: 1.7;
+
+    /* ---------------------------------------------------------------------
+       3. SPACE & LAYOUT — 4px base
+       --------------------------------------------------------------------- */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+    --space-8: 64px;
+    --space-9: 96px;
+    --space-10: 128px;
+
+    --gutter: clamp(20px, 5vw, 40px);
+    --container: 1200px;      /* standard content */
+    --container-wide: 1400px; /* card deck, receipt spread */
+    --container-text: 68ch;   /* prose */
+    --container-intro: 52ch;  /* section intros */
+    --rail: 44px;             /* left till-rail gutter, desktop only */
+    --header-h: 64px;
+
+    --grid-cols: 12;
+    --grid-gap: var(--space-5);
+
+    /* ---------------------------------------------------------------------
+       4. SURFACE & SHAPE
+       --------------------------------------------------------------------- */
+    --r-sm: 4px;     /* inputs, chips, small controls */
+    --r-md: 10px;    /* cards */
+    --r-full: 999px; /* pills and avatars ONLY */
+    --r-none: 0;     /* the receipt */
+
+    --shadow-paper: 0 1px 2px rgb(10 21 30 / 0.08),
+      0 8px 24px -16px rgb(10 21 30 / 0.18);
+    --shadow-lift: 0 2px 4px rgb(10 21 30 / 0.1),
+      0 16px 40px -20px rgb(10 21 30 / 0.28);
+    --border-paper: 1px solid var(--hairline-paper);
+    --border-ink: 1px solid var(--hairline-ink);
+
+    /* Dark surfaces separate by VALUE (--ink-900 → --ink-700), not by shadow.
+       No backdrop-filter anywhere. No glass panels. */
+
+    /* ---------------------------------------------------------------------
+       5. COMPONENT SIZING
+       --------------------------------------------------------------------- */
+    --btn-h: 52px;         /* mobile */
+    --btn-h-desktop: 48px;
+    --btn-h-compact: 40px; /* header CTA only */
+    --tap-min: 44px;       /* minimum touch target, everywhere */
+    --focus-ring: 2px solid var(--kai-400);
+    --focus-offset: 3px;
+  }
+
+  @media (min-width: 1024px) {
+    :root {
+      --btn-h: var(--btn-h-desktop);
+    }
+  }
+
+  /* Below 900px the grid collapses to one column and the rail collapses to 0. */
+  @media (max-width: 899.98px) {
+    :root {
+      --rail: 0px;
+    }
+  }
+}

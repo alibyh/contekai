@@ -1,0 +1,43 @@
+---
+/**
+ * 02 — What it does
+ *
+ * <!-- built in ORDER.md step 3 -->
+ *
+ * Six capabilities, all real (CONTEXT.md §4), as a horizontal card deck.
+ *
+ * Gate: CSS scroll-snap, never auto-advancing · drag, arrows, keyboard and
+ * swipe all work · no vertical scroll trapping on touch · focus never lands on
+ * an off-screen card without scrolling it in · each card carries real product
+ * substance, not an icon chip · works with JS disabled (degrades to a plain
+ * horizontally scrollable row).
+ *
+ * Blocked on client assets: fresh 2x product screenshots (POS, Transactions,
+ * Dashboard, Low-stock alert). Cards are product surfaces, not icon+title+text.
+ */
+import Eyebrow from "../ui/Eyebrow.astro";
+---
+
+<section
+  class="capabilities"
+  id="capabilities"
+  data-section="capabilities"
+  data-ground="paper"
+  aria-labelledby="capabilities-title"
+>
+  <div class="container">
+    <Eyebrow index="02">What it does</Eyebrow>
+    <h2 id="capabilities-title"><!-- COPY: written in ORDER.md step 3 -->What it does</h2>
+  </div>
+</section>
+
+<style>
+  @layer sections {
+    /* Padding comes from the single [data-section] rule in base.css.
+       Do not add padding-block here. */
+    .capabilities > .container {
+      display: grid;
+      gap: var(--space-4);
+    }
+  }
+</style>

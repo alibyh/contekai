@@ -1,0 +1,39 @@
+---
+/**
+ * 03 — Built for here
+ *
+ * <!-- built in ORDER.md step 4 -->
+ *
+ * Four claims from CONTEXT.md §4, as ledger rows: problem then response,
+ * alternating. A record, not a card grid.
+ *
+ * Gate: four claims, all from CONTEXT.md · rows read as a record, not as cards ·
+ * the left-wipe reveal fires once · no icon-in-a-chip anywhere · copy passes the
+ * substitution test.
+ */
+import Eyebrow from "../ui/Eyebrow.astro";
+---
+
+<section
+  class="built-for-here"
+  id="built-for-here"
+  data-section="built-for-here"
+  data-ground="dark"
+  aria-labelledby="built-for-here-title"
+>
+  <div class="container">
+    <Eyebrow index="03">Built for here</Eyebrow>
+    <h2 id="built-for-here-title"><!-- COPY: written in ORDER.md step 4 -->Built for here</h2>
+  </div>
+</section>
+
+<style>
+  @layer sections {
+    /* Padding comes from the single [data-section] rule in base.css.
+       Do not add padding-block here. */
+    .built-for-here > .container {
+      display: grid;
+      gap: var(--space-4);
+    }
+  }
+</style>
