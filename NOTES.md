@@ -691,3 +691,116 @@ restating the body copy. One quiet mono line, `Cash · Mobile Money · Bank
 transfer`, says the same thing in a quarter of the space.
 
 **Gate:** passed. No blockers, after the falloff and `--signal` fixes above.
+
+---
+
+## Step 4 — Built for here
+
+**Built:** four ledger rows on dark, each a condition and a response, marked up
+as a `<dl>`. Hairline rules, a mono index per row, and one closing stamp line.
+Zero icons, zero cards, zero row backgrounds.
+
+The framing is the point. The current site states these as four benefits with
+icons; benefits are cheap and interchangeable. Naming the condition accurately
+("The power goes. The network drops.") is what proves the product knows this
+market, and it answers the objection the reader is actually holding rather than
+the one a brochure would invent.
+
+### The reveal needed restructuring to do what the spec describes
+
+The spec asks for two beats: the hairline rule draws first, left to right, then
+the text wipes in behind it. Those cannot both live on the row, because a
+`clip-path` on the row clips its rule pseudo-elements too and the two beats
+collapse into one.
+
+So the row is only the observer target — its base `[data-reveal]` transform and
+opacity are cancelled — and the animation sits on its parts: `::before` and
+`::after` carry the rules as `scaleX(0) → 1`, and the `<dt>`/`<dd>` carry the
+`clip-path` wipe one `--dur-base` behind. Borders cannot be scaled, which is why
+the rules are pseudo-elements rather than `border-block-start`.
+
+Verified by sampling the animation frame by frame rather than trusting it:
+
+```
+ ~60ms  ruleScaleX 0,0,0,0                textOpacity 0.00,0.00,0.00,0.00
+~300ms  ruleScaleX 0.97,0.71,0,0          textOpacity 0.00,0.00,0.00,0.00
+~500ms  ruleScaleX 1,1,0.83,0             textOpacity 0.74,0.14,0.00,0.00
+~900ms  ruleScaleX 1,1,1,0                textOpacity 1.00,1.00,0.95,0.00
+```
+
+Rules lead, text follows, rows stagger at 60ms. Scrolling away and back does not
+replay it. Four rows, four steps, inside the six-item limit.
+
+### Uneven rows had to be earned, not declared
+
+The spec is explicit that a ledger has uneven entries and that equal heights
+would push this back toward a card grid. Measured at 1440 with the spec's 46ch
+response cap, all four rows came out at exactly **147px** — every response
+wrapping to exactly two lines. Nothing was forcing equality; the copy just
+happened to be that even, and the result was a uniform grid.
+
+46ch is a maximum, not a target. Measured across candidates:
+
+| Measure | Response lines | Row heights |
+|---|---|---|
+| 46ch / 44ch / 42ch | 2 / 2 / 2 / 2 | 147 / 147 / 147 / 147 |
+| **40ch** | **2 / 3 / 2 / 2** | **147 / 173 / 147 / 147** |
+| 36ch | 3 / 3 / 2 / 2 | 173 / 173 / 147 / 147 |
+
+40ch is inside the cap and lets the longest response take the third line it
+needs, which is the shape the spec's own diagram draws (row 02 is the long one).
+No row height is set anywhere.
+
+### `--on-ink-faint` is not a text colour, and the specs keep reaching for it
+
+The section spec asks for the closing stamp in `--on-ink-faint`. Measured, that
+is **4.06:1** at 12px and fails the 4.5:1 floor. This is the second section spec
+to reach for `--faint` as a text colour after the hero placeholder did, and the
+design system's own rule already says muted text stops at `.68` on ink. Switched
+to `--muted` (~11:1). It costs a little of the intended whisper and it stays
+readable in daylight on a cheap phone, which is the audience the brief names as
+deciding.
+
+### Verification
+
+| | |
+|---|---|
+| Lighthouse mobile | **100 / 100 / 100 / 100** |
+| LCP / CLS / total | 1.7 s · 0 · 116 KB |
+| Markup | `<dl>` with `<dt>`/`<dd>`, index `aria-hidden` |
+| Icons in section | **0** |
+| Row backgrounds | all `rgba(0,0,0,0)` |
+| Row heights | uneven at both 1440 and 375 |
+| Section padding | 128px desktop / 64px mobile, the largest on the page |
+| Horizontal scroll | none |
+| Reduced motion | everything visible at 250ms, no wipe |
+| JS disabled | all rows visible, `clip-path: none`, rules drawn |
+
+### Self-critique
+
+**Distinctive:** the left column. "The power goes. The network drops." is not a
+feature, a benefit, or a value proposition — it is a description of a Tuesday in
+Serekunda. No other B2B SaaS page would open a section by naming the customer's
+infrastructure failing, and the whole argument only works because it does.
+
+**Templated:** the closing stamp, `THE GAMBIA · DALASIS · WAVE · OFFLINE-FIRST`.
+Middot-separated uppercase mono keywords is a well-worn move, and having lost
+its faintness to the contrast fix it now sits louder than a flourish should. It
+is the first thing I would cut in the step 8 pass.
+
+**Removed:** the intro paragraph. The spec forbids one and it was right to — I
+drafted "Four things that are true of shops here" and cutting it made the first
+condition land harder. A preamble tells the reader what they are about to read
+instead of letting them read it.
+
+**Gate:** passed. No blockers, after the `--faint` fix above.
+
+### A pattern worth naming across both sections
+
+Three of the four blockers found in this session were the same shape: a section
+spec naming a colour or an opacity that does not survive measurement — the
+deck's `opacity: .55` falloff, `--signal` as text on paper, and `--on-ink-faint`
+as the stamp. All three read fine as instructions and all three fail axe. The
+design system's verified-pairs table covers seven combinations; it should be
+extended to cover `--signal` on both grounds and to state plainly that
+`--on-ink-faint` and dimmed surfaces are not text.

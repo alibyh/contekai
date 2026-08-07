@@ -1,39 +1,298 @@
 ---
 /**
- * 03 — Built for here
+ * 03 — Built for here. Dark ground: back to night, and the section where the
+ * local argument gets made explicitly.
  *
- * <!-- built in ORDER.md step 4 -->
+ * It answers the objection the reader is actually holding: "POS software is
+ * built for shops that have power and internet. Mine doesn't, always."
  *
- * Four claims from CONTEXT.md §4, as ledger rows: problem then response,
- * alternating. A record, not a card grid.
+ * Benefits are cheap. Conditions are credible — naming the problem accurately
+ * is what proves you know the market. So each row is a condition and a
+ * response, not a feature with an icon.
  *
- * Gate: four claims, all from CONTEXT.md · rows read as a record, not as cards ·
- * the left-wipe reveal fires once · no icon-in-a-chip anywhere · copy passes the
- * substitution test.
+ * Structure is a description list, because that is what this is: `<dt>` is the
+ * condition, `<dd>` is the response. It reads correctly in a screen reader and
+ * the markup means what it looks like.
+ *
+ * Rows are DELIBERATELY UNEVEN in height. A ledger has uneven entries; forcing
+ * equal heights would push this back toward the card grid it exists to avoid.
+ * No icons, no cards, no filled row backgrounds — the rules and the two-column
+ * split are the entire structure. This is the quiet section. Its job is to slow
+ * the reader down and be believed.
  */
 import Eyebrow from "../ui/Eyebrow.astro";
+
+interface Row {
+  index: string;
+  condition: string;
+  response: string;
+}
+
+/** Facts from CONTEXT.md §4 "Why Contekai", reframed as condition → response. */
+const rows: Row[] = [
+  {
+    index: "01",
+    condition: "The power goes. The network drops.",
+    response:
+      "Sales and stock keep working offline. Everything syncs the moment you're back online.",
+  },
+  {
+    index: "02",
+    condition: "Staff change often.",
+    response:
+      "Anyone can learn the till in a few minutes. Each person gets their own login and only the access you give them.",
+  },
+  {
+    index: "03",
+    condition: "Stock walks, expires, or runs out unnoticed.",
+    response:
+      "Alerts before you run out, before things expire, and when a count doesn't match.",
+  },
+  {
+    index: "04",
+    condition: "You can't see where the money is made.",
+    response:
+      "Best sellers, busiest hours, margin per item, profit per branch. In dalasis, daily.",
+  },
+];
 ---
 
 <section
-  class="built-for-here"
+  class="bfh"
   id="built-for-here"
   data-section="built-for-here"
   data-ground="dark"
-  aria-labelledby="built-for-here-title"
+  aria-labelledby="bfh-title"
 >
-  <div class="container">
+  <div class="bfh__head">
     <Eyebrow index="03">Built for here</Eyebrow>
-    <h2 id="built-for-here-title"><!-- COPY: written in ORDER.md step 4 -->Built for here</h2>
+    {/* No intro paragraph. The rows are the argument; a preamble weakens them. */}
+    <h2 id="bfh-title">Made for the way shops here actually run.</h2>
   </div>
+
+  <dl class="ledger">
+    {
+      rows.map((row) => (
+        <div class="ledger__row" data-reveal>
+          <dt class="ledger__condition">
+            {/* The index is aria-hidden: the list structure already conveys
+                enumeration. It is here because this is a checklist of four
+                objections a reader can count off — unlike the deck, where the
+                numbers are positional. */}
+            <span class="ledger__index t-mono" aria-hidden="true">
+              {row.index}
+            </span>
+            <span>{row.condition}</span>
+          </dt>
+          <dd class="ledger__response">{row.response}</dd>
+        </div>
+      ))
+    }
+  </dl>
+
+  {/* The whole flourish. Nothing else. */}
+  <p class="bfh__stamp t-mono">The Gambia · Dalasis · Wave · Offline-first</p>
 </section>
 
 <style>
   @layer sections {
-    /* Padding comes from the single [data-section] rule in base.css.
-       Do not add padding-block here. */
-    .built-for-here > .container {
+    /* Padding comes from the single [data-section] rule in base.css. This
+       section has the largest padding on the page and that is the point: it
+       breathes more than its neighbours. Do not add padding-block here. */
+    .bfh {
+      display: grid;
+      gap: var(--space-8);
+    }
+
+    .bfh__head {
       display: grid;
       gap: var(--space-4);
+      max-inline-size: 42rem;
     }
+
+    .bfh__head h2 {
+      max-inline-size: 22ch;
+    }
+
+    /* --- the ledger -------------------------------------------------------- */
+
+    .ledger {
+      margin: 0;
+    }
+
+    .ledger__row {
+      position: relative;
+      display: grid;
+      gap: var(--space-3);
+      padding-block: var(--space-6);
+    }
+
+    /* The rules are drawn as pseudo-elements rather than borders, because they
+       have to animate: a border cannot scaleX. They are what hold the section
+       together, especially at mobile width. */
+    .ledger__row::before,
+    .ledger__row:last-child::after {
+      content: "";
+      position: absolute;
+      inset-inline: 0;
+      block-size: 1px;
+      background-color: var(--hairline);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform var(--dur-base) var(--ease-out);
+    }
+
+    .ledger__row::before {
+      inset-block-start: 0;
+    }
+
+    .ledger__row:last-child::after {
+      inset-block-end: 0;
+    }
+
+    .ledger__condition {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-4);
+      font-size: var(--fs-h3);
+      font-weight: var(--fw-semibold);
+      line-height: var(--lh-h3);
+      color: var(--on-ink);
+      text-wrap: balance;
+    }
+
+    .ledger__index {
+      flex: none;
+      color: var(--muted);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ledger__response {
+      margin: 0;
+      /* The spec caps the response at 46ch. Measured, 46/44/42ch all wrap
+         every response to exactly two lines, which makes four identical 147px
+         rows — a uniform grid, which is the one shape this section exists to
+         avoid. 40ch is inside the cap and lets the longest response take the
+         third line it needs, so the rows come out uneven the way a ledger's
+         entries are: 147 / 173 / 147 / 147. Nothing sets a row height. */
+      max-inline-size: 40ch;
+      color: var(--muted);
+    }
+
+    /* --- the stamp --------------------------------------------------------- */
+
+    .bfh__stamp {
+      margin-block-start: calc(var(--space-6) * -1);
+      /* The section spec asks for --on-ink-faint here. Measured, that is
+         4.06:1 at 12px and fails the 4.5:1 floor, which is a blocker. The
+         design system's own rule already says muted text stops at .68 on ink,
+         so --faint was never a text colour and this is the second place the
+         section specs reach for it. Using --muted (about 11:1) costs a little
+         of the intended whisper and keeps the line readable in daylight on a
+         cheap phone, which is the audience. */
+      color: var(--muted);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+      text-align: end;
+      text-transform: uppercase;
+    }
+
+    /* --- desktop: two columns ---------------------------------------------- */
+
+    @media (min-width: 768px) {
+      .ledger__row {
+        grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+        gap: var(--space-7);
+        align-items: start;
+        padding-block: var(--space-7);
+      }
+
+      /* The index moves out of the flow of the condition and sits in the
+         gutter, so the conditions all start on one vertical line. */
+      .ledger__condition {
+        gap: var(--space-5);
+      }
+    }
+
+    /* --- motion ------------------------------------------------------------
+       The rows are being WRITTEN, like entries in a book. Per the section spec
+       the hairline rule draws first, left to right, and the text wipes in
+       behind it. Direction is the meaning here, which is why this is one of the
+       few places a directional reveal earns its place.
+
+       The row is only the observer target — the animation is on its parts. It
+       cannot carry the wipe itself, because a clip-path on the row would clip
+       the rule pseudo-elements along with the text and the two beats would
+       collapse into one. So the base [data-reveal] transform/opacity is
+       cancelled here and the row just carries `.is-in` for its children.
+
+       scaleX and clip-path are both compositable. Fired once by the shared
+       observer in reveal.ts; nothing re-animates on scroll-back. Four rows,
+       four steps, inside the six-item stagger limit.
+       ---------------------------------------------------------------------- */
+
+    .ledger__row[data-reveal] {
+      opacity: 1;
+      transform: none;
+    }
+
+    .ledger__condition,
+    .ledger__response {
+      opacity: 0;
+      clip-path: inset(0 100% 0 0);
+      transition:
+        opacity var(--dur-slow) var(--ease-out),
+        clip-path var(--dur-slow) var(--ease-out);
+    }
+
+    .ledger__row.is-in .ledger__condition,
+    .ledger__row.is-in .ledger__response {
+      opacity: 1;
+      clip-path: inset(0);
+    }
+
+    .ledger__row.is-in::before,
+    .ledger__row.is-in:last-child::after {
+      transform: scaleX(1);
+    }
+
+    /* Stagger: the rule leads, the text follows one beat behind it. */
+    .ledger__row:nth-child(1)::before { transition-delay: 0ms; }
+    .ledger__row:nth-child(2)::before { transition-delay: calc(var(--stagger) * 1); }
+    .ledger__row:nth-child(3)::before { transition-delay: calc(var(--stagger) * 2); }
+    .ledger__row:nth-child(4)::before { transition-delay: calc(var(--stagger) * 3); }
+    .ledger__row:last-child::after { transition-delay: calc(var(--stagger) * 4); }
+
+    .ledger__row:nth-child(1) :is(.ledger__condition, .ledger__response) {
+      transition-delay: var(--dur-base);
+    }
+    .ledger__row:nth-child(2) :is(.ledger__condition, .ledger__response) {
+      transition-delay: calc(var(--dur-base) + var(--stagger) * 1);
+    }
+    .ledger__row:nth-child(3) :is(.ledger__condition, .ledger__response) {
+      transition-delay: calc(var(--dur-base) + var(--stagger) * 2);
+    }
+    .ledger__row:nth-child(4) :is(.ledger__condition, .ledger__response) {
+      transition-delay: calc(var(--dur-base) + var(--stagger) * 3);
+    }
+
+    /* No-JS safety net. reveal.ts never runs, so `.is-in` never arrives and
+       the rows would sit invisible behind a rule that never draws. motion.css
+       covers [data-reveal] itself; these are its children. */
+    :global(html:not([data-js])) .ledger__condition,
+    :global(html:not([data-js])) .ledger__response {
+      opacity: 1;
+      clip-path: none;
+    }
+
+    :global(html:not([data-js])) .ledger__row::before,
+    :global(html:not([data-js])) .ledger__row:last-child::after {
+      transform: none;
+    }
+
+    /* No hover state on the rows. They are not interactive and must not
+       pretend to be. */
   }
 </style>
