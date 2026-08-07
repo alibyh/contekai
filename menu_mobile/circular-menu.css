@@ -1,0 +1,130 @@
+/* ── Circular Reveal Mobile Menu ──────────────────────────────────────────
+   Drop-in reusable component with cascading animations.
+
+   Features:
+   - Circular bubble reveal from button corner
+   - Hamburger → X morph
+   - Cascading fade/slide/blur on menu items
+   - GPU-optimized (transform, opacity, filter only)
+
+   Customize via:
+   - bubbleGradient prop: control the radial gradient colors
+   - accentColor prop: hamburger line color
+   - CSS classes: circular-menu-root, circular-menu-item, etc.
+*/
+
+.circular-menu-root {
+  pointer-events: none;
+}
+.circular-menu-root.is-open {
+  pointer-events: auto;
+}
+
+.circular-menu-bubble {
+  transform: scale(0);
+  transition: transform 0.6s cubic-bezier(0.86, 0, 0.07, 1);
+  will-change: transform;
+}
+.circular-menu-root.is-open .circular-menu-bubble {
+  transform: scale(1);
+}
+
+.circular-menu-content {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.circular-menu-root.is-open .circular-menu-content {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.4s ease 0.2s;
+}
+
+/* Cascade: fade in, slide up, un-blur with staggered delay */
+.circular-menu-item {
+  opacity: 0;
+  transform: translateY(26px);
+  filter: blur(5px);
+  transition:
+    opacity 0.5s ease,
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.5s ease;
+}
+.circular-menu-root.is-open .circular-menu-item {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+/* Hamburger → X animation */
+.circular-menu-burger {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.circular-menu-burger .burger-line {
+  transition:
+    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s ease;
+  transform-origin: center;
+}
+
+.circular-menu-burger.is-open .burger-line-1 {
+  transform: translateY(8px) rotate(45deg);
+}
+.circular-menu-burger.is-open .burger-line-2 {
+  opacity: 0;
+  transform: scaleX(0);
+}
+.circular-menu-burger.is-open .burger-line-3 {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
+/* Optional: Logo animation (if using children) */
+@keyframes circular-menu-logo-spin {
+  0% {
+    transform: scale(0.3) rotate(-30deg);
+  }
+  55% {
+    transform: scale(1.14) rotate(7deg);
+  }
+  80% {
+    transform: scale(0.97) rotate(-2deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes circular-menu-logo-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(2.5deg);
+  }
+}
+
+/* Apply these classes to your logo/child element if desired */
+.circular-menu-logo-img {
+  animation:
+    circular-menu-logo-spin 0.75s cubic-bezier(0.22, 1, 0.36, 1) both,
+    circular-menu-logo-bob 4s ease-in-out 0.75s infinite;
+  will-change: transform;
+}
+
+/* Reduce motion support */
+@media (prefers-reduced-motion: reduce) {
+  .circular-menu-bubble,
+  .circular-menu-content,
+  .circular-menu-item,
+  .circular-menu-burger .burger-line,
+  .circular-menu-logo-img {
+    transition: none !important;
+    animation: none !important;
+    filter: none !important;
+  }
+}

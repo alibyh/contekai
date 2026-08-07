@@ -40,8 +40,8 @@ if (stage) {
   const total = cards.length;
   const reduced = prefersReducedMotion();
 
-  const AUTO_MS = 6000;
-  const MANUAL_COOLDOWN_MS = 15000;
+  const AUTO_MS = 3000;
+  const MANUAL_COOLDOWN_MS = 1000;
 
   let active = 0;
   let lastManualAt = 0;
