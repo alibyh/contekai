@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Builds public/media/{hero.mp4,hero.webm,poster.avif} from the client's raw clip.
 #
-# Run from the repo root:  ./scripts/build-hero-video.sh hero_vid.MOV
+# Run from the repo root:  ./scripts/build-hero-video.sh hero_vid.MOV [blur_sigma]
+#
+# blur_sigma defaults to 0 (no blur). Pass 18 to restore the original grade —
+# see the note at BLUR below for why that value existed.
 #
 # WHY THIS EXISTS
 # The delivered clip cannot be used as a hero background as-is. Measured on the
@@ -21,11 +24,15 @@
 #   Bug / caption positions:  ffmpeg -ss 5 -i IN -frames:v 1 frame.png  and look
 #   Peak luma after grading:  see the CHECK step at the bottom of this script
 # The grade is load-bearing: tokens.css documents that hero text contrast is won
-# by the peak luma being ~103/255, not by the scrim.
+# by the peak luma being ~103/255, not by the scrim. Re-run the CHECK step
+# whenever BLUR changes — removing the blur raises local peak brightness (a lit
+# laptop screen is no longer averaged with the dark screen around it), so the
+# contrast margin needs re-confirming, not just carried over.
 
 set -euo pipefail
 
 SRC="${1:-hero_vid.MOV}"
+BLUR="${2:-0}"
 OUT="public/media"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
@@ -44,10 +51,18 @@ mkdir -p "$OUT"
 # above the caption band (starts y 424).
 #
 # --- grade -------------------------------------------------------------------
-# gblur    keeps forms abstract: light and shadow, not a recognisable face
-# eq       desaturates slightly and holds contrast
-# colorbalance  pushes shadows blue, toward --ink-900
-# colorlevels   caps output white near 0.4, which is what makes it a night ground
+# BLUR (optional)  at sigma=18 kept forms abstract: light and shadow, not a
+#                  recognisable face. At BLUR=0 the b-roll is sharp — the
+#                  laptop screen and the two people over a phone are legible.
+#                  Nothing else in the grade compensates for that trade either
+#                  way; it is purely how much detail survives.
+# eq               desaturates slightly and holds contrast
+# colorbalance     pushes shadows blue, toward --ink-900
+# colorlevels      caps output white near 0.4, which is what makes it a night
+#                  ground
+
+BLUR_FILTER=""
+if [ "$BLUR" != "0" ]; then BLUR_FILTER="gblur=sigma=$BLUR,"; fi
 
 FILTER="\
 [0:v]trim=start=1.5:end=4.2,setpts=PTS-STARTPTS,fps=25[a];\
@@ -58,7 +73,7 @@ FILTER="\
 [n]trim=start=0.5:end=5.7,setpts=PTS-STARTPTS[body];\
 [body][head]xfade=transition=fade:duration=0.5:offset=4.7[loop];\
 [loop]crop=1024:330:0:90,\
-gblur=sigma=18,\
+${BLUR_FILTER}\
 eq=saturation=0.62:contrast=1.06,\
 colorbalance=rs=-0.06:gs=-0.02:bs=0.13:rm=-0.05:bm=0.06,\
 colorlevels=romin=0:romax=0.40:gomin=0:gomax=0.42:bomin=0.02:bomax=0.49[out]"
