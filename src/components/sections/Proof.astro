@@ -1,42 +1,375 @@
 ---
 /**
- * 05 — Shops
+ * 05 — Proof. Dark ground, and the shortest section on the page. It follows the
+ * receipt, so it has to be brief or it dilutes the decision the reader just
+ * made.
  *
- * <!-- built in ORDER.md step 6 -->
+ * Job: make one shop owner's experience specific enough to be believed. Not
+ * "loved by business owners" — this person, this shop, this town, this problem
+ * solved.
  *
- * Testimonials — real shops, one quote at a time.
+ * THE HONESTY RULE IS BLOCKING. A testimonial without a real name, a real
+ * business and a real town does not ship. Five gold stars over an anonymous
+ * quote is the most recognisable fake-social-proof pattern there is, and in a
+ * market this small the reader may well know the shop.
  *
- * Gate: every testimonial has a real name, business and town, or the section
- * ships in its reduced form · no five-star rows without attribution · no
- * auto-advance · photos optimised and permissioned.
+ * CURRENT STATE: reduced, and partly awaiting content. The client has supplied
+ * one real person — name and photograph, Bubacarr Jaith — but not his words,
+ * his business, his town, or written permission. So his quote renders as the
+ * marked placeholder the section spec prescribes rather than as text I wrote.
+ * Nothing here is invented, and no star ratings appear anywhere: there is no
+ * linkable review source to cite.
  *
- * Blocked on client assets: full testimonial text, reviewer names, business
- * names, towns, and photo permission. Unattributed five-star cards read as
- * fake, so this section does not ship until they land.
+ * CONTEXT.md §4 records a fragment from the current site — "I have two other
+ * businesses aside of Kerr…" — with no attribution. It is deliberately NOT used:
+ * an unattributed quote is the exact pattern this section exists to avoid, and
+ * pinning it to the one person whose photo we have would be inventing a link.
+ *
+ * The tab machinery below is complete. When real testimonials arrive, they go
+ * into `testimonials` and the section becomes its full form with no other
+ * change.
  */
 import Eyebrow from "../ui/Eyebrow.astro";
+
+interface Testimonial {
+  id: string;
+  /** Real name, as the person gave it. */
+  name: string;
+  /** null until the client supplies the words. Never write one. */
+  quote: string | null;
+  /** Business name. null until confirmed. */
+  business: string | null;
+  /** Town. null until confirmed. */
+  town: string | null;
+  /** Base path without extension, or null for the monogram fallback. */
+  photo: string | null;
+}
+
+const testimonials: Testimonial[] = [
+  {
+    id: "bubacarr-jaith",
+    name: "Bubacarr Jaith",
+    quote: null,
+    business: null,
+    town: null,
+    photo: "/media/reviewers/bubacarr-jaith",
+  },
+];
+
+/** Initials for the fallback avatar, so a reviewer without a photo is still a
+    person rather than a grey silhouette. */
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+
+const complete = (t: Testimonial) => t.quote && t.business && t.town;
+const multiple = testimonials.length > 1;
 ---
 
 <section
   class="proof"
-  id="proof"
+  id="shops"
   data-section="proof"
   data-ground="dark"
   aria-labelledby="proof-title"
 >
-  <div class="container">
-    <Eyebrow index="05">Shops</Eyebrow>
-    <h2 id="proof-title"><!-- COPY: written in ORDER.md step 6 -->Shops</h2>
+  <div class="proof__head">
+    <Eyebrow index="05">Shops using it</Eyebrow>
+    {/* No intro paragraph. */}
+    <h2 id="proof-title">From shops around the country.</h2>
+  </div>
+
+  <div class="proof__body">
+    {
+      testimonials.map((t, i) => (
+        <figure
+          class="quote"
+          id={`panel-${t.id}`}
+          role={multiple ? "tabpanel" : undefined}
+          aria-labelledby={multiple ? `tab-${t.id}` : undefined}
+          hidden={multiple && i !== 0}
+          data-panel
+          data-reveal
+        >
+          {
+            /* No card, no giant quotation-mark graphic, no background panel.
+               The quote sits directly on the ground. */
+          }
+          {t.quote ? (
+            <blockquote class="quote__text">
+              <p>{`“${t.quote}”`}</p>
+            </blockquote>
+          ) : (
+            <p class="quote__awaiting t-mono">
+              Awaiting real testimonial — quote, business, town, written
+              permission
+            </p>
+          )}
+
+          <figcaption class="quote__by">
+            {t.photo ? (
+              <picture>
+                <source srcset={`${t.photo}.avif`} type="image/avif" />
+                <img
+                  class="quote__photo"
+                  src={`${t.photo}.jpg`}
+                  alt={t.name}
+                  width="224"
+                  height="224"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </picture>
+            ) : (
+              <span class="quote__photo quote__photo--monogram t-mono" aria-hidden="true">
+                {initials(t.name)}
+              </span>
+            )}
+            <span class="quote__who">
+              <span class="quote__name">{t.name}</span>
+              <span class="quote__where t-mono">
+                {complete(t) ? (
+                  `${t.business} · ${t.town}`
+                ) : (
+                  <span class="quote__pending">Business and town to confirm</span>
+                )}
+              </span>
+            </span>
+          </figcaption>
+        </figure>
+      ))
+    }
+
+    {
+      /* The thumbnail row is the selector, and it only exists when there is
+         something to select. One testimonial gets no tablist: a single "tab"
+         is a dot, and dots are what this section is meant to avoid. */
+      multiple && (
+        <div class="proof__tabs" role="tablist" aria-label="Shops using Contekai">
+          {testimonials.map((t, i) => (
+            <button
+              type="button"
+              class="thumb"
+              id={`tab-${t.id}`}
+              role="tab"
+              aria-selected={i === 0 ? "true" : "false"}
+              aria-controls={`panel-${t.id}`}
+              tabindex={i === 0 ? 0 : -1}
+              data-tab
+            >
+              {t.photo ? (
+                <img
+                  src={`${t.photo}.jpg`}
+                  alt={t.name}
+                  width="112"
+                  height="112"
+                  loading="lazy"
+                  decoding="async"
+                />
+              ) : (
+                <span class="thumb__monogram t-mono" aria-hidden="true">
+                  {initials(t.name)}
+                </span>
+              )}
+              <span class="visually-hidden">{t.name}</span>
+            </button>
+          ))}
+        </div>
+      )
+    }
   </div>
 </section>
 
+<script>
+  import "../../scripts/proof.ts";
+</script>
+
 <style>
   @layer sections {
-    /* Padding comes from the single [data-section] rule in base.css.
-       Do not add padding-block here. */
-    .proof > .container {
+    /* Padding comes from the single [data-section] rule in base.css. This is
+       the shortest section on the page and that is deliberate. */
+    .proof {
+      display: grid;
+      gap: var(--space-7);
+    }
+
+    .proof__head {
       display: grid;
       gap: var(--space-4);
+      max-inline-size: 42rem;
+    }
+
+    .proof__body {
+      display: grid;
+      gap: var(--space-6);
+    }
+
+    /* --- the quote ---------------------------------------------------------
+       The only place on the page where body-weight type is set at display
+       size. That is what gives it presence without a card around it. */
+
+    .quote__text {
+      margin: 0;
+      max-inline-size: 26ch;
+      font-size: clamp(1.3rem, 5vw, 1.75rem);
+      font-weight: var(--fw-regular);
+      font-variation-settings: "wdth" 104;
+      line-height: 1.35;
+      color: var(--on-ink);
+      /* The typographic quotes are part of the text and hang into the margin,
+         so the first letter still aligns to the grid. */
+      text-indent: -0.4em;
+    }
+
+    .quote__awaiting {
+      max-inline-size: 44ch;
+      padding: var(--space-5);
+      border: var(--border-ink);
+      color: var(--muted);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+      line-height: 1.7;
+      text-transform: uppercase;
+    }
+
+    .quote__by {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      margin-block-start: var(--space-6);
+    }
+
+    /* The only --r-full on the page besides pills. */
+    .quote__photo {
+      inline-size: 40px;
+      block-size: 40px;
+      border-radius: var(--r-full);
+      object-fit: cover;
+      flex: none;
+    }
+
+    .quote__photo--monogram {
+      display: grid;
+      place-items: center;
+      border: var(--border-ink);
+      color: var(--muted);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+    }
+
+    .quote__who {
+      display: grid;
+      gap: 2px;
+    }
+
+    .quote__name {
+      font-weight: var(--fw-semibold);
+    }
+
+    .quote__where {
+      color: var(--muted);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+      text-transform: uppercase;
+    }
+
+    .quote__pending {
+      color: var(--faint);
+    }
+
+    /* --- thumbnails --------------------------------------------------------- */
+
+    .proof__tabs {
+      display: flex;
+      gap: var(--space-3);
+      overflow-x: auto;
+      scroll-snap-type: x proximity;
+      scrollbar-width: none;
+      padding-block-start: var(--space-2);
+    }
+
+    .proof__tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .thumb {
+      flex: none;
+      inline-size: 56px;
+      block-size: 56px;
+      padding: 0;
+      border: 2px solid transparent;
+      border-radius: var(--r-full);
+      background: none;
+      overflow: hidden;
+      opacity: 0.5;
+      cursor: pointer;
+      scroll-snap-align: start;
+      transition:
+        opacity var(--dur-base) var(--ease-out),
+        border-color var(--dur-base) var(--ease-out);
+    }
+
+    .thumb img {
+      inline-size: 100%;
+      block-size: 100%;
+      border-radius: var(--r-full);
+      object-fit: cover;
+    }
+
+    .thumb__monogram {
+      display: grid;
+      place-items: center;
+      inline-size: 100%;
+      block-size: 100%;
+      border-radius: var(--r-full);
+      color: var(--muted);
+      font-size: var(--fs-label);
+    }
+
+    .thumb[aria-selected="true"] {
+      opacity: 1;
+      border-color: var(--laterite);
+    }
+
+    /* --- responsive --------------------------------------------------------- */
+
+    @media (min-width: 768px) {
+      .quote__text {
+        font-size: clamp(1.5rem, 2.6vw, 2.125rem);
+      }
+    }
+
+    /* --- motion ------------------------------------------------------------
+       Section reveal only: the quote fades and rises, the attribution follows
+       60ms later, the thumbnails 120ms after that. Fires once. Nothing else in
+       this section moves — no auto-advance, no hover lift.
+       ---------------------------------------------------------------------- */
+
+    .quote[data-reveal] .quote__by {
+      transition-delay: var(--stagger);
+    }
+
+    .proof__tabs {
+      transition-delay: calc(var(--stagger) * 2);
+    }
+
+    /* Crossfade between panels. Out at 70% of in, per the motion grammar. */
+    .quote[data-panel] {
+      transition: opacity var(--dur-base) var(--ease-out);
+    }
+
+    .quote[data-panel].is-leaving {
+      opacity: 0;
+      transition-duration: var(--dur-base-exit);
+      transition-timing-function: var(--ease-in);
+    }
+
+    .quote[hidden] {
+      display: none;
     }
   }
 </style>

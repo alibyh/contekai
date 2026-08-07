@@ -14,6 +14,7 @@ import "../styles/motion.css";
 import Header from "../components/shell/Header.astro";
 import Rail from "../components/shell/Rail.astro";
 import Footer from "../components/shell/Footer.astro";
+import Menu from "../components/shell/Menu.astro";
 
 interface Props {
   title?: string;
@@ -161,6 +162,7 @@ const softwareApplication = {
     <a class="skip-link" href="#main">Skip to content</a>
     <Rail />
     <Header />
+    <Menu />
     <div class="page">
       <main id="main">
         <slot />
@@ -169,6 +171,7 @@ const softwareApplication = {
     </div>
     <script>
       import "../scripts/reveal.ts";
+      import "../scripts/menu.ts";
     </script>
   </body>
 </html>

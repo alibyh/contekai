@@ -2,10 +2,10 @@
 /**
  * Header — furniture, not a feature.
  *
- * SCAFFOLD STATE: structure, focus order and the inert menu button are in
- * place so the keyboard path is real. The ground switching (header background
- * following the section behind it via IntersectionObserver on [data-ground])
- * is <!-- built in ORDER.md step 1 -->.
+ * The menu button is now wired: it drives the circular-reveal panel in
+ * shell/Menu.astro. The three lines morph to an X on open. The ground
+ * switching (header background following the section behind it via
+ * IntersectionObserver on [data-ground]) is <!-- built in ORDER.md step 1 -->.
  *
  * Fixed rules from kit/sections/00-shell.md:
  *  - 64px, sticky from 0, never hides on scroll, never shrinks
@@ -13,7 +13,6 @@
  *  - the only thing that changes is the ground
  */
 import Button from "../ui/Button.astro";
-import Icon from "../ui/Icon.astro";
 ---
 
 <header class="header" role="banner" data-ground="dark">
@@ -61,19 +60,22 @@ import Icon from "../ui/Icon.astro";
           breakpoint is the inconsistency the rule exists to prevent. */}
       <Button variant="primary" href="/signup" compact>Start 7 days free</Button>
 
+      {/* Three spans rather than a Lucide glyph, because the lines have to
+          morph into an X individually. This is the one place in the build that
+          draws its own icon, and it earns it: an icon swap cannot animate. */}
       <button
         type="button"
         class="menu-btn"
         aria-label="Open menu"
         aria-expanded="false"
         aria-controls="site-menu"
-        data-todo="wiring deferred — client will configure"
       >
-        <Icon name="menu" size={24} />
+        <span class="menu-btn__box" aria-hidden="true">
+          <span class="menu-btn__line"></span>
+          <span class="menu-btn__line"></span>
+          <span class="menu-btn__line"></span>
+        </span>
       </button>
-      {/* TODO(client): menu panel not implemented. Button is inert by design.
-          It is not `disabled`, because a disabled control would communicate
-          something false. */}
     </div>
   </div>
 </header>
@@ -144,6 +146,63 @@ import Icon from "../ui/Icon.astro";
       background: none;
       color: inherit;
       cursor: pointer;
+      position: relative;
+    }
+
+    /* The header is `position: sticky; z-index: 50`, which makes it a stacking
+       context — so a z-index on the button alone can never lift it above the
+       menu panel, no matter how large. The whole header has to move instead.
+       While the menu is open it goes above the panel and drops its own ground,
+       so the lockup and the X sit directly on the ink. */
+    :global(body:has(.menu.is-open)) .header {
+      z-index: 61;
+      background-color: transparent;
+      border-block-end-color: transparent;
+      color: var(--on-ink);
+    }
+
+    /* The panel carries its own copies of these, so the header's would be
+       duplicates sitting on top of them. */
+    :global(body:has(.menu.is-open)) .header__actions > :not(.menu-btn) {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--dur-fast) var(--ease-out);
+    }
+
+    .menu-btn__box {
+      display: grid;
+      gap: 5px;
+      inline-size: 22px;
+    }
+
+    .menu-btn__line {
+      display: block;
+      block-size: 2px;
+      border-radius: var(--r-full);
+      background-color: currentColor;
+      transform-origin: center;
+      transition:
+        transform var(--dur-base) var(--ease-out),
+        opacity var(--dur-instant) var(--ease-out);
+    }
+
+    /* Morph to an X. The open button always sits on the panel's ink ground, so
+       it takes --on-ink regardless of which section is behind the header. */
+    .menu-btn.is-open {
+      color: var(--on-ink);
+    }
+
+    .menu-btn.is-open .menu-btn__line:nth-child(1) {
+      transform: translateY(7px) rotate(45deg);
+    }
+
+    .menu-btn.is-open .menu-btn__line:nth-child(2) {
+      opacity: 0;
+      transform: scaleX(0);
+    }
+
+    .menu-btn.is-open .menu-btn__line:nth-child(3) {
+      transform: translateY(-7px) rotate(-45deg);
     }
 
     /* Below 480 the "Log in" action moves into the deferred menu panel. */

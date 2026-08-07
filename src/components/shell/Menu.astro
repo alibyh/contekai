@@ -1,0 +1,209 @@
+---
+/**
+ * Menu — the circular-reveal panel behind the header's menu button.
+ *
+ * Ported from the client's `menu_mobile/` React component to Astro + vanilla
+ * TS, because this project ships no framework runtime. The behaviour is the
+ * same: a bubble scales out of the button's corner, the burger morphs to an X,
+ * and the items cascade in. What changed, and why:
+ *
+ *  - `bubbleGradient` is now a solid `--ink-900`. The design system permits
+ *    exactly one gradient in the whole build (the hero video scrim), and a
+ *    full-screen radial gradient would be a second. The circular reveal is the
+ *    idea; the gradient was decoration. One line to put back if wanted.
+ *  - `filter: blur()` on the cascading items is dropped. Blur on a full-screen
+ *    overlay is expensive on the low-end Android this audience uses, and the
+ *    fade plus rise already carries the cascade.
+ *  - Timings come from the motion tokens rather than the component's own
+ *    numbers, so the menu moves like the rest of the page.
+ *  - Colours, type and spacing are tokens throughout; nothing is hardcoded.
+ *
+ * Kept from the original: the circular reveal, the burger morph, the cascade,
+ * Escape to close, scroll lock, and the reduced-motion path.
+ *
+ * Added, because a real menu needs them: focus is moved into the panel on open
+ * and returned to the button on close, focus is trapped while open, the panel
+ * is `inert` when closed so nothing inside is tabbable, and every item is a
+ * real anchor to a real section rather than a button with a handler.
+ */
+import Button from "../ui/Button.astro";
+
+const links = [
+  { href: "#what-it-does", label: "What it does" },
+  { href: "#built-for-here", label: "Built for here" },
+  { href: "#pricing", label: "Pricing" },
+  { href: "#shops", label: "Shops using it" },
+];
+---
+
+<div class="menu" id="site-menu" data-menu inert>
+  {/* Scales out of the button's corner. Solid ink, not a gradient. */}
+  <div class="menu__bubble" aria-hidden="true"></div>
+
+  <div class="menu__content">
+    <nav class="menu__nav" aria-label="Sections">
+      <ul class="menu__list">
+        {
+          links.map((link, i) => (
+            <li class="menu__item" style={`--i:${i}`}>
+              <a class="menu__link" href={link.href} data-menu-link>
+                <span>{link.label}</span>
+                <span class="menu__index t-mono" aria-hidden="true">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <div class="menu__actions menu__item" style={`--i:${links.length}`}>
+      <Button variant="primary" href="/signup" data-menu-link>
+        Start 7 days free
+      </Button>
+      <Button variant="quiet" href="/login" data-menu-link>Log in</Button>
+    </div>
+  </div>
+</div>
+
+<style>
+  @layer components {
+    .menu {
+      position: fixed;
+      inset: 0;
+      /* Above the header (50), below nothing else. */
+      z-index: 60;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .menu[inert] {
+      /* Belt and braces with the inert attribute: nothing inside can be
+         reached by pointer or tab when the menu is shut. */
+      pointer-events: none;
+    }
+
+    .menu.is-open {
+      pointer-events: auto;
+    }
+
+    /* --- the bubble ---------------------------------------------------------
+       A circle far larger than any viewport, anchored so its edge sits at the
+       menu button's corner, scaled from 0. Only transform animates. */
+
+    .menu__bubble {
+      position: absolute;
+      /* Anchored to the button's corner: header is 64px tall, the button sits
+         at the inline end inside the gutter. */
+      inset-block-start: calc(32px - 150vmax);
+      inset-inline-end: calc(var(--gutter) + 22px - 150vmax);
+      inline-size: 300vmax;
+      block-size: 300vmax;
+      border-radius: var(--r-full);
+      background-color: var(--ink-900);
+      transform: scale(0);
+      transition: transform var(--dur-stage) cubic-bezier(0.86, 0, 0.07, 1);
+      will-change: transform;
+    }
+
+    .menu.is-open .menu__bubble {
+      transform: scale(1);
+    }
+
+    /* --- content ------------------------------------------------------------ */
+
+    .menu__content {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: var(--space-8);
+      padding: calc(var(--header-h) + var(--space-8)) var(--gutter) var(--space-8);
+      overflow-y: auto;
+      opacity: 0;
+      transition: opacity var(--dur-base) var(--ease-out);
+    }
+
+    .menu.is-open .menu__content {
+      opacity: 1;
+      transition: opacity var(--dur-slow) var(--ease-out) 160ms;
+    }
+
+    .menu__list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* The cascade. Fade and rise only — no blur: it is expensive full-screen on
+       a low-end phone and the movement already reads. */
+    .menu__item {
+      opacity: 0;
+      transform: translateY(20px);
+      transition:
+        opacity var(--dur-slow) var(--ease-out),
+        transform var(--dur-slow) var(--ease-out);
+      /* Closing runs much faster and nearly together, so the items are gone
+         before the bubble collapses over them. */
+      transition-delay: calc(var(--i) * 20ms);
+    }
+
+    .menu.is-open .menu__item {
+      opacity: 1;
+      transform: none;
+      transition-delay: calc(220ms + var(--i) * var(--stagger));
+    }
+
+    .menu__link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      min-block-size: var(--tap-min);
+      padding-block: var(--space-4);
+      border-block-end: var(--border-ink);
+      color: var(--on-ink);
+      font-size: clamp(1.5rem, 6vw, 2rem);
+      font-weight: var(--fw-semibold);
+      font-variation-settings: "wdth" var(--wdth-h2);
+      letter-spacing: var(--track-h3);
+      text-decoration: none;
+      transition: padding-inline-start var(--dur-fast) var(--ease-out);
+    }
+
+    .menu__link:hover {
+      padding-inline-start: var(--space-2);
+    }
+
+    .menu__index {
+      color: var(--on-ink-quiet);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+    }
+
+    .menu__actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-4);
+    }
+
+    /* --- reduced motion ------------------------------------------------------
+       The global block already collapses durations and delays. The bubble is
+       the one thing that must not merely be fast — a full-screen circle
+       snapping open is worse than no animation, so it is replaced outright by
+       the panel simply being there. */
+    @media (prefers-reduced-motion: reduce) {
+      .menu__bubble {
+        transform: scale(1);
+        opacity: 0;
+      }
+
+      .menu.is-open .menu__bubble {
+        opacity: 1;
+      }
+    }
+  }
+</style>

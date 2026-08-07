@@ -1216,3 +1216,174 @@ location only".
 2. **The multi-location discount**, or confirmation that there isn't one so the
    promise can stay deleted from the copy.
 3. Confirmation that `/signup` is the real route for the receipt's CTA.
+
+---
+
+## Step 6 — Proof
+
+**Built:** the section, in its **reduced-and-awaiting** state, with the full tab
+machinery behind it.
+
+### What shipped, and what deliberately did not
+
+The section spec makes one rule blocking: *a testimonial without a real name, a
+real business and a real town does not ship.* Five gold stars over an anonymous
+quote is the most recognisable fake-social-proof pattern there is, and in a
+market this small the reader may well know the shop.
+
+What the client has supplied is **one real person: Bubacarr Jaith, name and
+photograph.** Not his words, not his business, not his town, and not written
+permission. So:
+
+- His name and photo render, because both are real.
+- His quote renders as the marked placeholder the spec prescribes —
+  `AWAITING REAL TESTIMONIAL — QUOTE, BUSINESS, TOWN, WRITTEN PERMISSION` — not
+  as text I wrote. The spec is explicit: *do not write, generate, or "example" a
+  testimonial.*
+- The attribution line reads `BUSINESS AND TOWN TO CONFIRM` rather than being
+  quietly omitted, so the gap is visible to whoever reviews the page.
+- **No star ratings**, because there is no linkable review source to cite.
+
+`CONTEXT.md` §4 records a fragment from the current site — *"I have two other
+businesses aside of Kerr…"* — with no attribution. It is **not** used. An
+unattributed quote is the exact pattern this section exists to avoid, and
+attaching it to the one person whose photo we happen to have would be inventing
+a link that may not exist. If that quote is Bubacarr's, say so and it goes in.
+
+### The machinery is complete, not stubbed
+
+`testimonials` is an array of typed records where `quote`, `business`, `town`
+and `photo` are each independently nullable. Fill them in and the section
+becomes its full form with no other change:
+
+- With 2+ entries the thumbnail row appears as a real **tab pattern** — roving
+  `tabindex`, `aria-selected`, `aria-controls`, panels labelled by their tab,
+  arrow keys plus Home/End, and a crossfade that runs out at 70% of in.
+- With one entry there is **no tablist at all**. A single tab is a dot, and dots
+  are what this section is meant to avoid.
+- A reviewer without a photo gets a **monogram avatar** from their initials
+  rather than a grey silhouette or a stock face.
+
+### Photo handling
+
+`bubacarr Jaith.jpeg` was 316 KB at 1496×1552. Cropped square on the face and
+encoded at 224px (2× for the 40px avatar and 2× for the 56px thumbnail):
+**4.2 KB AVIF, 6.5 KB JPEG fallback**, against a 20 KB budget. `loading="lazy"`,
+`decoding="async"`, explicit dimensions, `object-fit: cover`, and the alt text
+is the person's name, not "customer photo".
+
+The spec asks for WebP as the fallback. This machine's ffmpeg has no WebP
+encoder and `cwebp` is not installed, so the fallback is JPEG. AVIF covers ~94%
+of browsers and JPEG covers the rest, so the practical difference is a few KB
+for a small minority. Worth switching if a WebP encoder is available on the
+build machine.
+
+### Verification
+
+| | |
+|---|---|
+| Lighthouse mobile | **100 / 100 / 100 / 100** |
+| LCP / CLS / TBT / total | 1.7 s · 0 · 0 ms · 123 KB |
+| Markup | `<figure>` + `<figcaption>`; `<blockquote>` appears only when a quote exists |
+| Photo | 40×40, `--r-full`, alt = "Bubacarr Jaith", loads |
+| Stars | none anywhere in the section |
+| Rhythm | 491px tall vs pricing's 963px at 1440 — visibly the shortest section, as the spec requires |
+| JS off / reduced motion | fully visible, no stranding |
+| Horizontal scroll | none |
+
+### Self-critique
+
+**Distinctive:** the section is honest about being incomplete, in public. It
+shows a real man's face and his real name next to a box that says the words are
+missing, rather than filling the gap with something plausible. That is a
+strange-looking thing to ship and it is the correct thing to ship — the whole
+argument of this section is credibility, and the fastest way to lose it is one
+invented quote.
+
+**Templated:** the attribution row — circular avatar, name, muted mono
+sub-line — is the standard testimonial furniture. It is fine, but nothing about
+it is Contekai's.
+
+**Removed:** the fragment quote. I had *"I have two other businesses aside of
+Kerr…"* set as the live quote with a marked ellipsis, and it looked considerably
+better than the placeholder box does. It came out because it has no attribution,
+and a large unattributed quote in the proof section is precisely the thing the
+honesty rule exists to stop. The section looks worse and is worth more.
+
+**Gate:** passed in its reduced/awaiting state. No invented quotes · no stars ·
+no card, no giant quote-mark graphic, no auto-advance, no dots · proper `figure`
+/ `figcaption` markup · section visibly shorter than pricing.
+
+---
+
+## Shell — the circular-reveal mobile menu
+
+**Built:** the client's `menu_mobile/` component, ported from React to Astro
+plus vanilla TS, and wired to the header button that has been sitting inert
+since step 0.
+
+### What changed in the port, and why
+
+| Original | Here | Reason |
+|---|---|---|
+| `bubbleGradient` radial gradient | solid `--ink-900` | The design system permits **exactly one gradient in the whole build** (the hero video scrim). A full-screen radial gradient would be a second. The circular reveal is the idea; the gradient was decoration. One line to put back. |
+| `filter: blur(5px)` on cascading items | dropped | Blur on a full-screen overlay is expensive on the low-end Android this audience is on, and the fade-plus-rise already carries the cascade. |
+| Component's own timings | motion tokens | So the menu moves like the rest of the page rather than to its own clock. |
+| Tailwind utility classes | tokens | Colours, type, spacing and radii all come from `tokens.css`. |
+| `<button onClick>` items | real `<a href="#…">` | They are in-page anchors. A button with a handler is not a link, and does not work with middle-click, right-click or a screen reader's link list. |
+
+Kept: the circular reveal, the burger→X morph, the cascade, Escape to close,
+scroll lock, and the reduced-motion path.
+
+Added, because a visual component and a navigation control are different things:
+focus moves into the panel on open and back to the button on close; focus is
+**trapped** while open; the panel is `inert` when closed so nothing inside is
+tabbable or reachable by a screen reader; and clicking a link closes the panel,
+since it would otherwise cover the section it just jumped to.
+
+### The stacking-context trap
+
+The burger disappeared under the panel on first run. The header is
+`position: sticky; z-index: 50`, which makes it **a stacking context** — so a
+`z-index: 61` on the button inside it can never lift the button above a
+`z-index: 60` panel, no matter how large the number. The whole header has to
+move. `body:has(.menu.is-open) .header` now goes to 61 and drops its own ground,
+so the lockup and the X sit directly on the ink, and the header's own CTA and
+"Log in" fade out because the panel carries its own copies.
+
+Also refined after testing: closing via a **link** does not return focus to the
+button. The browser is about to move focus to the anchor target, and yanking it
+back would drop the reader at the top of the page they just navigated away from.
+Escape and the button itself still restore focus, where that is the whole point.
+
+### Verification
+
+| | |
+|---|---|
+| Closed | `inert`, `aria-expanded="false"`, label "Open menu", bubble `scale(0)`, content opacity 0 |
+| Open | `inert` removed, `aria-expanded="true"`, label "Close menu", burger morphed, scroll locked, focus on the first link |
+| Focus trap | 8 tabs across 6 links, focus still inside the panel |
+| Escape | closes and returns focus to the button |
+| Link click | closes, unlocks scroll, does not steal focus back |
+| Burger hit-test while open | the button is the topmost element at its own centre, at 375 and 1440 |
+| Reduced motion | no reveal animation; the panel is simply there at 250ms |
+| Lighthouse | 100 / 100 / 100 / 100 unchanged; JS now 5 requests, 5.2 KB |
+
+### Self-critique
+
+**Distinctive:** not much, and that is the right answer for furniture. The one
+Contekai-specific decision is the solid ink bubble — the menu opens into the
+same night the hero establishes, so the panel reads as the page's own ground
+rather than as a coloured overlay dropped on top of it.
+
+**Templated:** the numbered menu items (`01`–`04`). They repeat the rail and the
+eyebrows, which is consistent, but a four-item menu does not need counting off.
+It is the one thing here I would cut if the menu were the section under review.
+
+**Removed:** the logo spin-and-bob animation the original offers for its
+`children` slot. A mark that spins in and then bobs forever is a looping ambient
+animation, which the motion grammar bans outright, and it would have been the
+only continuously-moving thing on the page.
+
+**Gate:** passed. No gradient · no blur · tokens throughout · real anchors ·
+focus trapped and restored · `inert` when closed · reduced motion handled.
