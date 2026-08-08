@@ -1909,3 +1909,207 @@ touch targets clear 44px · Lighthouse clean.
 - **Town** for the Bubacarr Jaiteh testimonial — not blocking, per the
   reasoning above, but still worth closing out if it becomes available.
 - Everything already tracked in `PROGRESS.md` is unchanged by this pass.
+
+---
+
+## Step 2, again — the hero, rebuilt without the video
+
+Client: *"the only section i dislike is the hero section, so can you please
+redesign it maybe remove the video, i think it's bad."*
+
+### The video is gone, and the gate had already said why
+
+The kit's gate for §01 reads: *"Screenshot the hero with the `<video>` element
+deleted. Still a finished, confident composition? If not, the video is carrying
+the design and the design is wrong."*
+
+Re-measured against real screenshots, the answer went the other way, and it is
+worth stating plainly because it is a harsher finding than the gate anticipated:
+the video was not carrying the design, it was **standing in for one**. At 1440
+it was an unreadable dark smear across 60% of the frame. At 375 — the viewport
+this audience actually uses, per CONTEXT.md §2 — the scrim swallowed it
+completely, so the mobile hero was a flat dark field with a 107 KB download
+attached to it and nothing to show for it.
+
+The salvage work needed to make the client's clip usable at all had already
+removed everything that made it material rather than wallpaper: the burned-in
+ConteKai logo and the English subtitle band cropped out of frame, the talking
+heads dropped, the rest blurred to sigma 8 and graded to night. What survived
+was texture. The section spec asks for footage "handled as material rather than
+as wallpaper", and by the end it was wallpaper by construction.
+
+Earlier passes kept tuning the grade (sigma 18, then no blur, then sigma 8) —
+which was the wrong axis. The question was never how much to blur it. The
+client asking twice was the signal to stop grading and start over.
+
+**What was kept:** the kit's composition rule, exactly. Type in the left
+columns, a window in the right columns, cropped by the viewport edge so it
+reads as a view into something larger rather than a card floating on a
+background. That rule was right. Only the material inside the window changed.
+
+### What is in the window: the till, mid-sale, with the lights going out
+
+The headline makes a claim. The window now proves it by doing it.
+
+On load the hero performs a power cut once: the room steps down a value, the
+connection chip flips to Offline, and the till rings up one more item anyway,
+the total climbing while the page sits in the dark. Then it stops, and stays
+there.
+
+That beat replaces the one the kit specified and the video took with it (§2A's
+"+600ms scrim 1.0 -> 0.82, the lights coming up"). Same job, same slot in the
+sequence, opposite direction: the lights go **down**, and the one thing that
+matters stays lit.
+
+**It settles in the offline state on purpose.** A lit till with a queued sale in
+a dark room is the single frame that says the most about this product, so that
+is the frame the page rests on, not a transient the reader has to catch.
+
+### Motion compliance, checked line by line
+
+The motion skill's hardest rule here is "no looping ambient animation anywhere
+except the hero video itself", and the video is what just left. So:
+
+- **Nothing loops.** The beat fires once, on a timer, on load. It never fires on
+  scroll and never repeats.
+- **Afterwards the control stays live.** `Cut the power` / `Bring the power
+  back` is a real labelled button, keyboard-reachable (tab stop 7, 2px focus
+  ring, Enter flips it — measured). That is the difference between a page that
+  performs at you and "a working instrument rather than a brochure", which is
+  the skill's own stated aim.
+- **The stagger chain** is six elements at 60ms, inside the ceiling.
+- **Transform and opacity only.** The room is an --ink-800 layer over the
+  section's --ink-900 whose *opacity* moves, not a background-color animation,
+  so the beat stays on the compositor.
+
+### The state model is CSS, not script
+
+Every state string ships in the markup twice and CSS chooses between them off
+one attribute on the section. `hero-power.ts` writes no text and moves no
+element; its entire job is the value of `data-power`. It is ~0.5 KB.
+
+That is what lets the no-JS page be *correct* rather than merely unbroken: with
+the script absent the attribute never appears, the CSS default is the online
+state, and the till renders as a finished three-line sale — Online, D 2,290,
+all synced. Both totals are computed from the same `lines` array rather than
+typed, so the two states cannot drift apart from the rows above them
+(1250 + 780 + 260 = 2,290, + 90 = 2,380).
+
+The hidden variant is `visibility: hidden`, not `opacity: 0`, so it leaves the
+accessibility tree and a screen reader never reads the till twice.
+
+The toggle is `display: none` without JS. A control that does nothing is worse
+than no control.
+
+**Reduced motion** sets the end state at init with no timer: measured at 250ms,
+well before the 900ms beat would have fired, `data-power` is already `off` and
+every element is at opacity 1. The reader gets the finished frame immediately,
+without the performance. Reduced motion is not a reason to withhold the meaning.
+
+### The headline break was wrong on every phone, and had been all along
+
+Measured: "when the lights" renders at exactly **7.75x its own font-size** —
+516px at 66.56px, 554px at 71.5px, 589px at 76px, perfectly linear, as a single
+typeface at one width axis should be. At the mobile floor of 2.75rem that is
+341px, and a 375px screen offers 335px between the gutters.
+
+Six pixels. The browser re-broke the line and orphaned "lights" on a line of its
+own — the ungraceful reflow the section spec warns about, present since the
+first build and never caught because nobody counted the rendered lines.
+
+Below 480px the phrase now breaks a word earlier: "Keep selling / when the /
+lights go out." It is the only three-line arrangement that fits; every other
+split needs more width than the widest phone has. Ending a line on "the" is not
+ideal typography, and it is much better than an orphan.
+
+Exactly one variant is ever in the accessibility tree (the other is
+`display: none`, which removes it from the name computation), verified: one
+`<h1>`, one visible variant, accessible name "Keep selling when the lights go
+out."
+
+Rendered line counts, measured at every width: **3 lines from 360px up**. At
+320px it is 4 — "lights go out." needs 318px and 320px offers 280px, which is
+physically impossible at 2.75rem. 320px is the gate's no-horizontal-scroll
+floor, not a layout target, and there is no horizontal scroll there.
+
+The desktop column is sized from `calc(8.2 * var(--fs-display))` rather than
+from the rendered text, so the width depends only on the viewport and never on
+which font is currently active — the till beside it cannot be nudged sideways
+mid-load. A `max-content` column would have shifted.
+
+### Verification
+
+| | |
+|---|---|
+| Lighthouse mobile | **99 / 100 / 100 / 100** |
+| LCP / CLS / TBT | 1.8 s · **0** · 0 ms |
+| Page weight | **99 KB**, down from 144 KB (the video was 107 KB of it) |
+| axe | **0 violations** — both power states, at 1440 and 375 |
+| Contrast | every text pair computed, not eyeballed. Worst is 5.35:1 (white on --laterite); the till's quietest text, --on-paper-muted on --paper-hi, is 5.92:1 |
+| CLS through the beat | 0, with **zero** layout-shift entries recorded |
+| Keyboard | toggle reachable at tab stop 7, 2px focus ring, Enter flips it, label updates |
+| Reduced motion | end state present at 250ms, no timer, no animation |
+| No JS | complete and coherent: Online, 3 lines, D 2,290, synced, no dead control |
+| Overflow | none at 320 / 360 / 375 / 390 / 414 / 480 / 540 / 768 / 900 / 1024 / 1280 / 1440 / 1600 / 1920 |
+
+### One gate item now fails, and it cannot be made to pass
+
+**"LCP element is the H1 or the poster. Confirm in a Lighthouse trace, don't
+assume."** It is neither. Lighthouse reports the till's total; a direct
+PerformanceObserver trace reports the header wordmark at ~190ms.
+
+The cause is the kit's own §2A. A mask-reveal is "a wrapping `overflow: hidden`
+span with the inner text at `translateY(100%) -> 0`", which means the headline
+is **clipped entirely out of its paint box at first paint** and is therefore
+never an eligible LCP candidate. Proved by comparison: under
+`prefers-reduced-motion`, where the animation does not run, LCP immediately
+becomes a hero text element (`.hero__sub`, size 23287) at the same 192ms.
+
+So §2A's mask-reveal and the gate's "LCP element is the H1" are mutually
+exclusive as written. This did not surface before because `poster.avif` was an
+unanimated image and satisfied the "or the poster" branch. Removing the video
+removed the cover.
+
+Not treated as a blocker, and not quietly passed either. The gate item's actual
+intent — "**never** the video" — is satisfied more completely than before, since
+there is no video. LCP is 1.8 s against a 2.5 s budget, CLS is 0, and
+performance went **up** to 99. The kit's own two rules conflict; the design
+follows the motion skill and the numbers stay inside the performance floor.
+
+### Self-critique
+
+**Distinctive:** the hero performs its own headline. "Keep selling when the
+lights go out" is not asserted next to a photograph of a shop, it is
+demonstrated — the room goes dark and a fourth item rings up anyway, total
+climbing, one sale queued. Nothing on this page survives being lifted onto
+another company's site, but this least of all: remove the power cuts from the
+brief and the entire section stops meaning anything. That is the substitution
+test passed by the section that used to fail it hardest.
+
+**Templated:** the till and capability card 01 are the same object drawn twice.
+The deck's first card is also a POS sale fragment — same vocabulary, inverted
+palette, smaller. It reads as a motif and its variations rather than a
+copy-paste, and it is the weakest thing left in the section. If a third POS
+panel ever appears anywhere on this page, one of the three has to go.
+
+**Removed:** the video, obviously, but that was the client's call. Mine was the
+`hero__play` control and the whole reduced-motion playback path with it — 40
+lines of markup, CSS and script that existed only to apologise for autoplay.
+Also deleted rather than commented out: `hero-video.ts`, `--scrim-hero`,
+`--scrim-hero-mobile`, and 107 KB of derived media. **The build is now down to
+exactly one gradient** (`--panel-gradient` in the footer), which is fewer than
+the design system permits.
+
+**Gate:** passed, with the LCP-element item named above as a documented conflict
+between two of the kit's own rules rather than a pass.
+
+### Still open
+
+- The line items on the till are **illustrative, and the only thing on this page
+  that is**. They claim nothing about Contekai — a till showing a sale is a
+  depiction of the product doing its job, not a statistic about the business —
+  and the vocabulary is real (Cash / Mobile money / Bank transfer and the dalasi
+  format both from CONTEXT.md §4). They should be replaced the moment the client
+  supplies the real 2x screenshots, which was already on the open list.
+- Bringing footage back is a design pass, not a config flip. See
+  `public/media/README.md`.

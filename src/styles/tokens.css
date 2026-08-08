@@ -22,7 +22,13 @@
 
     /* material — paper */
     --paper: #f6f3ec;     /* light sections, cards, receipt */
-    --paper-hi: #fffdf8;  /* receipt face only, one step brighter than paper */
+    /* One step brighter than --paper. The job description in the design system
+       reads "receipt face only"; it is widened here, deliberately and once, to
+       "the face of a lit surface" so the hero till can use it. Same reasoning
+       either way — it is the brightest material on the page, reserved for the
+       object that is meant to read as lit, with --paper as its chrome. Two
+       users now: the pricing/footer receipt face, and the hero till face. */
+    --paper-hi: #fffdf8;
 
     /* brand */
     --laterite: #b34a26;        /* primary action */
@@ -44,43 +50,18 @@
        it for anything that is ours: no status, no accent, no hover. */
     --whatsapp-green: #25d366;
 
-    /* GRADIENTS. Originally "the one permitted gradient in the whole build" —
-       the hero video scrim. footerGuide/PLAN.md specifies a second, as the
-       footer's signature panel fill; see --panel-gradient below. Two
-       gradients now exist in the whole build, each a section's one spent
-       signature, never on text, never elsewhere. */
-    --scrim-hero: linear-gradient(
-      100deg,
-      var(--ink-900) 0%,
-      rgb(10 21 30 / 0.94) 34%,
-      rgb(10 21 30 / 0.62) 58%,
-      rgb(10 21 30 / 0.28) 100%
-    );
-    /* Mobile: the video is the full ground, so the scrim runs vertically and
-       harder.
+    /* GRADIENTS. The design system permits one; footerGuide/PLAN.md added a
+       second. The build now spends exactly ONE.
 
-       CONTRAST — measured, not assumed. The scrim settles at 0.82 opacity
-       after the load beat, so the effective ink alpha at the weakest (bottom)
-       stop is only 0.82 x 0.55 = 0.45. Against a WHITE frame that would put
-       --on-ink text at 2.7:1 and fail.
+       --scrim-hero and --scrim-hero-mobile lived here and are deleted, not
+       commented out. They existed to hold headline contrast over the hero
+       video, and the hero has no video: the right columns are the product's
+       own till, and the "lights coming up" beat those tokens served is now
+       performed with a value step between --ink-800 and --ink-900, which needs
+       no gradient at all. Reinstating footage means designing its treatment
+       again, not restoring these two lines. See public/media/README.md. */
 
-       It does not fail here, because the contrast is won in the ENCODE rather
-       than by the scrim: the hero video is graded so its peak luma is 106/255,
-       which already puts --on-ink at 4.85:1 with no scrim at all. The scrim is
-       doing composition, not rescue.
-
-       That coupling is the thing to preserve. If footage is ever swapped in
-       without that grade, re-measure — `ffmpeg -vf signalstats` reports peak
-       luma per frame — and either regrade it or raise this bottom stop to
-       >= 0.75, which is what 4.5:1 against white requires. Measure the
-       brightest frame, not the poster. */
-    --scrim-hero-mobile: linear-gradient(
-      180deg,
-      rgb(10 21 30 / 0.92) 0%,
-      rgb(10 21 30 / 0.55) 100%
-    );
-
-    /* The footer's warmth panel — the second permitted gradient. Reuses the
+    /* The footer's warmth panel — the one permitted gradient. Reuses the
        brand hue rather than inventing a new "clay" hex.
        The reference brief's lighter stop (#c85a35) measured white text at
        4.23:1 and fails the floor; --laterite -> --laterite-hover keeps both
@@ -120,8 +101,8 @@
        └──────────────────┴───────────┴────────┴──────────────────────┘
        Rules: --signal is state, never a background/heading/decoration.
        Never --laterite text on --ink-900. Muted text stops at .68 / .70.
-       No gradients on text; the hero video scrim is the one permitted
-       gradient in the whole build (--scrim-hero, defined in Hero.astro). */
+       No gradients on text; --panel-gradient in the footer is the one
+       permitted gradient left in the whole build. */
 
     /* ---------------------------------------------------------------------
        2. TYPE — two families, both self-hosted, both subset.

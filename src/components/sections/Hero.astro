@@ -4,152 +4,273 @@
  *
  * One job, one second: say that this shop keeps selling when the lights go out.
  *
- * The video is the GROUND. It runs full-bleed behind the whole section at every
- * width, with the scrim over it and the type on top. There is no video "window"
- * and no column split — the type block is capped by its own measure and sits
- * left, so the footage stays visible to its right without being boxed.
+ * ---------------------------------------------------------------------------
+ * WHY THERE IS NO LONGER A VIDEO
+ * ---------------------------------------------------------------------------
+ * The kit's gate for this section reads: "Screenshot the hero with the <video>
+ * element deleted. Still a finished, confident composition? If not, the video
+ * is carrying the design and the design is wrong."
  *
- * VIDEO — processed from the client's hero_vid.MOV, which could not be used as
- * delivered: the ConteKai logo is burned into every frame (measured at
- * x 50–205, y 50–85), English subtitles into ~90% of them (x 270–755,
- * y 424–488), and it carries an audio track. The encode, in
- * scripts/build-hero-video.sh, therefore:
- *   - crops to y 90–420, removing the bug and the caption band outright rather
- *     than hiding them behind blur
- *   - keeps only the two b-roll segments that contain lit screens
- *     (1.5–4.2s, 11.5–15.0s) and drops every talking-to-camera shot: a silent
- *     talking head is someone mouthing words
- *   - crossfades the join AND the loop point, so it cycles with no visible cut
- *   - blurs hard and grades toward night, so it reads as light and shadow in a
- *     room rather than a bright office arguing against the headline
- *   - strips audio entirely
+ * The honest answer, once the client said the video was bad and the
+ * screenshots were re-read: the video was not carrying the design, it was
+ * SUBSTITUTING for one. Measured, at 1440 it was an unreadable dark smear
+ * occupying 60% of the frame; at 375 the scrim swallowed it so completely that
+ * the mobile hero — the viewport this audience actually uses — was a flat dark
+ * field with a 107 KB download attached to it. It failed the section's own
+ * thesis ("handled as material rather than as wallpaper") and the salvage
+ * work (crop out the burned-in logo and captions, blur, regrade) had already
+ * removed everything that made it material.
  *
- * 5.2s, 77 KB MP4 / 30 KB WebM, no audio track. Measured peak luma 103/255,
- * which puts --on-ink text at 4.9:1 against the brightest pixel BEFORE the
- * scrim applies — the contrast is won in the grade, not by the scrim.
+ * So the footage is gone. The kit's COMPOSITION rule, though, was right and is
+ * kept exactly: type in the left columns, a window in the right columns,
+ * cropped by the viewport edge so it reads as a view into something larger
+ * rather than a card floating on a background. Only the material inside the
+ * window changed.
  *
- * See NOTES.md. A purpose-shot 9:16 clip of a real counter would still be
- * better than salvaged b-roll, and is still worth asking for.
+ * The video is one command from returning if a purpose-shot clip ever lands:
+ * scripts/build-hero-video.sh, against hero_vid.MOV, both still in the repo.
+ *
+ * ---------------------------------------------------------------------------
+ * WHAT IS IN THE WINDOW INSTEAD: the till, mid-sale.
+ * ---------------------------------------------------------------------------
+ * The headline makes a claim. The window proves it, using the only mechanism
+ * that can — by doing it. On load the hero performs a power cut ONCE: the room
+ * steps down a value, the connection chip flips to Offline, and the till rings
+ * up one more item anyway, the total climbing while the page sits in the dark.
+ * That is the entire product argument, performed, in the one place the kit
+ * sanctions an orchestrated moment.
+ *
+ * It replaces the scrim beat the kit specified (§2A's "+600ms scrim 1.0 ->
+ * 0.82, the lights coming up"), which died with the video. Same job, same
+ * position in the sequence, opposite direction: the lights go DOWN and the one
+ * thing that matters stays lit.
+ *
+ * MOTION COMPLIANCE — this is not a looping ambient animation. It fires once,
+ * on load, and settles. What it settles INTO is the offline state, deliberately:
+ * a lit till with a queued sale in a dark room is the single frame that says
+ * the most about this product. Afterwards the control stays live, so the
+ * reader can throw it back and forth by hand — which is what the motion skill
+ * means by "a working instrument rather than a brochure".
+ *
+ * NO-JS / REDUCED MOTION — every state string ships in the markup twice and is
+ * switched by CSS off one attribute on the section. The script writes no text,
+ * so with JS off the till renders complete and correct in its online state
+ * (three lines, D 2,290, all synced). Nothing is stranded and nothing shifts:
+ * the queued line's box is reserved whether or not it is shown.
+ *
+ * THE LINE ITEMS are illustrative, and the only thing on this page that is.
+ * They claim nothing about Contekai — a till showing a sale is a depiction of
+ * the product doing its job, not a statistic about the business — but the
+ * vocabulary is real (Cash / Mobile money / Bank transfer and the dalasi
+ * format both come from CONTEXT.md §4's inventory of the actual product), and
+ * the arithmetic is hand-checked: 1250 + 780 + 260 = 2290, + 90 = 2380.
+ * Swap this for a real 2x screenshot when the client supplies one; that asset
+ * is already on the open list in PROGRESS.md.
  */
 import Eyebrow from "../ui/Eyebrow.astro";
 import Button from "../ui/Button.astro";
-import Icon from "../ui/Icon.astro";
 
-interface HeroFootage {
-  /** AVIF, the LCP candidate. */
-  poster: string;
-  /** VP9 or AV1. */
-  webm: string;
-  /** H.264 baseline. */
-  mp4: string;
-  /** Intrinsic dimensions. Required: they reserve the box, CLS budget < 0.1. */
-  width: number;
-  height: number;
+/** A line on the till. `late` marks the one rung up during the power cut. */
+interface Line {
+  item: string;
+  qty: number;
+  amount: number;
+  late?: boolean;
 }
 
-/**
- * Return null to drop back to a plain --ink-900 ground. Nothing else needs to
- * change: the background layer, the scrim and the play control all render only
- * when footage exists, and the composition is built to stand without them.
- */
-function heroFootage(): HeroFootage | null {
-  return {
-    poster: "/media/poster.avif",
-    webm: "/media/hero.webm",
-    mp4: "/media/hero.mp4",
-    width: 1024,
-    height: 330,
-  };
-}
+const lines: Line[] = [
+  { item: "Rice 25kg", qty: 1, amount: 1250 },
+  { item: "Cooking oil 5L", qty: 2, amount: 780 },
+  { item: "Sugar 1kg", qty: 4, amount: 260 },
+  { item: "Bread", qty: 6, amount: 90, late: true },
+];
 
-const footage = heroFootage();
+/** `D 1,250`. The dalasi format from CONTEXT.md §1, not a locale guess. */
+const dalasi = (n: number): string => `D ${n.toLocaleString("en-GB")}`;
+
+const sum = (ls: Line[]): number => ls.reduce((t, l) => t + l.amount, 0);
+
+/* Both totals are computed, never typed, so the two states cannot drift apart
+   from the lines above them. */
+const totalOnline = dalasi(sum(lines.filter((l) => !l.late)));
+const totalOffline = dalasi(sum(lines));
 ---
 
 <section
-  class:list={["hero", footage && "hero--has-video"]}
+  class="hero"
   id="top"
   data-section="hero"
   data-ground="dark"
   aria-labelledby="hero-title"
 >
-  {
-    footage && (
-      <div class="hero__bg" aria-hidden="true">
-        <video
-          class="hero__video"
-          data-hero-video
-          data-webm={footage.webm}
-          data-mp4={footage.mp4}
-          poster={footage.poster}
-          width={footage.width}
-          height={footage.height}
-          preload="none"
-          muted
-          loop
-          playsinline
-          disablepictureinpicture
-        />
-        {/* The one permitted gradient in the build. */}
-        <div class="hero__scrim" data-hero-scrim />
-      </div>
-    )
-  }
+  {/*
+    The room. --ink-800 over the section's own --ink-900 ground: opacity 1 is
+    lights on, 0 is lights out. An opacity move on a spare layer rather than a
+    background-color animation, so the beat stays on the compositor and the
+    motion skill's "transform and opacity only" rule holds.
+  */}
+  <div class="hero__room" aria-hidden="true"></div>
 
-  <div class="hero__type">
-    <div class="mask">
-      <Eyebrow index="01" class="hero__eyebrow">Works offline</Eyebrow>
+  <div class="hero__inner">
+    <div class="hero__type">
+      <div class="mask">
+        <Eyebrow index="01" class="hero__eyebrow">Works offline</Eyebrow>
+      </div>
+
+      {/*
+        One <h1>, three lines, authored breaks — and two sets of them, because
+        the kit's break is physically impossible on a phone.
+
+        Measured: "when the lights" renders at 7.75x its own font-size. At the
+        mobile floor of 2.75rem that is 341px, and a 375px screen offers 335px
+        between the gutters. Six pixels short, so the browser re-broke it and
+        orphaned "lights" on a line of its own — the ungraceful reflow the
+        section spec warns about, present since the first build.
+
+        Below 480px the phrase therefore breaks a word earlier. "when the /
+        lights go out." is the only three-line arrangement that fits; every
+        other split needs more width than the widest phone has.
+
+        Exactly one variant is ever in the accessibility tree: the other is
+        display: none, which removes it from the name computation, so
+        aria-labelledby still resolves to one clean sentence. No per-character
+        splitting anywhere, and the mask wrappers carry no aria attributes.
+      */}
+      <h1 id="hero-title" class="hero__title">
+        <span class="hero__break hero__break--wide">
+          <span class="mask"><span class="hero__line">Keep selling</span></span>
+          <span class="mask"><span class="hero__line">when the lights</span></span>
+          <span class="mask"><span class="hero__line">go out.</span></span>
+        </span>
+        <span class="hero__break hero__break--narrow">
+          <span class="mask"><span class="hero__line">Keep selling</span></span>
+          <span class="mask"><span class="hero__line">when the</span></span>
+          <span class="mask"><span class="hero__line">lights go out.</span></span>
+        </span>
+      </h1>
+
+      <p class="hero__sub t-body-lg">
+        Point of sale and stock control for shops in The Gambia. Every sale,
+        every item, every dalasi, online or off.
+      </p>
+
+      <div class="hero__actions">
+        {/* Same label as the header CTA. That repetition is correct. */}
+        <Button variant="primary" href="/signup">Start 7 days free</Button>
+        <Button variant="quiet" href="#pricing" icon="arrow-right">
+          See pricing
+        </Button>
+      </div>
+
+      <p class="hero__trust t-small">
+        No card needed. Pay with Wave when you're ready.
+      </p>
     </div>
 
     {/*
-      One <h1> containing all three lines. The breaks are authored rather than
-      left to the browser, and each line still reflows on its own below 400px.
-      The mask wrappers carry no aria attributes and there is no per-character
-      splitting, so the accessible name stays one sentence.
+      The window. Square right corners and flush to the viewport edge: it is a
+      screen cropped by the frame, not a card floating on the ground. No
+      shadow (invisible on dark and pure paint cost), no perspective tilt, no
+      blur, no glass — that combination is the mockup-in-a-hero tell the gate
+      rejects by name.
     */}
-    <h1 id="hero-title" class="hero__title">
-      <span class="mask"><span class="hero__line">Keep selling</span></span>
-      <span class="mask"><span class="hero__line">when the lights</span></span>
-      <span class="mask"><span class="hero__line">go out.</span></span>
-    </h1>
+    <div class="hero__stage">
+      <div class="till">
+        <div class="till__face">
+          <div class="till__bar">
+            {/*
+              Connection state. The dot is filled on --signal when synced and a
+              hollow ring when not, and the word next to it says which — the
+              state is never carried by colour alone.
+            */}
+            <p class="till__conn" data-till-live>
+              <span class="till__dot" aria-hidden="true"></span>
+              <span class="swap">
+                <span data-when="on">Online</span>
+                <span data-when="off">Offline</span>
+              </span>
+            </p>
+            <p class="till__screen">Point of sale</p>
+          </div>
 
-    <p class="hero__sub t-body-lg">
-      Point of sale and stock control for shops in The Gambia. Every sale,
-      every item, every dalasi, online or off.
-    </p>
+          <div class="till__body">
+            <p class="till__heading">New sale</p>
 
-    <div class="hero__actions">
-      {/* Same label as the header CTA. That repetition is correct. */}
-      <Button variant="primary" href="/signup">Start 7 days free</Button>
-      <Button variant="quiet" href="#pricing" icon="arrow-right">
-        See pricing
-      </Button>
+            <ul class="till__lines" role="list">
+              {
+                lines.map((line) => (
+                  <li class:list={["till__line", line.late && "till__line--late"]}>
+                    <span class="till__item">{line.item}</span>
+                    <span class="till__qty">&times;{line.qty}</span>
+                    <span class="till__amount">{dalasi(line.amount)}</span>
+                  </li>
+                ))
+              }
+            </ul>
+
+            <p class="till__total">
+              <span class="till__totallabel">Total</span>
+              {/*
+                Both totals sit in the same grid cell, tabular, identical glyph
+                count. The value changes without the box ever resizing.
+              */}
+              <span class="swap till__totalvalue">
+                <span data-when="on">{totalOnline}</span>
+                <span data-when="off">{totalOffline}</span>
+              </span>
+            </p>
+
+            <p class="till__pay">Cash &middot; Mobile money &middot; Bank transfer</p>
+
+            <p class="till__sync">
+              <span class="swap">
+                <span data-when="on">All sales synced</span>
+                <span data-when="off">1 sale queued, syncs when you're back</span>
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <div class="till__under">
+          <p class="till__caption">
+            <span class="swap">
+              <span data-when="on">
+                Connected. Every sale syncs the moment it happens.
+              </span>
+              <span data-when="off">
+                No power, no internet. The sale still goes through.
+              </span>
+            </span>
+          </p>
+
+          {/*
+            A real control, not a decoration: the reader can throw the power off
+            and on as many times as they like. Both labels ship in the markup so
+            the accessible name follows the state without script-written text.
+          */}
+          <Button
+            variant="secondary"
+            icon="power"
+            class="till__toggle"
+            data-till-toggle
+          >
+            <span class="swap">
+              <span data-when="on">Cut the power</span>
+              <span data-when="off">Bring the power back</span>
+            </span>
+          </Button>
+        </div>
+      </div>
     </div>
-
-    <p class="hero__trust t-small">
-      No card needed. Pay with Wave when you're ready.
-    </p>
   </div>
-
-  {
-    footage && (
-      /*
-        Reduced-motion path: the poster stands and playback is offered
-        explicitly. Hidden by default; hero-video.ts reveals it when autoplay
-        is withheld.
-      */
-      <button type="button" class="hero__play" data-hero-play hidden>
-        <Icon name="play" size={20} />
-        <span>Play video, 5 seconds, no sound</span>
-      </button>
-    )
-  }
 </section>
 
 {/*
-  ~0.4 KB gzipped. No-ops when there is no video in the ground.
+  ~0.5 KB gzipped. Flips one attribute on a timer, once, then wires the
+  toggle. Every visual consequence of that attribute is CSS.
 */}
 <script>
-  import "../../scripts/hero-video.ts";
+  import "../../scripts/hero-power.ts";
 </script>
 
 <style>
@@ -163,52 +284,49 @@ const footage = heroFootage();
       align-items: center;
     }
 
-    /* --- the ground -------------------------------------------------------- */
+    .hero__inner {
+      position: relative;
+      z-index: 1;
+      inline-size: 100%;
+      display: grid;
+      /* Tighter on a phone, where every 8px is a row of the till that clears
+         the fold. Opens back up at 1024 where the two columns sit side by
+         side and the gap is doing horizontal work instead. */
+      gap: var(--space-6);
+      align-content: center;
+      min-inline-size: 0;
+    }
 
-    .hero__bg {
+    /* --- the room ---------------------------------------------------------- */
+
+    /*
+      Lights on. The cut drops this to 0 and the section's own --ink-900 shows
+      through — the one step down that the design system sanctions between dark
+      surfaces (value, never shadow, never a glow).
+    */
+    .hero__room {
       position: absolute;
-      /* Escapes the section's own gutter so the video reaches every edge. */
       inset: 0;
       z-index: 0;
+      background-color: var(--ink-800);
+      transition: opacity var(--dur-stage) var(--ease-out);
     }
 
-    .hero__video {
-      inline-size: 100%;
-      block-size: 100%;
-      object-fit: cover;
-      object-position: 50% 50%;
-    }
-
-    .hero__scrim {
-      position: absolute;
-      inset: 0;
-      /* Vertical by default: on a phone the video is the whole ground and the
-         type runs down the middle of it. */
-      background: var(--scrim-hero-mobile);
-    }
-
-    @media (min-width: 1024px) {
-      .hero__scrim {
-        /* Wide enough for the type to sit left of the footage, so the scrim
-           runs across instead of down: solid behind the words, opening up on
-           the right where the shop shows through. */
-        background: var(--scrim-hero);
-      }
+    .hero[data-power="off"] .hero__room {
+      opacity: 0;
     }
 
     /* --- type -------------------------------------------------------------- */
 
     .hero__type {
-      position: relative;
-      z-index: 1;
       display: grid;
-      gap: var(--space-5);
+      gap: var(--space-4);
       /* No justify-items: start — it sizes children to max-content, which stops
          the headline wrapping and scrolls the page sideways at 375px.
          The measure is what caps this block, not a column span. */
       min-inline-size: 0;
       inline-size: 100%;
-      max-inline-size: 50rem;
+      max-inline-size: 34rem;
     }
 
     .hero__title {
@@ -218,6 +336,28 @@ const footage = heroFootage();
 
     .hero__line {
       display: block;
+    }
+
+    /*
+      display: none, not visibility or clipping — the hidden variant must leave
+      the accessibility tree entirely or the headline is announced twice.
+    */
+    .hero__break {
+      display: block;
+    }
+
+    .hero__break--wide {
+      display: none;
+    }
+
+    @media (min-width: 480px) {
+      .hero__break--wide {
+        display: block;
+      }
+
+      .hero__break--narrow {
+        display: none;
+      }
     }
 
     .hero__sub {
@@ -252,31 +392,329 @@ const footage = heroFootage();
         gap: var(--space-4);
         inline-size: auto;
       }
+
+      .hero__type {
+        gap: var(--space-5);
+      }
     }
 
-    /* --- the play control (reduced motion only) ---------------------------- */
+    /* --- the two-state swap ------------------------------------------------ */
 
-    .hero__play {
-      position: absolute;
-      z-index: 2;
-      inset-block-end: var(--space-5);
-      inset-inline-end: var(--gutter);
-      display: inline-flex;
+    /*
+      Both strings ship in the markup and CSS chooses. The hidden one is
+      visibility: hidden, not opacity alone, so it leaves the accessibility
+      tree and a screen reader never reads the till twice.
+
+      Default — no attribute at all, which is the no-JS page — is the online
+      state. It is complete on its own: three lines, a correct total, synced.
+    */
+    .swap {
+      display: inline-grid;
+      min-inline-size: 0;
+    }
+
+    .swap > * {
+      grid-area: 1 / 1;
+      transition:
+        opacity var(--dur-base) var(--ease-out),
+        visibility var(--dur-base) step-end;
+    }
+
+    .swap > [data-when="off"] {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .hero[data-power="off"] .swap > [data-when="on"] {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .hero[data-power="off"] .swap > [data-when="off"] {
+      opacity: 1;
+      visibility: visible;
+      transition-timing-function: var(--ease-out), step-start;
+    }
+
+    /* --- the till ---------------------------------------------------------- */
+
+    .hero__stage {
+      min-inline-size: 0;
+      /* The crop. The face runs flush to the viewport's right edge at every
+         width — one rule, not two layouts: on desktop the frame cuts it on the
+         right, on a phone the fold cuts it at the bottom as well. */
+      margin-inline-end: calc(-1 * var(--gutter));
+    }
+
+    .till {
+      display: grid;
+      gap: var(--space-4);
+      min-inline-size: 0;
+      /*
+        A till is a piece of equipment, not a banner: past about 40rem the
+        panel stops looking like a screen and starts looking like a stretched
+        table. Measured at 1920 it reached 1149px of mostly-empty paper.
+
+        Capped and pushed right, so the face stays flush to the viewport edge
+        — the crop is the whole idea and it means nothing if the panel floats
+        free of the frame. The dark that opens up to its left on a very wide
+        screen is not dead space; it is the room the section is about.
+      */
+      max-inline-size: 40rem;
+      margin-inline-start: auto;
+    }
+
+    .till__face {
+      background-color: var(--paper-hi);
+      color: var(--on-paper);
+      border-start-start-radius: var(--r-md);
+      border-end-start-radius: var(--r-md);
+      overflow: hidden;
+    }
+
+    .till__bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      padding: var(--space-3) var(--space-5);
+      background-color: var(--paper);
+      border-block-end: var(--border-paper);
+      font-family: var(--font-mono);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+      line-height: var(--lh-flat);
+      text-transform: uppercase;
+    }
+
+    .till__conn {
+      display: flex;
       align-items: center;
       gap: var(--space-2);
-      min-block-size: var(--tap-min);
-      padding-inline: var(--space-4);
-      border: var(--border-ink);
-      border-radius: var(--r-sm);
-      background-color: var(--ink-900);
-      color: var(--on-ink);
-      font-size: var(--fs-small);
-      font-weight: var(--fw-semibold);
-      cursor: pointer;
+      margin: 0;
     }
 
-    .hero__play[hidden] {
+    .till__dot {
+      inline-size: 8px;
+      block-size: 8px;
+      flex: none;
+      border-radius: var(--r-full);
+      /* Synced: filled. The word beside it says so too. */
+      background-color: var(--signal);
+      transition: background-color var(--dur-fast) var(--ease-out);
+    }
+
+    /* Not synced: the dot hollows out. Colour is never the only carrier — the
+       label next to it reads "Offline" and the line under the total says what
+       that means for the sale. */
+    .hero[data-power="off"] .till__dot {
+      background-color: transparent;
+      box-shadow: inset 0 0 0 1.5px var(--on-paper-muted);
+    }
+
+    .till__screen {
+      margin: 0;
+      color: var(--on-paper-muted);
+    }
+
+    /* A till is a dense instrument, not a brochure card. The padding here is
+       one step tighter than the design system's --space-6 card padding for
+       exactly that reason, and it buys back a row above the fold on a phone. */
+    .till__body {
+      padding: var(--space-4) var(--space-5);
+    }
+
+    @media (min-width: 1024px) {
+      .till__body {
+        padding: var(--space-5);
+        padding-inline-end: var(--space-6);
+      }
+    }
+
+    .till__heading {
+      margin: 0 0 var(--space-4);
+      font-size: var(--fs-small);
+      font-weight: var(--fw-semibold);
+      color: var(--on-paper-muted);
+    }
+
+    .till__lines {
+      display: grid;
+      gap: var(--space-3);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .till__line {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      align-items: baseline;
+      column-gap: var(--space-4);
+      font-size: var(--fs-small);
+      line-height: var(--lh-small);
+    }
+
+    .till__qty,
+    .till__amount {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .till__qty {
+      color: var(--on-paper-muted);
+    }
+
+    .till__amount {
+      min-inline-size: 5.5ch;
+      text-align: end;
+    }
+
+    /*
+      The line rung up during the cut. Its box is reserved in every state, so
+      revealing it moves nothing: the panel is the same height online, offline,
+      and with JS switched off. (CLS on this page is 0 and stays 0.)
+    */
+    .till__line--late {
+      opacity: 0;
+      transform: translateY(6px);
+      transition:
+        opacity var(--dur-slow) var(--ease-out),
+        transform var(--dur-slow) var(--ease-out);
+    }
+
+    /*
+      No JS, no attribute: the queued line has nothing to say, so it stays
+      out of the way and the till reads as a finished three-line sale.
+      With the power cut, it arrives.
+    */
+    .hero[data-power="off"] .till__line--late {
+      opacity: 1;
+      transform: none;
+    }
+
+    .till__total {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--space-4);
+      margin: var(--space-4) 0 0;
+      padding-block-start: var(--space-4);
+      border-block-start: var(--border-paper);
+    }
+
+    .till__totallabel {
+      font-size: var(--fs-small);
+      font-weight: var(--fw-semibold);
+    }
+
+    .till__totalvalue {
+      justify-items: end;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: var(--fs-h3);
+      font-weight: var(--fw-medium);
+      letter-spacing: var(--track-figure);
+      line-height: var(--lh-flat);
+    }
+
+    .till__pay {
+      margin: var(--space-3) 0 0;
+      color: var(--on-paper-muted);
+      font-size: var(--fs-small);
+    }
+
+    .till__sync {
+      display: flex;
+      margin: var(--space-4) 0 0;
+      padding-block-start: var(--space-3);
+      border-block-start: var(--border-paper);
+      color: var(--on-paper-muted);
+      font-family: var(--font-mono);
+      font-size: var(--fs-label);
+      line-height: var(--lh-small);
+      /* Two lines reserved: the offline string is longer and wraps on a phone.
+         Reserving the taller of the two keeps the panel a fixed height. */
+      min-block-size: calc(2 * var(--fs-label) * var(--lh-small));
+    }
+
+    /* --- caption + control ------------------------------------------------- */
+
+    .till__under {
+      display: grid;
+      gap: var(--space-4);
+      justify-items: start;
+      /* Sits back inside the gutter the face bleeds through. */
+      padding-inline-end: var(--gutter);
+    }
+
+    .till__caption {
+      margin: 0;
+      color: var(--muted);
+      font-size: var(--fs-small);
+      line-height: var(--lh-small);
+      max-inline-size: 42ch;
+      /* Two lines reserved. The two captions are near enough the same length
+         but break at different words, so without this the button below would
+         hop by a line every time the power is thrown. */
+      min-block-size: calc(2 * var(--fs-small) * var(--lh-small));
+    }
+
+    /* Sized by the longer of its two labels, so the button never resizes when
+       the state flips. */
+    .till__toggle :global(.btn__label) {
+      display: inline-grid;
+    }
+
+    /*
+      With no JS there is nothing to throw, and a control that does nothing is
+      worse than no control. The caption stands on its own and the till reads
+      as a finished online sale.
+    */
+    :global(html:not([data-js])) .till__toggle {
       display: none;
+    }
+
+    /* --- desktop composition ----------------------------------------------- */
+
+    /*
+      The kit's layout rule, kept: type in the left columns, the window in the
+      right, cropped by the viewport edge. Only the material inside changed.
+    */
+    @media (min-width: 1024px) {
+      /*
+        The type column is sized from the headline rather than by a fraction.
+        Measured: "when the lights", the longest authored line, renders at
+        exactly 7.75x its own font-size across every width (516px at 66.56px,
+        554px at 71.5px, 589px at 76px — perfectly linear, as a single
+        typeface at one width axis should be). 8.2x gives that 6% of headroom
+        for the metric-adjusted fallback face before Archivo lands.
+
+        Sizing the column off --fs-display instead of off the rendered text
+        keeps the width deterministic: it depends only on the viewport, never
+        on which font is currently active, so the till beside it cannot be
+        nudged sideways mid-load. That is the difference between this and a
+        max-content column, which would have shifted.
+      */
+      .hero__inner {
+        grid-template-columns:
+          minmax(0, calc(8.2 * var(--fs-display)))
+          minmax(0, 1fr);
+        align-items: center;
+        gap: var(--space-8);
+      }
+
+      .hero__type {
+        max-inline-size: none;
+      }
+
+      /* Belt and braces: with the column sized above, the authored breaks
+         cannot be re-broken by the browser at any desktop width. If the
+         fallback face ever does run wider, it overflows into the 64px gap
+         invisibly rather than wrapping to a fourth line. */
+      .hero__line {
+        white-space: nowrap;
+      }
     }
 
     /* --- the hero load sequence (motion SKILL.md §2A) ---------------------- */
@@ -285,18 +723,27 @@ const footage = heroFootage();
       Pure CSS, fired at parse. No JS, so it cannot be stranded by a failed
       module, and there is nothing to strand with JS disabled.
 
-      0ms    scrim at full
-      80ms   eyebrow   mask-reveal up, 320ms
-      200ms  h1 line 1 mask-reveal up, 420ms
+      0ms    lights on, till dark
+      80ms   eyebrow    mask-reveal up, 320ms
+      200ms  h1 line 1  mask-reveal up, 420ms
       260ms  h1 line 2
       320ms  h1 line 3   (the kit's table enumerates two lines; the headline
                           has three, so the 60ms stagger continues)
-      340ms  sub       fade + 12px up, 380ms
-      440ms  actions   fade + 12px up, 320ms
-      520ms  trust     fade, 240ms
-      600ms  scrim eases 1.0 -> 0.82 over 700ms — the lights coming up. Now that
-             the scrim covers the whole viewport, this beat is the thesis
-             performed: the shop comes up out of the dark as the words settle.
+      340ms  sub        fade + 12px up, 380ms
+      440ms  actions    fade + 12px up, 320ms
+      480ms  till face  fade + 12px up, 420ms
+      520ms  trust      fade, 240ms
+      620ms  line 1     fade + 8px up, 240ms   \  rung up, 60ms apart,
+      680ms  line 2                            /  three items in the chain
+      740ms  line 3
+      840ms  caption + control, fade, 240ms
+      900ms  THE BEAT — hero-power.ts flips [data-power] to "off" once:
+             the room drops --ink-800 -> --ink-900 over --dur-stage, the chip
+             goes Offline, and the fourth line rings up anyway with the total
+             climbing behind it. The lights go down and the till stays lit.
+
+      Six elements in the longest stagger chain, 60ms apart, within the motion
+      skill's ceiling. Nothing here loops.
     */
 
     .mask {
@@ -317,18 +764,16 @@ const footage = heroFootage();
       }
     }
 
-    @keyframes hero-fade {
+    @keyframes hero-ring-up {
       from {
         opacity: 0;
+        transform: translateY(8px);
       }
     }
 
-    @keyframes hero-lights-up {
+    @keyframes hero-fade {
       from {
-        opacity: 1;
-      }
-      to {
-        opacity: 0.82;
+        opacity: 0;
       }
     }
 
@@ -336,7 +781,9 @@ const footage = heroFootage();
     .hero__line,
     .hero__sub,
     .hero__actions,
-    .hero__trust {
+    .hero__trust,
+    .till__face,
+    .till__under {
       animation-fill-mode: both;
       animation-timing-function: var(--ease-out);
     }
@@ -379,8 +826,54 @@ const footage = heroFootage();
       animation-delay: 520ms;
     }
 
-    .hero__scrim {
-      animation: hero-lights-up var(--dur-stage) var(--ease-out) 600ms both;
+    .till__face {
+      animation-name: hero-rise;
+      animation-duration: var(--dur-slow);
+      animation-delay: 480ms;
+    }
+
+    /*
+      The lines are rung up. They animate only where JS runs — with the script
+      off there is no sequence to belong to, and content that starts at
+      opacity 0 must never depend on a script to become visible.
+    */
+    :global(html[data-js]) .till__line:not(.till__line--late) {
+      animation: hero-ring-up var(--dur-base) var(--ease-out) both;
+    }
+    :global(html[data-js]) .till__line:nth-child(1) {
+      animation-delay: 620ms;
+    }
+    :global(html[data-js]) .till__line:nth-child(2) {
+      animation-delay: 680ms;
+    }
+    :global(html[data-js]) .till__line:nth-child(3) {
+      animation-delay: 740ms;
+    }
+
+    .till__under {
+      animation-name: hero-fade;
+      animation-duration: var(--dur-base);
+      animation-delay: 840ms;
+    }
+
+    /*
+      Reduced motion: the section's job is to be TRUE, not still. The floor in
+      motion.css already collapses every duration to 1ms, and hero-power.ts
+      sets the offline state at init with no timer — so the reader still gets
+      the finished frame (dark room, lit till, queued sale), just without the
+      performance. Nothing here is load-bearing for legibility.
+    */
+    @media (prefers-reduced-motion: reduce) {
+      .hero__eyebrow,
+      .hero__line,
+      .hero__sub,
+      .hero__actions,
+      .hero__trust,
+      .till__face,
+      .till__under,
+      :global(html[data-js]) .till__line {
+        animation: none;
+      }
     }
   }
 </style>
