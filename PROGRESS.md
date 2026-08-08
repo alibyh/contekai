@@ -14,14 +14,16 @@ Last updated after the footer rebuild against `footerGuide/`.
       components stubbed.
 - [x] **Step 1 — Shell.** Header, till-rail, skip link, ground-switching
       attributes wired.
-- [x] **Step 2 — Hero.** **Rebuilt without the video** (client: "the only
-      section i dislike is the hero"). The right columns are now the product's
-      own till, and the hero performs a power cut once on load: the room steps
-      down a value, the chip flips to Offline, and a fourth item rings up
-      anyway with the total climbing. It settles there. A real labelled control
-      throws the power back and forth afterwards. Not-centred composition and
-      mask-reveal load sequence kept. Headline break fixed on phones (it had
-      been orphaning "lights" since the first build).
+- [x] **Step 2 — Hero. Redesigned as a horizon** (third pass; the second kept
+      the old left/right layout and only swapped its contents, which the client
+      correctly rejected as a substitution rather than a redesign). No
+      left/right split at any width: night above, a lit counter band below,
+      full bleed, square corners, anchored to the bottom of the screen. The
+      power cut darkens the room and leaves the counter lit — enforced by the
+      DOM, since the darkening layer is the band's sibling. Built mobile-first:
+      the total sits above the items because the band runs past a phone's fold
+      and the total is what the cut moves. Headline break also fixed on phones
+      (it had been orphaning "lights" since the first build).
 - [x] **Step 3 — Capabilities deck.** Rebuilt as a three-up stacked carousel
       per client revision (auto-advance, pause-on-interaction, reduced-motion
       falloff). Every card now dark (`--ink-700`) per the latest tweak.

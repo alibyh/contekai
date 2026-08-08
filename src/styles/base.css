@@ -341,8 +341,12 @@
   }
 
   /* Mobile-first rhythm. These must not become equal — the pulse is the point. */
+  /* The hero's bottom padding is 0 on purpose: the counter band is the last
+     thing in it and has to reach the bottom edge of the viewport, because a
+     lit strip anchored to the screen edge is the whole composition. Its own
+     internal padding does the spacing work instead. */
   [data-section="hero"] {
-    --section-pad: var(--space-6);
+    --section-pad: var(--space-6) 0;
   }
   [data-section="capabilities"] {
     --section-pad: var(--space-8) var(--space-7);
@@ -365,7 +369,7 @@
 
   @media (min-width: 1024px) {
     [data-section="hero"] {
-      --section-pad: var(--space-8);
+      --section-pad: var(--space-8) 0;
     }
     [data-section="capabilities"] {
       --section-pad: var(--space-9) var(--space-8);

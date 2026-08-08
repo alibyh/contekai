@@ -1914,6 +1914,37 @@ touch targets clear 44px · Lighthouse clean.
 
 ## Step 2, again — the hero, rebuilt without the video
 
+*(Superseded by the entry below. Kept because the reasoning for removing the
+video still stands and the measurements are still the evidence for it; only the
+composition that replaced it was wrong.)*
+
+Client: *"the only section i dislike is the hero section, so can you please
+redesign it maybe remove the video, i think it's bad."*
+
+The video is gone, and the kit's own gate had already said why: *"screenshot the
+hero with the `<video>` element deleted. Still a finished, confident
+composition?"* Re-measured, the answer went the other way — the video was not
+carrying the design, it was **standing in for one**. At 1440 it was an
+unreadable dark smear across 60% of the frame. At 375, the viewport this
+audience actually uses per CONTEXT.md §2, the scrim swallowed it completely, so
+the mobile hero was a flat dark field with a 107 KB download attached and
+nothing to show for it. The salvage needed to make the clip usable at all — the
+burned-in ConteKai logo and English subtitle band cropped out of frame, the
+talking heads dropped, the rest blurred and graded to night — had already
+removed everything that made it material rather than wallpaper.
+
+Three earlier grade passes (sigma 18, then none, then sigma 8) were all tuning
+the wrong axis. The client saying so twice was the signal to stop grading and
+start over.
+
+**What that first attempt got wrong:** it kept the kit's left/right composition
+and swapped the material inside the window — footage out, a till panel in. The
+client's response was exact and correct: *"it looks worse now, i told you to
+redesign (new design idea)!!"* Substituting the contents of a layout is not a
+redesign, and calling it one was the mistake. The composition itself was what
+needed to go.
+
+
 Client: *"the only section i dislike is the hero section, so can you please
 redesign it maybe remove the video, i think it's bad."*
 
@@ -2113,3 +2144,170 @@ between two of the kit's own rules rather than a pass.
   supplies the real 2x screenshots, which was already on the open list.
 - Bringing footage back is a design pass, not a config flip. See
   `public/media/README.md`.
+
+---
+
+## Step 2, third pass — the horizon
+
+Client, on the previous attempt: *"it looks worse now, i told you to
+redesign (new design idea)!!"* — followed by *"i want to focus on mobile first
+then desktop."*
+
+Both notes were right. The last pass changed the material inside the kit's
+left/right layout and called that a redesign; it was a substitution. This pass
+throws the composition away.
+
+### The idea
+
+**There is no left/right split at any width.** The viewport divides
+horizontally instead: night above, a lit counter below.
+
+The upper field is the room — `--ink-900`, the headline, the actions, nothing
+else. The lower field is a band of `--paper-hi` running edge to edge past both
+gutters, square corners, no radius, no shadow, anchored to the bottom of the
+screen. It is not a card on a background; it is a **change of material**, and
+the line where the two meet is the only edge in the section. `--paper-hi` on
+`--ink-900` measures 18.1:1, so the horizon needs no rule drawn on it — the
+materials draw it.
+
+That is the thing the video was hired to do and never did: render *a shop at
+dusk* — dark room, lit counter — as the page's own materials rather than as
+footage of somebody else's. The night/paper opposition the whole build is
+organised around now gets stated in the first screen, at full strength, in one
+cut.
+
+### Mobile first, and what that actually decided
+
+Two things about the phone layout drove the whole design, not the desktop one.
+
+**1. The total moved above the items.** The band runs past the bottom of a phone
+screen — measured, it lands flush at 414x896 and overhangs by 14px at 390, 78px
+at 375 and 117px at 360. That overhang is the composition, not a failure of it:
+a counter running past the edge of the frame is what tells the reader there is
+more, which is exactly the job the kit gave the video's bottom bleed.
+
+But it means only the top of the band is guaranteed visible, and the two things
+the power cut *moves* are the connection state and the total. So the total sits
+directly under the control strip, ahead of the items — which is also where the
+amount-due display sits on a real till, as opposed to the foot of a printed
+receipt. Both now clear the fold from 360px up. (At 320x700 the total falls
+below. 320 is the gate's no-horizontal-scroll floor, not a layout target, and
+there is no horizontal scroll there.)
+
+**2. The control moved into the counter's own status strip.** In the first
+version of this layout it straddled the horizon, which read well in the abstract
+and crowded the trust line in practice, and it carried `--border-ink` while
+sitting on paper, so it had no visible edge at all. Now it sits at the right of
+the counter's control strip — where a switch lives on a real terminal — costing
+no extra height and no longer competing with the primary CTA up in the room.
+
+The fix for the border is the useful bit: `.counter` **republishes the four
+ground-dependent tokens** (`--muted`, `--faint`, `--hairline`, `--link`,
+`--border-current`) exactly the way `[data-ground="paper"]` does in `base.css`.
+Republished rather than given the attribute, because `data-ground="paper"` would
+also force `--paper` as the background and this surface is `--paper-hi`: it is
+the lit one. Every component inside the band then reads the right value without
+branching on the ground itself, which is the entire point of those neutral
+names.
+
+### Desktop: the goods lay out along the counter
+
+At 1440 the first desktop attempt kept the stacked list and pinned its three
+columns to opposite ends of a 900px row with nothing in between. A wide band is
+the wrong shape for a list.
+
+So above 1024 the sale stops being a list and becomes a **run**: each item a
+small stack of name over quantity and amount, set side by side, `flex: 1 1 0`
+so four goods share the band evenly. Equal shares rather than left-packed —
+left-packed left half the band empty — and it also means no wrapping to reason
+about, so the run is always one row. The total sits at the end of the run behind
+a hairline. Below 1024 it stays a vertical list beside the total, which is
+correct for that width.
+
+### The beat, unchanged in intent and better placed
+
+On load the hero performs a power cut once. The room above the horizon drops a
+value; the counter does not. It stays exactly as lit as it was, and rings up one
+more item, the total climbing while the room sits in the dark.
+
+The composition is what makes this work now. The darkening layer is a sibling of
+the band, not an ancestor, so it *cannot* touch it — "the lights went out and
+the counter didn't" is enforced by the DOM rather than by carefully-chosen
+z-indexes.
+
+It replaces the beat the kit specified and the video took with it (§2A's
+"+600ms scrim 1.0 -> 0.82, the lights coming up"): same slot, opposite
+direction.
+
+**Nothing loops.** It fires once, on a timer, and settles in the offline state
+on purpose — a lit counter with a queued sale in a dark room is the single frame
+that says the most about this product. Afterwards the control stays live so the
+reader can throw it by hand, which is what the motion skill means by "a working
+instrument rather than a brochure".
+
+### Two things cut
+
+- **The payment-methods line** (`Cash · Mobile money · Bank transfer`). It was
+  the least load-bearing element in the band and sat awkwardly between the total
+  and the items. The band is denser and clearer without it, and the information
+  lives in Capabilities and Pricing where it does real work.
+- **The `New sale` heading.** Pure label; the counter is self-evidently a sale.
+
+Also gone from the previous pass: the absolutely-positioned caption block and
+the straddling control wrapper.
+
+### Verification
+
+| | |
+|---|---|
+| Lighthouse mobile | **99 / 100 / 100 / 100** |
+| LCP / CLS / TBT | 1.8 s · **0** · 0 ms |
+| Page weight | **99 KB** (was 144 KB with the video) |
+| axe | **0 violations** — both power states at 1440, 1024, 768 and 375 |
+| CLS through the beat | 0, with **zero** layout-shift entries recorded |
+| Keyboard | toggle at tab stop 7, 2px focus ring, Enter flips it, label updates |
+| Reduced motion | end state present at 250ms, no timer, no animation |
+| No JS | complete and correct: Online, three lines, D 2,290, synced, no dead control |
+| Every width 320→1920 | no horizontal scroll, band flush to the right edge at all 16 widths tested, headline 3 lines from 360 up |
+
+### Self-critique
+
+**Distinctive:** the section states the product's whole argument as a material
+fact before a word is read — a dark room with a lit counter cut into the bottom
+of it. Then it performs the argument: the room goes dark and the counter, which
+is a different element entirely, does not. Swap Contekai out and the horizon
+means nothing, because the horizon only means something where the lights
+actually go out.
+
+**Templated:** the sale itself. Four goods, quantities, a total — the run along
+the counter is a good arrangement of it, but it is still the same POS sale that
+capability card 01 shows in the deck below. Two POS sales on one page is one too
+many, and this is the weakest thing left in the section. The honest fix is
+probably to change what card 01 shows rather than the hero, but that is a
+different section and a different conversation.
+
+**Removed:** the payment-methods line, and the `New sale` heading with it. Also
+the entire previous composition, which is the larger answer.
+
+**Gate:** passed, with the LCP-element item documented below as a conflict
+between two of the kit's own rules rather than a pass.
+
+### The one gate item that still cannot pass
+
+**"LCP element is the H1 or the poster."** It is neither — Lighthouse reports a
+text node in the band, and a direct PerformanceObserver trace reports the header
+wordmark at ~190ms.
+
+The cause is §2A itself. A mask-reveal is "a wrapping `overflow: hidden` span
+with the inner text at `translateY(100%) -> 0`", so the headline is clipped
+entirely out of its paint box at first paint and is never an eligible LCP
+candidate. Proved by comparison: under `prefers-reduced-motion`, where the
+animation does not run, LCP immediately becomes a hero text element at the same
+192ms.
+
+§2A's mask-reveal and "LCP element is the H1" are mutually exclusive as written.
+It never surfaced before because `poster.avif` was an unanimated image and
+satisfied the "or the poster" branch; removing the video removed the cover. Not
+a blocker and not quietly passed: the item's actual intent — **never the
+video** — is satisfied completely, LCP is 1.8s against a 2.5s budget, and
+performance went up to 99.
