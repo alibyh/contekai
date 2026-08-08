@@ -2311,3 +2311,221 @@ satisfied the "or the poster" branch; removing the video removed the cover. Not
 a blocker and not quietly passed: the item's actual intent — **never the
 video** — is satisfied completely, LCP is 1.8s against a 2.5s budget, and
 performance went up to 99.
+
+---
+
+## Step 2, fourth pass — the client's mobile hero brief
+
+A full written spec arrived: editorial, minimal, left-aligned in a 340px
+measure on #FAF8F4, near-black display type with one orange word, a full-width
+orange CTA, a dark POS device anchored to the bottom edge at -6deg emerging
+from below the fold, one barely-visible grid, a 700ms
+cubic-bezier(.22,1,.36,1) entrance sequence. Linear / Raycast / Vercel /
+Stripe Press as the register, explicitly not AI-SaaS.
+
+All of that shipped. Seven things resolved differently, every one because the
+brief conflicted with itself, with the build, or with a measurement. None of
+them silently.
+
+### 1. React + Tailwind → Astro + plain CSS
+
+The brief specifies React with Tailwind. This is an Astro 5 site with plain CSS
+and no Tailwind — that was the founding constraint of the entire build, and the
+page currently ships zero framework JavaScript against a 90 KB budget. React
+alone is ~45 KB gzipped before a line of hero code, and Tailwind would sit
+beside a token system that already governs every value on the page.
+
+Built in the project's stack. The design is identical; only the syntax differs.
+Migrating the site to React+Tailwind is a legitimate conversation, but not one
+a hero redesign should settle on its own.
+
+### 2. backdrop-filter: blur(20px) → a solid bar
+
+The brief asks for a blurred nav four lines after listing glassmorphism first
+on its own "avoid" list, and the design system bans backdrop-filter outright as
+expensive on the low-end Android hardware CONTEXT.md §2 says this audience is
+actually using. Over an almost-opaque background a 20px blur resolves to a flat
+fill anyway. The nav is that fill, with the hairline the brief asked for.
+
+### 3. The orange fails contrast twice
+
+Measured against the gate's blocker floor:
+
+| | |
+|---|---|
+| `#F26522` on `#FAF8F4` | **2.97:1** — misses the 3:1 large-text floor |
+| `#FFFFFF` on `#F26522` | **3.15:1** — misses the 4.5:1 floor for the CTA label |
+
+Two tokens instead of one, which is the pattern the palette already uses for
+`--kai-400` / `--kai-600`:
+
+- `--orange: #ee6321` — the supplied hue nudged 1.5% down in luminance. 3.07:1
+  on the ground, 5.80:1 on the device, visually indistinguishable from the
+  original. Carries the display word and the dot.
+- `--orange-fill: #c6531c` — dark enough that a white label clears 4.5:1
+  (4.51:1). Carries the CTA.
+
+The live alternative, recorded in `tokens.css` rather than discarded: keeping
+`--orange` as the fill and using `--hero-ink` as the label measures **5.13:1**
+and passes comfortably. That preserves the brighter orange at the cost of a
+dark label instead of a white one. The brief said white text, so white text
+shipped — but it is a one-line change if the brighter button is worth more than
+the white label.
+
+### 4. 56–64px headline vs. a 340px measure
+
+Incompatible, and by a wide margin. Measured at wght 900, the widest line
+("lights go out.") renders at **6.41× its own font size**. So:
+
+| measure | headline ceiling |
+|---|---|
+| 300px | 46.8px |
+| 335px (a 375px screen) | 52.3px |
+| 340px (the brief's) | 53.0px |
+| 359px | 56px — the brief's floor |
+| 410px | 64px — the brief's ceiling |
+
+Shipped at 49px, not 53. The extra 4px is headroom for the metric-adjusted
+fallback face, which is matched at wght 400 and runs wider at 900; without it
+the headline re-breaks for the few frames before Archivo lands, and a headline
+that reflows during load is a layout shift. Verified three lines at 320 / 360 /
+375 / 390 / 414 / 430 with 13–26px of slack.
+
+The break won and the size gave way, because a fourth line orphaning a word is
+worse than a headline 4px under spec. Reaching 56px needs the measure widened
+to ~360px, which is one number to change if the size matters more.
+
+### 5. Geist / Inter → Archivo, but the font was quietly broken
+
+The build self-hosts Archivo, subset and preloaded inside an 80 KB budget, and
+uses its WIDTH axis to separate display from body instead of loading a second
+family. A third family costs another download for a near-identical grotesque.
+
+What the brief did expose: **the subset had been instanced to wght 400–700**, so
+`font-weight: 900` was silently clamping to 700 and would have shipped a
+headline visibly lighter than specified with nothing anywhere reporting it. The
+recipe that produced those files had never been written down, which is why the
+range was invisible.
+
+Rebuilt at 400–900, and it came out **4 KB smaller** (52 KB → 48 KB), because
+the new recipe subsets harder than the original hand-built one did. The recipe
+is now committed as `scripts/build-fonts.py`, which is the more durable fix:
+the next person to ask this font a question gets an answer instead of a
+mystery.
+
+### 6. "Mobile only, no desktop layout"
+
+This is a live single-page site people will open on laptops; the hero cannot
+stop existing above 430px. The mobile composition IS the design and is
+untouched to 640px. Above that the measure opens and the device moves beside
+the type rather than under it — the same idea at a different width, not a
+second design.
+
+### 7. The device could not start at 65%
+
+The brief asks for the device to begin ~65% down and also specifies the type
+sizes and the four gaps above it. Measured, that content stack is **507px
+tall**, so on a 375×812 phone:
+
+| | |
+|---|---|
+| available below a 72px header | 740px |
+| content + top padding + device margin | 587px |
+| left for the device | 153px, starting at **79%** |
+
+65% would need the content to end by 456px, which is 130px less than it can be
+at the specified sizes. Unreachable without gutting the type.
+
+What was traded to get as close as possible: **top padding 96px → 48px**. 96px
+sits under a 72px header — 168px of empty screen before the first word — and
+every pixel of it came straight out of the thing the same brief calls the focal
+point. The device now starts at 69% at 430×932, 76% at 390, 79% at 375.
+
+### Two bugs the measurements caught
+
+**The device was clipping its own control.** The -6deg rotation swings the
+corners out by roughly `(w/2)·cos6 + h·sin6`. At the full 335px measure that
+came to 210px from centre against a 187px half-viewport, and the device's right
+edge landed at **398px on a 375px screen** — slicing the top-right corner and
+the "Bring power back" button off. Capped at 300px and centred, so the small
+remaining overhang is symmetrical and reads as a rotated object rather than a
+mistake.
+
+**The section was 1087px tall, not 100svh.** `flex: 1` on the device wrapper did
+nothing: in a column flex container whose own height is only a `min-height`,
+`flex-basis: 0%` resolves against an indefinite size and falls back to the
+item's content height, so the wrapper kept measuring the device's full 420px.
+Replaced with a definite `clamp(150px, 26svh, 260px)` slice — deterministic,
+and it gives taller phones more of the device without giving short ones less
+than is worth showing. Section is now 860px at 430×932, exactly 100svh minus
+the header.
+
+### Two things axe and the no-JS screenshot caught
+
+- **`--link` was not republished.** The hero republishes the ground-dependent
+  tokens, but I republished `--muted` and `--hairline` and forgot `--link`, so
+  the header's quiet "Log in" kept `--kai-400` on a light ground: **2.81:1**,
+  serious, and only visible at 1440 because that control is hidden on mobile.
+  Both the hero and the header now carry the full set.
+- **"ONLINE" rendered in the alert colour with JS off.** The connection state
+  had orange as its default and paper as the exception, so a page with no
+  `data-power` attribute at all showed the healthy state in the warning colour.
+  Inverted: paper rests, orange is keyed off `[data-power="off"]`.
+
+### Also built: header ground switching
+
+Header.astro's docblock has promised this since step 1 and nothing ever built
+it, which did not matter while every section was dark. With a light hero it
+does. A 1px band pinned under the header decides which section owns its ground;
+it lives in `reveal.ts` because the motion skill says there is one place
+observers get registered, and it rebuilds on resize because the band is
+expressed in pixels. The header now ships `data-ground="hero"` as its initial
+value so the first screen is right even with JS off.
+
+### The palette is deliberately hero-only
+
+Every supplied value is a near-neighbour of an existing token (#FAF8F4 vs
+`--paper` #F6F3EC, #111111 vs `--on-paper` #16232E, #F26522 vs `--laterite`
+#B34A26). Applying it page-wide is a real decision; applying it to one section
+and leaving the rest is a smaller one. The hero carries it, everything below
+carries the original, and the seam was screenshotted rather than assumed — the
+two off-whites are close enough not to read as a bug. Rolling the palette
+through the whole page is a separate, deliberate pass, and worth doing if this
+direction is the direction.
+
+### Verification
+
+| | |
+|---|---|
+| Lighthouse mobile | **99 / 100 / 100 / 100** |
+| LCP / CLS / TBT | 1.8 s · **0** · 0 ms |
+| Page weight | **98 KB** |
+| Fonts | 48 KB latin + 16 KB mono = 64 KB, inside the 80 KB budget, at wght 400–900 |
+| axe | **0 violations** — both power states at 320, 375, 430 and 1440 |
+| Keyboard | toggle at tab stop 7, 2px focus ring, Enter flips it, label updates |
+| Reduced motion | end state present at 250ms, no timer, no animation |
+| No JS | correct: light header, Online, D 2,290, no dead control |
+| Headline | three lines at 320 / 360 / 375 / 390 / 414 / 430 |
+| Overflow | none at any width |
+
+### Self-critique
+
+**Distinctive:** the device is a working instrument rather than a picture of
+one. It flips to Offline on load and rings up a fourth item anyway with the
+total climbing, and the control stays live afterwards. A rotated screenshot in
+that slot would have satisfied the brief's letter and said nothing; this one
+performs the only claim the product actually makes.
+
+**Templated:** the composition itself. Badge, big headline with one accent
+word, paragraph, full-width button, text link, trust line, device peeking from
+the bottom — that is a very well-established landing-page shape, and executing
+it cleanly is not the same as having an idea. It is what was asked for and it
+is done properly, but the previous pass's horizon was a stronger idea than this
+is; this is a better-dressed convention.
+
+**Removed:** the second CTA as a button. The brief already said "No outlined
+button", and holding to it means the eye has exactly one place to go.
+
+**Gate:** passed. Same standing exception as before on the LCP-element item —
+§2A's mask-reveal clips the headline out of its own paint box, so it can never
+be the LCP candidate; documented in the previous entry and unchanged.

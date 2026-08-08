@@ -14,16 +14,15 @@ Last updated after the footer rebuild against `footerGuide/`.
       components stubbed.
 - [x] **Step 1 — Shell.** Header, till-rail, skip link, ground-switching
       attributes wired.
-- [x] **Step 2 — Hero. Redesigned as a horizon** (third pass; the second kept
-      the old left/right layout and only swapped its contents, which the client
-      correctly rejected as a substitution rather than a redesign). No
-      left/right split at any width: night above, a lit counter band below,
-      full bleed, square corners, anchored to the bottom of the screen. The
-      power cut darkens the room and leaves the counter lit — enforced by the
-      DOM, since the darkening layer is the band's sibling. Built mobile-first:
-      the total sits above the items because the band runs past a phone's fold
-      and the total is what the cut moves. Headline break also fixed on phones
-      (it had been orphaning "lights" since the first build).
+- [x] **Step 2 — Hero. Rebuilt to the client's mobile hero brief** (fourth
+      pass). Editorial and minimal on #FAF8F4: mono badge, 49px/900 headline
+      with one orange word, 20px lede, full-width orange CTA, text link, trust
+      line, and a dark POS device rotated -6deg emerging from the bottom edge.
+      700ms cubic-bezier(.22,1,.36,1) entrance. The device still performs the
+      power cut once and stays interactive. Seven spec conflicts resolved and
+      documented in `NOTES.md` — React/Tailwind, backdrop-filter, two contrast
+      failures in the supplied orange, an impossible headline size, the
+      typeface, mobile-only, and the 65% device position.
 - [x] **Step 3 — Capabilities deck.** Rebuilt as a three-up stacked carousel
       per client revision (auto-advance, pause-on-interaction, reduced-motion
       falloff). Every card now dark (`--ink-700`) per the latest tweak.
@@ -71,6 +70,10 @@ for the run-by-run numbers. Whole page is now 99 KB with CLS 0.
         end to end, on the final assembled build (not per-section builds).
   - [ ] Verify with JS disabled *and* reduced motion together, not just
         separately, across the whole page.
+- [ ] **Decide whether the hero palette goes page-wide.** The hero now carries
+      the client's #FAF8F4 / #111111 / #626262 / orange set; every other section
+      still carries the original near-identical tokens. The seam reads fine, but
+      two palettes on one page is a decision to make on purpose, not to leave.
 - [ ] **Step 9 — Handover.** Not started. `HANDOVER.md`: token map, asset
       inventory (what's still placeholder), the full open `[VERIFY]` list,
       known trade-offs, and how to add a section without breaking rhythm.

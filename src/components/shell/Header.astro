@@ -15,7 +15,7 @@
 import Button from "../ui/Button.astro";
 ---
 
-<header class="header" role="banner" data-ground="dark">
+<header class="header" role="banner" data-ground="hero">
   <div class="header__inner">
     <a class="lockup" href="#top" aria-label="Contekai — back to top">
       {/*
@@ -87,7 +87,11 @@ import Button from "../ui/Button.astro";
       inset-block-start: 0;
       z-index: 50;
       block-size: var(--header-h);
-      /* Solid. No blur, ever. */
+      /* Solid. No blur, ever — not on the dark grounds and not over the
+         paper hero either, where the brief asked for backdrop-filter and its
+         own avoid-list said no glassmorphism two lines earlier. Over an almost
+         opaque background a 20px blur resolves to a flat fill anyway; this is
+         that fill, without the compositing cost on low-end Android. */
       background-color: var(--ink-900);
       color: var(--on-ink);
       border-block-end: var(--border-ink);
@@ -95,6 +99,38 @@ import Button from "../ui/Button.astro";
         background-color var(--dur-fast) var(--ease-out),
         color var(--dur-fast) var(--ease-out),
         border-color var(--dur-fast) var(--ease-out);
+    }
+
+    /* The header follows the section passing under it. Set by the observer in
+       reveal.ts; with JS off it stays on the ink ground it ships with, which is
+       correct everywhere except the first screen and never illegible. */
+    .header[data-ground="hero"] {
+      background-color: var(--hero-ground);
+      color: var(--hero-ink);
+      border-block-end-color: var(--hero-hairline);
+      /* The header is a sibling of the hero, not a child, so it cannot inherit
+         the hero's republished tokens — it has to carry its own. Without
+         --link the quiet "Log in" stays on --kai-400 and measures 2.81:1 here. */
+      --muted: var(--hero-ink-muted);
+      --hairline: var(--hero-hairline);
+      --link: var(--kai-600);
+      --border-current: 1px solid var(--hero-hairline);
+    }
+
+    .header[data-ground="paper"] {
+      background-color: var(--paper);
+      color: var(--on-paper);
+      border-block-end-color: var(--hairline-paper);
+      --muted: var(--on-paper-muted);
+      --hairline: var(--hairline-paper);
+      --link: var(--kai-600);
+      --border-current: var(--border-paper);
+    }
+
+    /* The mark keeps the brand orange on paper; --laterite on the ink ground is
+       already verified and unchanged. */
+    .header[data-ground="hero"] .lockup__mark {
+      color: var(--orange-fill);
     }
 
     .header__inner {

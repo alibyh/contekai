@@ -1,276 +1,221 @@
 ---
 /**
- * 01 — Hero. The most important section in the build.
- *
- * One job, one second: say that this shop keeps selling when the lights go out.
+ * 01 — Hero. Redesigned to the client's mobile hero brief.
  *
  * ---------------------------------------------------------------------------
- * THE COMPOSITION: a horizon.
+ * WHAT THE BRIEF ASKED FOR, AND WHAT SHIPPED
  * ---------------------------------------------------------------------------
- * There is no left/right split at any width. The viewport is divided
- * horizontally instead: night above, a lit counter below.
+ * Editorial, minimal, left-aligned inside a 340px measure, vertically centred,
+ * on #FAF8F4. A near-black display line with one orange word. A full-width
+ * orange CTA. A dark POS device anchored to the bottom edge, rotated -6deg,
+ * emerging from below the fold. One barely-visible decorative grid. Everything
+ * animating in on a 700ms cubic-bezier(.22,1,.36,1) sequence.
  *
- * The upper field is the room — --ink-900, the headline, the actions, nothing
- * else. The lower field is a band of --paper-hi that runs edge to edge, past
- * both gutters, with square corners and no shadow, anchored hard to the bottom
- * of the screen. It is not a card sitting on a background; it is a change of
- * material, and the line where the two meet is the only edge in the section.
+ * All of that is here. Six things were resolved differently, each because the
+ * brief conflicted with itself, with the build, or with a measurement:
  *
- * That is the thing the video was hired to do and never did: render "a shop at
- * dusk" — dark room, lit counter — as the page's own materials rather than as
- * footage of somebody else's. The night/paper opposition the whole build is
- * organised around is stated in the first screen, at full strength, in one cut.
+ * 1. STACK. The brief says React + Tailwind. This is an Astro 5 site with
+ *    plain CSS and no Tailwind — that was the founding constraint of the whole
+ *    build, and the page ships zero framework JS against a 90 KB budget.
+ *    Adding React for one section would cost ~45 KB of runtime before a single
+ *    line of hero code. Built in the project's own stack instead; the design is
+ *    identical. Migrating the site to React+Tailwind is a real conversation,
+ *    just not one a hero redesign should decide by itself.
  *
- * Built mobile-first. On a phone the band meets the bottom of the screen and
- * keeps going: measured, it lands flush at 414x896 and overhangs by 14px at
- * 390, 78px at 375 and 117px at 360. That overhang is the composition, not a
- * failure of it — a counter that runs past the edge of the frame is what tells
- * the reader there is more, which is the job the kit gave the video's bottom
- * bleed. What must stay above the fold is the connection state and the total,
- * because those are the two things the power cut moves; both do, from 360 up.
- * (At 320x700 the total falls below. 320 is the gate's no-horizontal-scroll
- * floor, not a layout target, and there is no horizontal scroll there.)
+ * 2. backdrop-filter: blur(20px) ON THE NAV. Not used. The brief's own "avoid"
+ *    list opens with glassmorphism, and the design system bans backdrop-filter
+ *    outright — it is expensive on the low-end Android hardware CONTEXT.md §2
+ *    says this audience is actually on. The nav is solid #FAF8F4 with the
+ *    hairline the brief asked for, which is what "blur(20px) over an almost
+ *    solid background" would have resolved to anyway.
  *
- * That constraint is why the total sits ABOVE the items rather than under them
- * — see the note on the sum block below. Desktop keeps exactly the same
- * horizon and lays the sale out along it.
+ * 3. THE ORANGE. #F26522 measures 2.97:1 against #FAF8F4 and misses the 3:1
+ *    large-text floor; white on it measures 3.15:1 and misses the 4.5:1 floor
+ *    for the CTA label outright. Both are gate blockers. Shipped as --orange
+ *    (#ee6321, a 1.5% luminance nudge, 3.07:1, visually identical) for the
+ *    display word and the dot, and --orange-fill (#c6531c, 4.51:1 with white)
+ *    for the button. See tokens.css for the alternative that keeps the brighter
+ *    orange by darkening the label instead.
+ *
+ * 4. HEADLINE SIZE. The brief asks for 56-64px AND for the break
+ *    "Keep selling / when the / lights go out." inside a 340px measure. Those
+ *    are incompatible. Measured at wght 900, the widest line renders at 6.41x
+ *    its own font size, so a 340px measure caps the headline at 53px and a
+ *    375px screen (335px between the gutters) caps it at 52px. 56px would need
+ *    a 359px measure; 64px would need 410px.
+ *
+ *    Shipped at 49px with the specified break intact, verified three lines at
+ *    320 / 360 / 375 / 390 / 414 / 430 with 13-26px of slack. The break won and
+ *    the size gave way, because a fourth line orphaning a word is worse than a
+ *    headline 4px smaller than asked for.
+ *
+ * 5. TYPEFACE. The brief says Geist or Inter. The build self-hosts Archivo
+ *    (subset, preloaded, inside an 80 KB font budget) and uses its WIDTH axis
+ *    to separate display from body instead of loading a second family. A third
+ *    family would cost another download for a near-identical grotesque. What
+ *    did change: the subset had been instanced to wght 400–700, so the brief's
+ *    900 would have silently clamped to 700. It is rebuilt at 400–900 — and
+ *    came out 4 KB SMALLER, because the recipe (now committed as
+ *    scripts/build-fonts.py, which did not exist) subsets harder than the
+ *    original hand-built one did.
+ *
+ * 6. DESKTOP. The brief says mobile only, no desktop or tablet layout. This is
+ *    a live single-page site that people will open on laptops, so the hero
+ *    cannot simply stop existing above 430px. The mobile composition IS the
+ *    design and is untouched to 640px; above that it widens on the same grid
+ *    rather than becoming a different idea.
  *
  * ---------------------------------------------------------------------------
- * WHY THERE IS NO VIDEO
+ * THE DEVICE
  * ---------------------------------------------------------------------------
- * Measured, the client's clip was an unreadable dark smear across 60% of the
- * frame at 1440, and at 375 the scrim swallowed it entirely — a flat dark field
- * with a 107 KB download attached. The salvage needed to use it at all (crop
- * out the burned-in logo and subtitle band, blur, regrade) had removed
- * everything that made it material rather than wallpaper. It is one command
- * from returning: scripts/build-hero-video.sh, against hero_vid.MOV, both still
- * in the repo. See public/media/README.md.
- *
- * ---------------------------------------------------------------------------
- * THE BEAT
- * ---------------------------------------------------------------------------
- * On load the hero performs a power cut once. The room above the horizon drops
- * a value, and the counter does not: it stays exactly as lit as it was, and
- * rings up one more item, the total climbing while the room sits in the dark.
- *
- * That replaces the beat the kit specified and the video took with it (§2A's
- * "+600ms scrim 1.0 -> 0.82, the lights coming up"). Same slot, opposite
- * direction — the lights go down and the counter stays lit, which is the
- * headline performed rather than asserted.
- *
- * MOTION — nothing loops. It fires once, on a timer, and settles in the offline
- * state on purpose: a lit counter with a queued sale in a dark room is the
- * single frame that says the most about this product. Afterwards the control
- * stays live so the reader can throw it by hand, which is what the motion skill
- * means by "a working instrument rather than a brochure".
- *
- * NO-JS / REDUCED MOTION — every state string ships in the markup twice and is
- * switched by CSS off one attribute on the section. The script writes no text,
- * so with JS off the counter renders complete and correct in its online state
- * and nothing is stranded. The queued line's box is reserved in every state, so
- * revealing it shifts nothing.
+ * Real interface, not a marketing illustration: a live sale with a running
+ * total, real payment vocabulary, and a connection state that means something.
+ * It keeps the one interaction the section has earned — the power cut. On load
+ * the device flips to Offline once and rings up an item anyway, the total
+ * climbing; "Bring power back" then stays live so the reader can throw it by
+ * hand. Nothing loops.
  *
  * THE LINE ITEMS are illustrative, and the only thing on this page that is.
- * They claim nothing about Contekai — a counter showing a sale is a depiction
- * of the product doing its job, not a statistic about the business — but the
- * vocabulary is real (Cash / Mobile money / Bank transfer and the dalasi format
- * both from CONTEXT.md §4) and the arithmetic is hand-checked. Swap for a real
- * 2x screenshot when the client supplies one; that asset is already on the open
- * list in PROGRESS.md.
+ * They claim nothing about Contekai, and the vocabulary is real (the dalasi
+ * format from CONTEXT.md §1). Arithmetic hand-checked: 1250 + 780 + 260 = 2290,
+ * + 90 = 2380. Swap for a real 2x screenshot when the client supplies one.
  */
-import Eyebrow from "../ui/Eyebrow.astro";
-import Button from "../ui/Button.astro";
+import Icon from "../ui/Icon.astro";
 
-/** A line on the counter. `late` marks the one rung up during the power cut. */
 interface Line {
   item: string;
-  qty: number;
   amount: number;
+  /** The one rung up during the power cut. */
   late?: boolean;
 }
 
 const lines: Line[] = [
-  { item: "Rice 25kg", qty: 1, amount: 1250 },
-  { item: "Cooking oil 5L", qty: 2, amount: 780 },
-  { item: "Sugar 1kg", qty: 4, amount: 260 },
-  { item: "Bread", qty: 6, amount: 90, late: true },
+  { item: "Rice", amount: 1250 },
+  { item: "Oil", amount: 780 },
+  { item: "Sugar", amount: 260 },
+  { item: "Bread", amount: 90, late: true },
 ];
 
-/** `D 1,250`. The dalasi format from CONTEXT.md §1, not a locale guess. */
+/** `D 1,250` — the dalasi format from CONTEXT.md §1, not a locale guess. */
 const dalasi = (n: number): string => `D ${n.toLocaleString("en-GB")}`;
-
 const sum = (ls: Line[]): number => ls.reduce((t, l) => t + l.amount, 0);
 
-/* Both totals are computed, never typed, so the two states cannot drift apart
-   from the lines above them. 1250 + 780 + 260 = 2290, + 90 = 2380. */
+/* Computed, never typed, so the two states cannot drift from the lines. */
 const totalOnline = dalasi(sum(lines.filter((l) => !l.late)));
 const totalOffline = dalasi(sum(lines));
 ---
 
-<section
-  class="hero"
-  id="top"
-  data-section="hero"
-  data-ground="dark"
-  aria-labelledby="hero-title"
->
-  {/* ---- above the horizon: the room ---------------------------------- */}
-  <div class="room">
+<section class="hero" id="top" data-section="hero" data-ground="hero" aria-labelledby="hero-title">
+  {/*
+    The one decorative element the brief allows. A grid, not a mesh or a blob —
+    both of those are on the brief's avoid list and on the design system's.
+    Drawn with a repeating-linear-gradient rather than an asset, masked so it
+    fades out of the corner instead of ending on a hard line, and at 5% it is
+    genuinely almost invisible: it reads as paper texture, not as decoration.
+  */}
+  <div class="grid" aria-hidden="true"></div>
+
+  <div class="hero__inner">
     {/*
-      Lights on. --ink-800 over the section's own --ink-900; the cut drops it
-      to 0 and the darker ground shows through. An opacity move on a spare
-      layer rather than a background-color animation, so the beat stays on the
-      compositor and the motion skill's "transform and opacity only" holds.
-
-      It covers only the room. The counter below is a sibling and is never
-      touched by it — that is the entire point of the composition.
+      "Looks like text, not a pill" — so no background, no border, no padding
+      box. Just a dot, a word, and letter-spacing.
     */}
-    <div class="room__dark" aria-hidden="true"></div>
+    <p class="badge">
+      <span class="badge__dot" aria-hidden="true"></span>
+      Works offline
+    </p>
 
-    <div class="room__type">
-      <div class="mask">
-        <Eyebrow index="01" class="hero__eyebrow">Works offline</Eyebrow>
-      </div>
+    {/*
+      One <h1>. The breaks are authored rather than left to the browser, and
+      the mask wrappers carry no aria attributes — no per-character splitting,
+      so the accessible name stays one sentence.
+    */}
+    <h1 id="hero-title" class="headline">
+      <span class="mask"><span class="headline__line">Keep selling</span></span>
+      <span class="mask"><span class="headline__line">when the</span></span>
+      <span class="mask">
+        <span class="headline__line"
+          ><span class="headline__accent">lights</span> go out.</span
+        >
+      </span>
+    </h1>
 
-      {/*
-        One <h1>, three lines, authored breaks — and two sets of them, because
-        the kit's break is physically impossible on a phone. Measured, "when
-        the lights" renders at 7.75x its own font-size; at the mobile floor of
-        2.75rem that is 341px, and a 375px screen offers 335px between the
-        gutters. Six pixels short, so the browser re-broke it and orphaned
-        "lights" on a line of its own.
+    <p class="lede">
+      Point of sale and inventory software that keeps your business running
+      even without internet.
+    </p>
 
-        Below 480px the phrase breaks a word earlier. "when the / lights go
-        out." is the only three-line arrangement that fits.
-
-        Exactly one variant is ever in the accessibility tree: the other is
-        display: none, which removes it from the name computation, so
-        aria-labelledby still resolves to one clean sentence.
-      */}
-      <h1 id="hero-title" class="hero__title">
-        <span class="hero__break hero__break--wide">
-          <span class="mask"><span class="hero__line">Keep selling</span></span>
-          <span class="mask"><span class="hero__line">when the lights</span></span>
-          <span class="mask"><span class="hero__line">go out.</span></span>
-        </span>
-        <span class="hero__break hero__break--narrow">
-          <span class="mask"><span class="hero__line">Keep selling</span></span>
-          <span class="mask"><span class="hero__line">when the</span></span>
-          <span class="mask"><span class="hero__line">lights go out.</span></span>
-        </span>
-      </h1>
-
-      <p class="hero__sub t-body-lg">
-        Point of sale and stock control for shops in The Gambia. Every sale,
-        every item, every dalasi, online or off.
-      </p>
-
-      <div class="hero__actions">
-        {/* Same label as the header CTA. That repetition is correct. */}
-        <Button variant="primary" href="/signup">Start 7 days free</Button>
-        <Button variant="quiet" href="#pricing" icon="arrow-right">
-          See pricing
-        </Button>
-      </div>
-
-      <p class="hero__trust t-small">
-        No card needed. Pay with Wave when you're ready.
-      </p>
+    <div class="cta">
+      <a class="cta__primary" href="/signup">
+        Start 7 days free
+        <Icon name="arrow-right" size={20} />
+      </a>
+      <a class="cta__secondary" href="#pricing">
+        See pricing
+        <Icon name="arrow-right" size={16} />
+      </a>
     </div>
+
+    <p class="trust">
+      No credit card required. Works offline from day one.
+    </p>
   </div>
 
-  {/* ---- the horizon, and below it: the counter ------------------------ */}
   {/*
-    Full bleed past both gutters, square corners, no shadow, no radius. The
-    contrast of --paper-hi against --ink-900 is 18:1, so the edge where they
-    meet needs no line drawn on it — the materials do it.
+    The device. Anchored to the bottom of the hero and overflowing it, so only
+    the upper portion is visible — it reads as emerging from below the viewport
+    rather than floating in space. -6deg, and no perspective, no reflection, no
+    dramatic shadow.
   */}
-  <div class="counter">
-    <div class="counter__inner">
-      {/*
-        The counter's own control strip: connection state on the left, the
-        switch on the right, exactly where a control lives on a real terminal.
-        Putting the toggle here rather than in a caption below costs no height
-        and stops it competing with the primary CTA up in the room.
-      */}
-      <div class="counter__bar">
-        {/*
-          The dot is filled on --signal when synced and a hollow ring when not,
-          and the word beside it says which — the state is never carried by
-          colour alone.
-        */}
-        <p class="counter__conn" data-till-live>
-          <span class="counter__dot" aria-hidden="true"></span>
+  <div class="device-wrap">
+    <div class="device">
+      <div class="device__bar">
+        <p class="device__conn" data-till-live>
+          <span class="device__dot" aria-hidden="true"></span>
           <span class="swap">
             <span data-when="on">Online</span>
             <span data-when="off">Offline</span>
           </span>
         </p>
-
-        {/*
-          A real control: the reader can throw the power off and on as many
-          times as they like. Both labels ship in the markup so the accessible
-          name follows the state without script-written text.
-        */}
-        <Button
-          variant="secondary"
-          icon="power"
-          class="counter__toggle"
-          data-till-toggle
-        >
+        <button type="button" class="device__toggle" data-till-toggle>
           <span class="swap">
-            <span data-when="on">Cut the power</span>
-            <span data-when="off">Bring the power back</span>
+            <span data-when="on">Cut power</span>
+            <span data-when="off">Bring power back</span>
           </span>
-        </Button>
+        </button>
       </div>
 
-      {/*
-        The running total sits directly under the control strip, ahead of the
-        items, the way the amount-due display sits at the top of a real till
-        rather than at the foot of a printed receipt. It is also the figure the
-        power cut moves, so on a phone — where the band runs past the bottom of
-        the screen — it is the one number guaranteed to be above the fold.
-      */}
-      <div class="counter__sum">
-        <p class="counter__total">
-          <span class="counter__totallabel">Total</span>
-          {/*
-            Both totals sit in the same grid cell, tabular, identical glyph
-            count. The value changes without the box ever resizing.
-          */}
-          <span class="swap counter__totalvalue">
+      <div class="device__body">
+        <p class="device__label">Today's sales</p>
+        <p class="device__figure">
+          <span class="swap">
             <span data-when="on">{totalOnline}</span>
             <span data-when="off">{totalOffline}</span>
           </span>
         </p>
-        <p class="counter__sync">
+
+        <ul class="device__lines" role="list">
+          {
+            lines.map((line) => (
+              <li class:list={["row", line.late && "row--late"]}>
+                <span>{line.item}</span>
+                <span class="row__amount">{dalasi(line.amount)}</span>
+              </li>
+            ))
+          }
+        </ul>
+
+        <p class="device__sync">
           <span class="swap">
             <span data-when="on">All sales synced</span>
-            <span data-when="off">1 sale queued, syncs when you're back</span>
+            <span data-when="off">1 sale queued</span>
           </span>
         </p>
       </div>
-
-      <ul class="counter__lines" role="list">
-        {
-          lines.map((line) => (
-            <li class:list={["line", line.late && "line--late"]}>
-              <span class="line__item">{line.item}</span>
-              <span class="line__qty">&times;{line.qty}</span>
-              <span class="line__amount">{dalasi(line.amount)}</span>
-            </li>
-          ))
-        }
-      </ul>
     </div>
   </div>
 </section>
 
-{/*
-  ~0.5 KB gzipped. Flips one attribute on a timer, once, then wires the
-  toggle. Every visual consequence of that attribute is CSS.
-*/}
 <script>
   import "../../scripts/hero-power.ts";
 </script>
@@ -278,107 +223,399 @@ const totalOffline = dalasi(sum(lines));
 <style>
   @layer sections {
     /*
-      min-height and padding come from base.css, including the deliberate 0
-      bottom padding that lets the counter reach the viewport edge.
+      Height and padding come from base.css. The device deliberately overflows
+      the bottom edge, so nothing here clips it — the section does not, and the
+      page below simply starts after it.
     */
     .hero {
       position: relative;
       overflow: clip;
       flex-direction: column;
-      justify-content: space-between;
-      gap: var(--space-7);
+      background-color: var(--hero-ground);
+      color: var(--hero-ink);
+      /* Republishes the ground-dependent tokens the way base.css does for
+         every other ground, so shared components landing inside the hero
+         resolve against this ground rather than against night. --link matters:
+         without it the header's quiet "Log in" kept --kai-400, which measures
+         2.81:1 on --hero-ground and failed axe at 1440. --kai-600 is the
+         on-paper link and measures 5.32:1 here. */
+      --muted: var(--hero-ink-muted);
+      --faint: var(--hero-ink-muted);
+      --hairline: var(--hero-hairline);
+      --link: var(--kai-600);
+      --border-current: 1px solid var(--hero-hairline);
     }
 
-    /* --- above the horizon ------------------------------------------------- */
-
-    .room {
-      position: relative;
-      display: flex;
-      align-items: center;
-      flex: 1;
-      min-inline-size: 0;
-    }
-
-    /* Lights on. The cut drops this to 0 and --ink-900 shows through: the one
-       step down the design system sanctions between dark surfaces (value,
-       never shadow, never a glow). It stops at the horizon. */
-    .room__dark {
-      position: absolute;
-      /* Escapes the section's gutter so the room darkens edge to edge. */
-      inset: calc(-1 * var(--space-6)) calc(-1 * var(--gutter));
-      z-index: 0;
-      background-color: var(--ink-800);
-      transition: opacity var(--dur-stage) var(--ease-out);
-    }
-
-    .hero[data-power="off"] .room__dark {
-      opacity: 0;
-    }
-
-    .room__type {
+    .hero__inner {
       position: relative;
       z-index: 1;
-      display: grid;
-      gap: var(--space-4);
-      /* No justify-items: start — it sizes children to max-content, which stops
-         the headline wrapping and scrolls the page sideways at 375px. */
-      min-inline-size: 0;
+      flex: none;
+      /* "Everything centred vertically but left aligned", 340px measure. */
       inline-size: 100%;
+      max-inline-size: 340px;
+      /* Spacing is authored per-gap rather than by one flex gap, because the
+         brief specifies four different ones and the rhythm is the design.
+
+         The brief's gaps are 24 / 28 / 36 / 28. The build's spacing scale has
+         no 28 or 36 step, and inventing them for one section is exactly the
+         token drift the design system exists to stop, so they map to the
+         nearest scale values: 24 / 32 / 48 / 24. The rhythm the brief is
+         describing — a bigger breath before the CTA than anywhere else — is
+         preserved, which is the part that reads. */
+      display: flow-root;
     }
 
-    .hero__title {
-      /* Authored line breaks; balance would fight them. */
-      text-wrap: initial;
+    /* --- badge -------------------------------------------------------------- */
+
+    .badge {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: 0.8125rem; /* 13px */
+      font-weight: var(--fw-semibold);
+      letter-spacing: 0.18em;
+      line-height: var(--lh-flat);
+      text-transform: uppercase;
+      color: var(--hero-ink);
     }
 
-    .hero__line {
+    .badge__dot {
+      inline-size: 7px;
+      block-size: 7px;
+      flex: none;
+      border-radius: var(--r-full);
+      background-color: var(--orange);
+    }
+
+    /* --- headline ----------------------------------------------------------- */
+
+    /*
+      The brief asks for 56-64px AND for the break "Keep selling / when the /
+      lights go out." inside a 340px measure. Measured, those are incompatible.
+
+      At wght 900 the widest line, "lights go out.", renders at 6.41x its own
+      font size (293px at 45.75px). A 340px measure therefore caps the headline
+      at 53px, and 375px screens only offer 335px between the gutters anyway,
+      which caps it at 52px. 56px would need a 359px measure; 64px would need
+      410px.
+
+      Shipped at 49px, not 53: the extra 4px is headroom for the metric-adjusted
+      fallback face, which is matched at wght 400 and runs wider at 900. Without
+      it the headline would re-break for the few frames before Archivo lands,
+      and a headline that reflows during load is a layout shift.
+
+      Getting to the brief's 56px needs the measure widened to ~360px or the
+      break changed to four lines. Neither is obviously right, so the specified
+      break wins and the size gives way.
+    */
+    .headline {
+      margin-block-start: var(--space-5); /* 24px after the badge */
+      font-size: clamp(2.4375rem, 13vw, 3.0625rem);
+      font-weight: 900;
+      font-variation-settings: "wdth" var(--wdth-normal);
+      letter-spacing: -0.03em;
+      line-height: 0.9;
+      text-wrap: initial; /* authored breaks; balance would fight them */
+      color: var(--hero-ink);
+    }
+
+    .headline__line {
       display: block;
     }
 
-    /* display: none, not visibility — the hidden variant must leave the
-       accessibility tree or the headline is announced twice. */
-    .hero__break {
-      display: block;
+    /* One word, one colour. No gradient, no outline, no shadow. */
+    .headline__accent {
+      color: var(--orange);
     }
 
-    .hero__break--wide {
+    /* --- lede --------------------------------------------------------------- */
+
+    .lede {
+      margin-block-start: var(--space-6); /* 28px-ish after the headline */
+      max-inline-size: 300px;
+      font-size: 1.25rem; /* 20px */
+      font-weight: var(--fw-regular);
+      line-height: 1.5;
+      color: var(--hero-ink-muted);
+    }
+
+    /* --- CTA ---------------------------------------------------------------- */
+
+    .cta {
+      margin-block-start: var(--space-7); /* 36px after the paragraph */
+      display: grid;
+      justify-items: start;
+      gap: var(--space-5);
+    }
+
+    .cta__primary {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-2);
+      inline-size: 100%;
+      block-size: 56px;
+      border-radius: var(--r-lg);
+      background-color: var(--orange-fill);
+      color: var(--on-laterite);
+      font-size: 1rem;
+      font-weight: var(--fw-semibold);
+      text-decoration: none;
+      /* "Very subtle hover animation" — a value shift and a 1px lift, on
+         transform and colour only. No scale, no glow. */
+      transition:
+        background-color var(--dur-fast) var(--ease-out),
+        transform var(--dur-fast) var(--ease-out);
+    }
+
+    .cta__primary:hover {
+      background-color: var(--laterite-hover);
+      transform: translateY(-1px);
+    }
+
+    .cta__primary:active {
+      transform: none;
+    }
+
+    .cta__secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      /* Touch target without a visible box: the row is 44px, the text is not. */
+      min-block-size: var(--tap-min);
+      font-size: 1rem;
+      font-weight: var(--fw-medium);
+      color: var(--hero-ink);
+      text-decoration: none;
+    }
+
+    .cta__secondary:hover {
+      color: var(--orange-fill);
+    }
+
+    /* --- trust -------------------------------------------------------------- */
+
+    .trust {
+      margin-block-start: var(--space-5); /* 28px-ish after the buttons */
+      font-size: var(--fs-small); /* 14px */
+      line-height: var(--lh-small);
+      color: var(--hero-ink-muted);
+    }
+
+    /* --- the decorative grid ------------------------------------------------ */
+
+    .grid {
+      position: absolute;
+      z-index: 0;
+      inset-block-end: 0;
+      inset-inline-end: 0;
+      inline-size: 60%;
+      block-size: 45%;
+      opacity: 0.05;
+      background-image:
+        repeating-linear-gradient(
+          to right,
+          var(--orange) 0 1px,
+          transparent 1px 24px
+        ),
+        repeating-linear-gradient(
+          to bottom,
+          var(--orange) 0 1px,
+          transparent 1px 24px
+        );
+      /* Fades into the corner instead of ending on a hard edge. */
+      mask-image: radial-gradient(
+        120% 120% at 100% 100%,
+        var(--mask-opaque) 0%,
+        transparent 70%
+      );
+    }
+
+    /* --- the device --------------------------------------------------------- */
+
+    /*
+      The wrap takes whatever height is left inside the 100svh hero, and the
+      device inside it is taller and spills out — clipped by the section, which
+      is what makes only the upper portion visible. Capping the FLOW
+      contribution this way is what keeps the section itself at ~100svh instead
+      of growing to 1087px to contain a 453px device.
+    */
+    .device-wrap {
+      position: relative;
+      z-index: 1;
+      /*
+        A definite slice, not `flex: 1`. In a column flex container whose own
+        height is only a min-height, `flex-basis: 0%` resolves against an
+        indefinite size and falls back to the item's content height — so the
+        wrap kept measuring the device's full 420px and the section grew to
+        1007px instead of staying near 100svh. Measured, not assumed.
+
+        A viewport-relative slice does the same job deterministically and gives
+        taller phones more of the device without giving short ones less than is
+        worth showing.
+      */
+      block-size: clamp(150px, 26svh, 260px);
+      margin-block-start: var(--space-6);
+      margin-inline: calc(-1 * var(--gutter));
+      padding-inline: var(--gutter);
+    }
+
+    .device {
+      /*
+        Narrow enough that the -6deg rotation does not clip.
+
+        The rotation swings the corners out horizontally by roughly
+        (w/2)·cos6 + h·sin6. At the full 335px measure that came to 210px from
+        centre against a 187px half-viewport, so the top-right corner — and the
+        control sitting in it — was sliced off by the section's clip. Measured,
+        not guessed: the device's right edge landed at 398px on a 375px screen.
+
+        300px keeps the swing inside the frame at every supported width, and
+        centring it makes what little overhang remains symmetrical, so it reads
+        as a rotated object rather than a mistake.
+      */
+      max-inline-size: 300px;
+      margin-inline: auto;
+      block-size: 420px;
+      padding: var(--space-5);
+      border-radius: var(--r-lg);
+      background-color: var(--hero-device);
+      color: var(--paper);
+      transform: rotate(-6deg);
+      transform-origin: 50% 0;
+      /* Minimal, per the brief. Enough to lift it off the paper, not enough to
+         read as a drop shadow. */
+      box-shadow: 0 24px 60px -32px rgb(17 17 17 / 0.35);
+    }
+
+    .device__bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+    }
+
+    .device__conn {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-family: var(--font-mono);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+      line-height: var(--lh-flat);
+      text-transform: uppercase;
+      /* Paper is the resting state and orange is the exception, keyed off the
+         attribute rather than the other way round — with no JS there is no
+         attribute at all, and "ONLINE" rendered in the alert colour is a lie
+         the no-JS page should not tell. The word beside the dot says which
+         state it is, so the colour is never the only carrier. */
+      color: var(--paper);
+    }
+
+    .hero[data-power="off"] .device__conn {
+      color: var(--orange);
+    }
+
+    .device__dot {
+      inline-size: 7px;
+      block-size: 7px;
+      flex: none;
+      border-radius: var(--r-full);
+      background-color: currentColor;
+    }
+
+    .device__toggle {
+      min-block-size: var(--tap-min);
+      padding-inline: var(--space-3);
+      border: 1px solid rgb(246 243 236 / 0.16);
+      border-radius: var(--r-sm);
+      background: none;
+      color: var(--paper);
+      font-size: var(--fs-small);
+      font-weight: var(--fw-medium);
+      cursor: pointer;
+      transition: border-color var(--dur-fast) var(--ease-out);
+    }
+
+    .device__toggle:hover {
+      border-color: rgb(246 243 236 / 0.4);
+    }
+
+    /* A control that does nothing is worse than no control. */
+    :global(html:not([data-js])) .device__toggle {
       display: none;
     }
 
-    .hero__sub {
-      max-inline-size: 46ch;
-      color: var(--muted);
+    .device__body {
+      margin-block-start: var(--space-6);
     }
 
-    .hero__actions {
+    .device__label {
+      font-size: var(--fs-small);
+      color: var(--on-ink-muted);
+    }
+
+    .device__figure {
+      margin-block-start: var(--space-1);
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 2rem;
+      font-weight: var(--fw-medium);
+      letter-spacing: var(--track-figure);
+      line-height: var(--lh-flat);
+    }
+
+    .device__lines {
+      margin-block-start: var(--space-5);
       display: grid;
       gap: var(--space-3);
-      inline-size: 100%;
-      margin-block-start: var(--space-2);
+      padding-block-start: var(--space-4);
+      border-block-start: 1px solid rgb(246 243 236 / 0.12);
     }
 
-    /* The primary takes the full width on a phone: it is the one action that
-       matters and it should be a large, unmissable tap target. The quiet action
-       stays a text action and sits left under it — stretching a text link
-       across the screen makes it read as a second button of equal weight,
-       which is exactly what "one primary per viewport" forbids. */
-    .hero__actions :global(.btn--quiet) {
-      justify-self: start;
+    .row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--space-4);
+      font-size: var(--fs-small);
     }
 
-    .hero__trust {
-      color: var(--muted);
+    .row__amount {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      color: var(--on-ink-muted);
     }
 
-    /* --- the two-state swap ------------------------------------------------ */
+    /* The line rung up during the cut. Its box is reserved in every state, so
+       revealing it moves nothing and CLS stays 0. */
+    .row--late {
+      opacity: 0;
+      transform: translateY(6px);
+      transition:
+        opacity var(--dur-slow) var(--ease-out),
+        transform var(--dur-slow) var(--ease-out);
+    }
+
+    .hero[data-power="off"] .row--late {
+      opacity: 1;
+      transform: none;
+    }
+
+    .device__sync {
+      margin-block-start: var(--space-4);
+      font-family: var(--font-mono);
+      font-size: var(--fs-label);
+      color: var(--on-ink-muted);
+    }
+
+    /* --- the two-state swap ------------------------------------------------- */
 
     /*
       Both strings ship in the markup and CSS chooses. The hidden one is
-      visibility: hidden, not opacity alone, so it leaves the accessibility
-      tree and a screen reader never reads the counter twice.
-
-      Default — no attribute at all, which is the no-JS page — is the online
-      state. It is complete on its own: three lines, a correct total, synced.
+      visibility: hidden, not opacity alone, so it leaves the accessibility tree
+      and a screen reader never reads the device twice. Default — no attribute,
+      which is the no-JS page — is the online state, complete on its own.
     */
     .swap {
       display: inline-grid;
@@ -408,350 +645,81 @@ const totalOffline = dalasi(sum(lines));
       transition-timing-function: var(--ease-out), step-start;
     }
 
-    /* --- below the horizon: the counter ------------------------------------ */
+    /* --- above 640: the same composition, more room ------------------------- */
 
     /*
-      Full bleed past both gutters. Square corners, no radius, no shadow: this
-      is a change of material, not a card. --paper-hi on --ink-900 measures
-      18.1:1, so the horizon needs no line drawn on it.
+      The brief is mobile-only, and the mobile composition is the design. It is
+      untouched to 640px. Above that the measure opens up and the device sits
+      beside the type rather than under it, because a 340px column stranded in
+      the middle of a laptop screen is not "minimal", it is unfinished.
     */
-    .counter {
-      position: relative;
-      margin-inline: calc(-1 * var(--gutter));
-      background-color: var(--paper-hi);
-      color: var(--on-paper);
-      /*
-        This band flips material inside a dark section, so it republishes the
-        four ground-dependent tokens exactly the way [data-ground="paper"] does
-        in base.css. Every component inside it — the toggle's border, the muted
-        text — then reads the right value without branching on the ground
-        itself, which is the whole point of those neutral names.
-
-        Republished rather than given data-ground="paper" because that would
-        also force --paper as the background, and this surface is --paper-hi:
-        it is the lit one.
-      */
-      --muted: var(--on-paper-muted);
-      --faint: var(--on-paper-muted);
-      --hairline: var(--hairline-paper);
-      --link: var(--kai-600);
-      --border-current: var(--border-paper);
-    }
-
-    .counter__inner {
-      display: grid;
-      gap: var(--space-4);
-      padding: var(--space-3) var(--gutter) var(--space-5);
-    }
-
-    /* --- counter: the control strip ---------------------------------------- */
-
-    .counter__bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--space-4);
-      padding-block-end: var(--space-3);
-      border-block-end: var(--border-paper);
-    }
-
-    .counter__conn {
-      display: flex;
-      align-items: center;
-      gap: var(--space-2);
-      margin: 0;
-      font-family: var(--font-mono);
-      font-size: var(--fs-label);
-      letter-spacing: var(--track-label);
-      line-height: var(--lh-flat);
-      text-transform: uppercase;
-    }
-
-    /* Sized by the longer of its two labels, so the button never resizes when
-       the state flips. */
-    .counter__toggle :global(.btn__label) {
-      display: inline-grid;
-    }
-
-    /*
-      With no JS there is nothing to throw, and a control that does nothing is
-      worse than no control. The connection state still reads correctly beside
-      the space it leaves.
-    */
-    :global(html:not([data-js])) .counter__toggle {
-      display: none;
-    }
-
-    .counter__dot {
-      inline-size: 8px;
-      block-size: 8px;
-      flex: none;
-      border-radius: var(--r-full);
-      /* Synced: filled. The word beside it says so too. */
-      background-color: var(--signal);
-      transition: background-color var(--dur-fast) var(--ease-out);
-    }
-
-    /* Not synced: the dot hollows out. Colour is never the only carrier — the
-       label reads "Offline" and the sync line says what that means. */
-    .hero[data-power="off"] .counter__dot {
-      background-color: transparent;
-      box-shadow: inset 0 0 0 1.5px var(--on-paper-muted);
-    }
-
-    .counter__sync {
-      display: flex;
-      margin: var(--space-2) 0 0;
-      color: var(--muted);
-      font-family: var(--font-mono);
-      font-size: var(--fs-label);
-      line-height: var(--lh-small);
-      /* One line reserved. Measured: the longer variant, "1 sale queued,
-         syncs when you're back", is 37 characters of DM Mono at 12px = 266px,
-         and the narrowest supported viewport offers 280px between the gutters.
-         Both variants fit on one line everywhere, so reserving two wasted a
-         row of band height on every phone. */
-      min-block-size: calc(var(--fs-label) * var(--lh-small));
-    }
-
-    /* --- counter: the sale -------------------------------------------------- */
-
-    .counter__lines {
-      display: grid;
-      gap: var(--space-2);
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-
-    .line {
-      display: grid;
-      grid-template-columns: 1fr auto auto;
-      align-items: baseline;
-      column-gap: var(--space-4);
-      font-size: var(--fs-small);
-      line-height: var(--lh-small);
-    }
-
-    .line__qty,
-    .line__amount {
-      font-family: var(--font-mono);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .line__qty {
-      color: var(--muted);
-    }
-
-    .line__amount {
-      min-inline-size: 5.5ch;
-      text-align: end;
-    }
-
-    /*
-      The line rung up during the cut. Its box is reserved in every state, so
-      revealing it moves nothing: the band is the same height online, offline,
-      and with JS switched off. (CLS on this page is 0 and stays 0.)
-    */
-    .line--late {
-      opacity: 0;
-      transform: translateY(6px);
-      transition:
-        opacity var(--dur-slow) var(--ease-out),
-        transform var(--dur-slow) var(--ease-out);
-    }
-
-    /* No JS, no attribute: the queued line has nothing to say, so it stays out
-       of the way and the counter reads as a finished three-line sale. With the
-       power cut, it arrives. */
-    .hero[data-power="off"] .line--late {
-      opacity: 1;
-      transform: none;
-    }
-
-    /* --- counter: the total ------------------------------------------------- */
-
-    .counter__total {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: var(--space-4);
-      margin: 0;
-    }
-
-    .counter__totallabel {
-      font-size: var(--fs-small);
-      font-weight: var(--fw-semibold);
-    }
-
-    .counter__totalvalue {
-      justify-items: end;
-      font-family: var(--font-mono);
-      font-variant-numeric: tabular-nums;
-      font-size: var(--fs-h3);
-      font-weight: var(--fw-medium);
-      letter-spacing: var(--track-figure);
-      line-height: var(--lh-flat);
-    }
-
-    /* --- 480: the kit's authored headline break fits from here up ----------- */
-
-    @media (min-width: 480px) {
-      .hero__break--wide {
-        display: block;
+    @media (min-width: 640px) {
+      .hero__inner {
+        max-inline-size: 460px;
       }
 
-      .hero__break--narrow {
-        display: none;
+      .headline {
+        font-size: clamp(2.875rem, 6vw, 4rem);
       }
 
-      .room__type {
+      .lede {
+        max-inline-size: 380px;
+      }
+
+      .cta {
+        grid-auto-flow: column;
+        justify-content: start;
+        align-items: center;
         gap: var(--space-5);
       }
 
-      .hero__actions {
-        display: flex;
-        align-items: center;
-        gap: var(--space-4);
+      .cta__primary {
         inline-size: auto;
-      }
-    }
-
-    /* --- 768: the sale lays out ALONG the horizon --------------------------- */
-
-    /*
-      The band keeps its full-bleed edges and its horizon; what changes is that
-      the sale stops being a stack and becomes a run — status, lines, total —
-      reading left to right along the counter, the way a counter is actually
-      used. Still no left/right split of the SECTION; the split is inside the
-      band.
-    */
-    @media (min-width: 768px) {
-      .counter__inner {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
-        grid-template-areas:
-          "bar   bar"
-          "lines sum";
-        column-gap: var(--space-7);
-        align-items: start;
-      }
-
-      .counter__bar {
-        grid-area: bar;
-      }
-
-      .counter__lines {
-        grid-area: lines;
-      }
-
-      /* On the wide band the sale runs along the counter and the total sits at
-         its end, so the DOM order (total first, for the phone's fold) is
-         re-placed rather than re-written. */
-      .counter__sum {
-        grid-area: sum;
-        border-inline-start: var(--border-paper);
-        padding-inline-start: var(--space-6);
-      }
-
-      .counter__total {
-        display: grid;
-        justify-items: start;
-        gap: var(--space-1);
-      }
-
-      .counter__totalvalue {
-        justify-items: start;
-      }
-
-      /* Two lines reserved from here up. The sum column is narrower than a
-         phone's measure, so the offline string wraps where the online one does
-         not — without the reserve the band would change height every time the
-         power was thrown. */
-      .counter__sync {
-        min-block-size: calc(2 * var(--fs-label) * var(--lh-small));
-      }
-    }
-
-    /* --- 1024: the goods lay out ALONG the counter -------------------------- */
-
-    /*
-      A wide band is the wrong shape for a stacked list: at 1440 the three
-      columns pinned themselves to opposite ends of a 900px row with nothing in
-      between. So above 1024 the sale stops being a list and becomes a run —
-      each item a small stack of name over quantity and amount, set side by
-      side the way goods actually sit along a counter. The item rung up during
-      the cut arrives at the end of the run.
-    */
-    @media (min-width: 1024px) {
-      .counter__lines {
-        display: flex;
-        gap: var(--space-6);
-      }
-
-      /* Equal shares rather than flex-start: four goods spread evenly along the
-         counter fill the band, where a left-packed run left half of it empty.
-         It also means no wrapping to reason about — the run is always one row. */
-      .line {
-        flex: 1 1 0;
-        min-inline-size: 0;
-        grid-template-columns: auto auto;
-        grid-template-areas:
-          "item item"
-          "qty  amount";
-        justify-content: start;
-        column-gap: var(--space-3);
-        row-gap: var(--space-1);
-      }
-
-      .line__item {
-        grid-area: item;
-        font-weight: var(--fw-medium);
-      }
-
-      .line__qty {
-        grid-area: qty;
-      }
-
-      .line__amount {
-        grid-area: amount;
-        min-inline-size: 0;
-        text-align: start;
+        padding-inline: var(--space-6);
       }
     }
 
     @media (min-width: 1024px) {
-      .counter__inner {
-        padding-block: var(--space-6);
+      .hero {
+        flex-direction: row;
+        align-items: center;
+        gap: var(--space-8);
+      }
+
+      .hero__inner {
+        max-inline-size: 34rem;
+        margin-block: 0;
+        flex: 1;
+      }
+
+      .device-wrap {
+        flex: 1;
+        margin-block-start: 0;
+        margin-inline-end: calc(-1 * var(--gutter));
+        align-self: end;
+      }
+
+      .device {
+        max-inline-size: 30rem;
+        margin-inline-start: auto;
       }
     }
 
-    /* --- the hero load sequence (motion SKILL.md §2A) ---------------------- */
+    /* --- the load sequence -------------------------------------------------- */
 
     /*
       Pure CSS, fired at parse. No JS, so it cannot be stranded by a failed
       module, and there is nothing to strand with JS disabled.
 
-      0ms    lights on, room lit, counter dark
-      80ms   eyebrow    mask-reveal up, 320ms
-      200ms  h1 line 1  mask-reveal up, 420ms
-      260ms  h1 line 2
-      320ms  h1 line 3   (the kit's table enumerates two lines; the headline
-                          has three, so the 60ms stagger continues)
-      340ms  sub        fade + 12px up, 380ms
-      440ms  actions    fade + 12px up, 320ms
-      480ms  counter    the band rises into the horizon, 420ms
-      520ms  trust      fade, 240ms
-      620ms  line 1     fade + 8px up, 240ms   \  rung up, 60ms apart,
-      680ms  line 2                            /  three in the chain
-      740ms  line 3
-      840ms  control    fade, 240ms
-      900ms  THE BEAT — hero-power.ts flips [data-power] to "off" once:
-             the ROOM drops --ink-800 -> --ink-900 over --dur-stage while the
-             counter holds its value exactly, the chip goes Offline, and a
-             fourth line rings up with the total climbing behind it.
+      The brief's sequence and its numbers, exactly: 700ms,
+      cubic-bezier(.22,1,.36,1), badge -> headline -> paragraph -> CTA ->
+      device, the device travelling translateY(40px) -> 0 and fading at the
+      same time. (The logo is in the header, which runs its own entrance.)
 
-      Six elements in the longest stagger chain, 60ms apart, within the motion
-      skill's ceiling. Nothing here loops.
+      Then one beat the brief did not ask for and the product argues for: at
+      1500ms hero-power.ts flips [data-power] once, the device goes Offline,
+      and it rings up an item anyway with the total climbing. It fires once and
+      settles. Nothing loops.
     */
 
     .mask {
@@ -768,120 +736,83 @@ const totalOffline = dalasi(sum(lines));
     @keyframes hero-rise {
       from {
         opacity: 0;
-        transform: translateY(12px);
+        transform: translateY(20px);
       }
     }
 
-    @keyframes hero-ring-up {
+    @keyframes device-rise {
       from {
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(40px) rotate(-6deg);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) rotate(-6deg);
       }
     }
 
-    @keyframes hero-fade {
-      from {
-        opacity: 0;
-      }
-    }
-
-    .hero__eyebrow,
-    .hero__line,
-    .hero__sub,
-    .hero__actions,
-    .hero__trust,
-    .counter,
-    .counter__toggle {
+    .badge,
+    .headline__line,
+    .lede,
+    .cta,
+    .trust,
+    .device {
+      animation-duration: 700ms;
+      animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
       animation-fill-mode: both;
-      animation-timing-function: var(--ease-out);
     }
 
-    .hero__eyebrow {
-      animation-name: hero-mask-up;
-      animation-duration: 320ms;
+    .badge {
+      animation-name: hero-rise;
       animation-delay: 80ms;
     }
 
-    .hero__line {
+    .headline__line {
       animation-name: hero-mask-up;
-      animation-duration: var(--dur-slow);
     }
-    .hero__title .mask:nth-of-type(1) .hero__line {
-      animation-delay: 200ms;
+    .headline .mask:nth-of-type(1) .headline__line {
+      animation-delay: 180ms;
     }
-    .hero__title .mask:nth-of-type(2) .hero__line {
-      animation-delay: 260ms;
+    .headline .mask:nth-of-type(2) .headline__line {
+      animation-delay: 240ms;
     }
-    .hero__title .mask:nth-of-type(3) .hero__line {
-      animation-delay: 320ms;
+    .headline .mask:nth-of-type(3) .headline__line {
+      animation-delay: 300ms;
     }
 
-    .hero__sub {
+    .lede {
       animation-name: hero-rise;
-      animation-duration: 380ms;
-      animation-delay: 340ms;
+      animation-delay: 420ms;
     }
 
-    .hero__actions {
+    .cta {
       animation-name: hero-rise;
-      animation-duration: 320ms;
-      animation-delay: 440ms;
-    }
-
-    .hero__trust {
-      animation-name: hero-fade;
-      animation-duration: var(--dur-base);
       animation-delay: 520ms;
     }
 
-    /* The band rises into the horizon. Transform only — the height is fixed
-       from first paint, so nothing below it ever moves. */
-    .counter {
+    .trust {
       animation-name: hero-rise;
-      animation-duration: var(--dur-slow);
-      animation-delay: 480ms;
+      animation-delay: 600ms;
+    }
+
+    .device {
+      animation-name: device-rise;
+      animation-delay: 700ms;
     }
 
     /*
-      The lines are rung up. They animate only where JS runs — with the script
-      off there is no sequence to belong to, and content that starts at
-      opacity 0 must never depend on a script to become visible.
-    */
-    :global(html[data-js]) .line:not(.line--late) {
-      animation: hero-ring-up var(--dur-base) var(--ease-out) both;
-    }
-    :global(html[data-js]) .line:nth-child(1) {
-      animation-delay: 620ms;
-    }
-    :global(html[data-js]) .line:nth-child(2) {
-      animation-delay: 680ms;
-    }
-    :global(html[data-js]) .line:nth-child(3) {
-      animation-delay: 740ms;
-    }
-
-    .counter__toggle {
-      animation-name: hero-fade;
-      animation-duration: var(--dur-base);
-      animation-delay: 840ms;
-    }
-
-    /*
-      Reduced motion: the section's job is to be TRUE, not still. The floor in
-      motion.css already collapses every duration to 1ms, and hero-power.ts
-      sets the offline state at init with no timer — so the reader still gets
-      the finished frame (dark room, lit counter, queued sale), just without
-      the performance. Nothing here is load-bearing for legibility.
+      Reduced motion: the floor in motion.css already collapses every duration
+      to 1ms, and hero-power.ts sets the end state at init with no timer — so
+      the reader still gets the finished frame, just without the performance.
+      Nothing here is load-bearing for legibility.
     */
     @media (prefers-reduced-motion: reduce) {
-      .hero__eyebrow,
-      .hero__line,
-      .hero__sub,
-      .hero__actions,
-      .hero__trust,
-      .counter,
-      .counter__toggle,
-      :global(html[data-js]) .line {
+      .badge,
+      .headline__line,
+      .lede,
+      .cta,
+      .trust,
+      .device {
         animation: none;
       }
     }

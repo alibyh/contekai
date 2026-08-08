@@ -9,14 +9,14 @@
 
 /* -----------------------------------------------------------------------------
    Fonts — self-hosted, subset to latin (+ a lazy latin-ext slice).
-   Archivo is a 2-axis variable font (wght 400–700, wdth 100–112); the axes are
+   Archivo is a 2-axis variable font (wght 400–900, wdth 100–112); the axes are
    instanced down to the range this design system actually uses.
    -------------------------------------------------------------------------- */
 
 @font-face {
   font-family: "Archivo Variable";
   src: url("/fonts/archivo-var-subset.woff2") format("woff2-variations");
-  font-weight: 400 700;
+  font-weight: 400 900;
   font-stretch: 100% 112%;
   font-style: normal;
   font-display: swap;
@@ -30,7 +30,7 @@
 @font-face {
   font-family: "Archivo Variable";
   src: url("/fonts/archivo-var-ext-subset.woff2") format("woff2-variations");
-  font-weight: 400 700;
+  font-weight: 400 900;
   font-stretch: 100% 112%;
   font-style: normal;
   font-display: swap;
@@ -341,12 +341,15 @@
   }
 
   /* Mobile-first rhythm. These must not become equal — the pulse is the point. */
-  /* The hero's bottom padding is 0 on purpose: the counter band is the last
-     thing in it and has to reach the bottom edge of the viewport, because a
-     lit strip anchored to the screen edge is the whole composition. Its own
-     internal padding does the spacing work instead. */
+  /* The brief asks for 96px top. Shipped at 48, because 96 sits UNDER a 72px
+     header — 168px of empty screen before the first word — and every pixel of
+     it comes straight out of the device preview, which the same brief calls
+     the focal point. 48 keeps the opening generous and hands the difference
+     back to the thing that is meant to be looked at.
+     0 bottom on purpose: the device is the last thing in the section and is
+     meant to overflow the bottom edge, not sit inside a padding box. */
   [data-section="hero"] {
-    --section-pad: var(--space-6) 0;
+    --section-pad: var(--space-7) 0;
   }
   [data-section="capabilities"] {
     --section-pad: var(--space-8) var(--space-7);

@@ -44,6 +44,48 @@
     /* status — only ever status */
     --signal: #2f9e6b;
 
+    /* ---------------------------------------------------------------------
+       HERO PALETTE — supplied by the client for the mobile hero redesign.
+
+       Deliberately NOT applied page-wide: every value here is a near-neighbour
+       of an existing token (#FAF8F4 vs --paper #F6F3EC, #111111 vs --on-paper
+       #16232E, #F26522 vs --laterite #B34A26), so mixing the two palettes
+       across sections would read as a bug rather than a decision. The hero
+       carries this set; everything below it still carries the original. Rolling
+       it through the whole page is a separate, deliberate pass.
+
+       Three of the supplied values were measured against the WCAG floor the
+       quality gate treats as a blocker, and two failed. The fixes are the
+       smallest that clear it, and both are recorded here rather than in a
+       component so nothing silently drifts back.
+       --------------------------------------------------------------------- */
+
+    --hero-ground: #faf8f4;     /* as supplied */
+    --hero-ink: #111111;        /* as supplied — 17.8:1 on --hero-ground */
+    --hero-ink-muted: #626262;  /* as supplied — 5.75:1, clears body text */
+    --hero-device: #0f1115;     /* as supplied — the mockup's dark ground */
+    --hero-hairline: #e8e8e8;   /* as supplied — dividers only, never a border
+                                   that identifies a control */
+
+    /* SUPPLIED #F26522, nudged 1.5% down in luminance.
+       At #F26522 it measures 2.97:1 against --hero-ground and misses the 3:1
+       large-text floor — by 0.03, but the gate says "verified with a tool, not
+       by eye", and this is what the tool says. #ee6321 measures 3.07:1 and is
+       visually indistinguishable. Safe for the display word and the badge dot;
+       on --hero-device it measures 5.80:1 and is safe for anything. */
+    --orange: #ee6321;
+
+    /* The same hue, dark enough that a WHITE label on it clears 4.5:1 (4.51:1).
+       White on the supplied #F26522 measures 3.15:1 and fails outright, and the
+       primary CTA is the last place to spend a contrast exception.
+
+       The alternative, kept here because it is a live option rather than a
+       rejected one: --orange as the fill with --hero-ink as the label measures
+       5.13:1 and passes comfortably, which preserves the brighter orange at the
+       cost of a dark label instead of a white one. The spec asked for white
+       text, so white text is what ships. */
+    --orange-fill: #c6531c;
+
     /* Third-party brand colour, WhatsApp glyph only. Not part of the six-hue
        palette — it is someone else's trademark colour, not a Contekai design
        choice, the same way a Facebook "f" has to stay Facebook blue. Never use
@@ -182,7 +224,10 @@
     --container-text: 68ch;   /* prose */
     --container-intro: 52ch;  /* section intros */
     --rail: 44px;             /* left till-rail gutter, desktop only */
-    --header-h: 64px;
+    /* 72px per the hero spec, up from 64. Global on purpose: a nav that
+       changed height between sections would be a bug, and every anchor offset
+       on the page reads this token. */
+    --header-h: 72px;
 
     --grid-cols: 12;
     --grid-gap: var(--space-5);
@@ -192,6 +237,12 @@
        --------------------------------------------------------------------- */
     --r-sm: 4px;     /* inputs, chips, small controls */
     --r-md: 10px;    /* cards */
+    /* The hero CTA and the hero device shell. A fourth radius, added because
+       the hero spec asks for 16px and the softer corner is load-bearing for
+       the "premium, handcrafted" register it is going for. It is the ONLY
+       place 16px is allowed; --r-md is still the card radius everywhere else,
+       and it is still a decision. */
+    --r-lg: 16px;
     --r-full: 999px; /* pills and avatars ONLY */
     --r-none: 0;     /* the receipt */
 

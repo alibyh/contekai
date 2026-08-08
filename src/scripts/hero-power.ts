@@ -28,11 +28,11 @@
 import { prefersReducedMotion } from "./reveal";
 
 /**
- * Where the beat sits in the sequence. The last scripted element (the caption
- * and the control) lands at 840ms; this follows it, so the reader has finished
- * being introduced to the till before the lights go.
+ * Where the beat sits in the sequence. The device's own entrance starts at
+ * 700ms and runs 700ms, so this follows it: the reader watches the device
+ * arrive, reads it once, and only then does the power go.
  */
-const CUT_AT_MS = 900;
+const CUT_AT_MS = 1500;
 
 type Power = "on" | "off";
 
