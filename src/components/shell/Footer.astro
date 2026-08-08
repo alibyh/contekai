@@ -189,9 +189,6 @@ const year = new Date().getFullYear();
           </g>
         </svg>
         <p class="brand__name">Contekai</p>
-        <p class="brand__tag">
-          Point of sale and stock control for shops in The Gambia.
-        </p>
       </div>
 
       {/* Decorative only. Widths are a fixed repeating pattern, not random —
@@ -252,12 +249,6 @@ const year = new Date().getFullYear();
             Start 7 days free
           </Button>
         </div>
-
-        {/* Reveals once with the section; does not pulse. See file header. */}
-        <p class="status t-mono">
-          <span class="status__dot" aria-hidden="true"></span>
-          Works offline — syncs when you're back
-        </p>
       </div>
 
       {/* --- the warmth panel ----------------------------------------------
@@ -490,6 +481,7 @@ const year = new Date().getFullYear();
     .barcode {
       display: flex;
       align-items: stretch;
+      justify-content: center;
       gap: 2px;
       block-size: 26px;
       margin-block: var(--space-6) var(--space-2);
@@ -505,7 +497,7 @@ const year = new Date().getFullYear();
     /* --- receipt line-items ---------------------------------------------- */
 
     .eyebrow2 {
-      margin-block-start: var(--space-5);
+      /* margin-block-start: var(--space-5); */
       /* --faint (--on-ink-faint) measures 3.96:1 on the receipt's --ink-800
          face and fails the floor at this size — the same mistake this build
          caught and fixed for the ledger stamp and the deck fragments earlier.

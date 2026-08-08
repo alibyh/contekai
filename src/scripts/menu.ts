@@ -39,28 +39,52 @@ const menu = document.querySelector<HTMLElement>("[data-menu]");
  * The lockup's transform-origin is `0 50%`, so translate moves its left edge
  * and vertical centre and scale grows from that same point. That is what keeps
  * this to one subtraction per axis instead of a correction term.
+ *
+ * Scale, lift and horizontal nudge are all declared in Menu.astro's CSS and
+ * read back here, so the reserved space and the transform cannot disagree and
+ * there is exactly one place to tune the landing.
  */
 function measureBrandFlight(panel: HTMLElement, lockup: HTMLElement): void {
   const slot = panel.querySelector<HTMLElement>(".menu__brandslot");
   if (!slot) return;
 
-  const scale =
-    parseFloat(getComputedStyle(panel).getPropertyValue("--menu-brand-scale")) ||
-    1;
+  const panelStyle = getComputedStyle(panel);
+  const num = (prop: string, fallback: number): number => {
+    const v = parseFloat(panelStyle.getPropertyValue(prop));
+    return Number.isFinite(v) ? v : fallback;
+  };
+
+  const scale = num("--menu-brand-scale", 1);
+  const liftRatio = num("--menu-brand-lift", 0) / 100;
+  const shiftX = num("--menu-brand-shift", 0);
 
   const from = lockup.getBoundingClientRect();
   const to = slot.getBoundingClientRect();
   if (from.width === 0 || to.width === 0) return;
 
+  /* Where the scaled mark's top edge would land with no lift applied. */
+  const scaledHeight = from.height * scale;
+  const restTop = to.top + to.height / 2 - scaledHeight / 2;
+
+  /* Raise it by a share of that distance, but never far enough to collide with
+     the header it just left — the mark would be sitting on top of the close
+     button, which is worse than being slightly lower than asked. */
+  const headerH =
+    parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue("--header-h"),
+    ) || 72;
+  const floor = headerH + 8;
+  const lift = Math.max(0, Math.min(restTop * liftRatio, restTop - floor));
+
   const style = document.documentElement.style;
-  /* Centre the SCALED width on the slot, not the original width. */
+  /* Centre the SCALED width on the slot, not the original width, then nudge. */
   style.setProperty(
     "--brand-dx",
-    `${to.left + to.width / 2 - (from.width * scale) / 2 - from.left}px`,
+    `${to.left + to.width / 2 - (from.width * scale) / 2 - from.left + shiftX}px`,
   );
   style.setProperty(
     "--brand-dy",
-    `${to.top + to.height / 2 - (from.top + from.height / 2)}px`,
+    `${to.top + to.height / 2 - (from.top + from.height / 2) - lift}px`,
   );
   style.setProperty("--brand-scale", String(scale));
 }

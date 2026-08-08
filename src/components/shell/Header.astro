@@ -13,6 +13,7 @@
  *  - the only thing that changes is the ground
  */
 import Button from "../ui/Button.astro";
+import LangSwitch from "../ui/LangSwitch.astro";
 ---
 
 <header class="header" role="banner" data-ground="hero">
@@ -50,6 +51,11 @@ import Button from "../ui/Button.astro";
     </a>
 
     <div class="header__actions">
+      {/* Shared with the mobile menu — see ui/LangSwitch.astro. It sits inside
+          header__actions, so the existing rule that fades everything except the
+          menu button while the panel is open already covers it: the panel
+          carries its own copy and two would be two things to read. */}
+      <LangSwitch compact class="header__lang" />
       <Button variant="quiet" href="/login" class="header__login">Log in</Button>
       {/* Label must match the hero CTA and the footer CTA exactly. 00-shell.md
           names this "Start free trial" and 01-hero.md names the hero action

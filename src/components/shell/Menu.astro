@@ -29,6 +29,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import Button from "../ui/Button.astro";
+import LangSwitch from "../ui/LangSwitch.astro";
 
 /**
  * The client's own brand SVGs, read off disk at build time so the source of
@@ -100,35 +101,8 @@ const links = [
     </div>
 
     <div class="menu__foot menu__item" style={`--i:${links.length + 1}`}>
-      {/*
-        Language switcher. No background of any kind, per the request — it is
-        two words and a divider, which is all a two-language switcher needs.
-
-        Arabic is present and NOT pretending to work: there are no translations
-        yet, so the option carries aria-disabled and a data-todo rather than
-        silently doing nothing when pressed. It still reads as the inactive half
-        of a switcher, which is exactly what it is. Drop aria-disabled and wire
-        an href the day the Arabic route exists.
-
-        The Arabic label carries lang and dir so it is announced in the right
-        voice and shaped right-to-left. It also falls outside Archivo's subset,
-        so it renders in the system Arabic face — correct, and free.
-      */}
-      <div class="lang" role="group" aria-label="Language">
-        <span class="lang__opt lang__opt--on" aria-current="true">EN</span>
-        <span class="lang__sep" aria-hidden="true">/</span>
-        <button
-          type="button"
-          class="lang__opt"
-          lang="ar"
-          dir="rtl"
-          aria-disabled="true"
-          aria-label="Arabic — translation not available yet"
-          data-todo="awaiting Arabic translation"
-        >
-          العربية
-        </button>
-      </div>
+      {/* Shared with the header — see ui/LangSwitch.astro. */}
+      <LangSwitch />
 
       {/* Same accounts, same treatment as the footer. One source of truth for
           where Contekai actually is; LinkedIn stays an honest placeholder. */}
@@ -229,6 +203,12 @@ const links = [
        cannot disagree. */
     .menu {
       --menu-brand-scale: 1.8;
+      /* Raise the landed mark by this share of its own distance from the top of
+         the screen. menu.ts reads it, applies it, and clamps so the mark can
+         never ride up into the header. */
+      --menu-brand-lift: 25%;
+      /* And nudge it off dead centre, to the right. */
+      --menu-brand-shift: 16px;
     }
 
     .menu__brandslot {
@@ -255,9 +235,18 @@ const links = [
       justify-content: safe center;
       /* Tightened from --space-8 to make room for the brand slot the panel now
          carries, so the whole column still fits on a 320x700 screen. */
-      gap: var(--space-6);
-      padding: calc(var(--header-h) + var(--space-5)) var(--gutter) var(--space-8);
-      overflow-y: auto;
+      gap: var(--space-5);
+      padding: calc(var(--header-h) + var(--space-4)) var(--gutter) var(--space-6);
+      /*
+        The panel does not scroll. That is a deliberate constraint, not a
+        default: everything in it has to FIT, which is why the short-viewport
+        block below exists and why `safe center` above is still the right
+        fallback — if a screen ever does defeat the compression, content ends up
+        clipped at the bottom rather than stranded above the top where nothing
+        can reach it.
+      */
+      overflow: hidden;
+      overscroll-behavior: contain;
       opacity: 0;
       transition: opacity var(--dur-base) var(--ease-out);
     }
@@ -341,52 +330,6 @@ const links = [
 
       padding-block-start: var(--space-5);
       border-block-start: var(--border-ink);
-    }
-
-    .lang {
-      display: flex;
-      align-items: center;
-      gap: var(--space-3);
-    }
-
-    /* No background, no border, no chip. Text and a divider. */
-    .lang__opt {
-      min-block-size: var(--tap-min);
-      display: inline-flex;
-      align-items: center;
-      padding: 0;
-      border: 0;
-      background: none;
-      color: var(--on-ink-muted);
-      font-family: var(--font-mono);
-      font-size: var(--fs-label);
-      letter-spacing: var(--track-label);
-      line-height: var(--lh-flat);
-      text-transform: uppercase;
-      cursor: pointer;
-    }
-
-    /* The current language is the one that is not muted. Weight and value carry
-       it, so it is never colour alone. */
-    .lang__opt--on {
-      color: var(--on-ink);
-      cursor: default;
-    }
-
-    /* Arabic is not uppercase-able and should not be letterspaced — neither
-       does anything useful to an Arabic face, and tracking actively breaks the
-       joins between letters. */
-    .lang__opt[lang="ar"] {
-      font-family: var(--font-sans);
-      font-size: var(--fs-small);
-      letter-spacing: normal;
-      text-transform: none;
-    }
-
-    .lang__sep {
-      color: var(--on-ink-faint);
-      font-family: var(--font-mono);
-      font-size: var(--fs-label);
     }
 
     .socials {

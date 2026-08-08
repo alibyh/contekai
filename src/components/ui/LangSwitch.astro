@@ -1,0 +1,121 @@
+---
+/**
+ * LangSwitch — English / Arabic, no background of any kind.
+ *
+ * One component, two homes: the header and the mobile menu. Extracted the
+ * moment it needed to exist in both places, because a language switcher whose
+ * two copies can disagree about which language is current is worse than no
+ * switcher.
+ *
+ * ARABIC IS PRESENT AND DOES NOT PRETEND TO WORK. There are no translations
+ * yet, so the option carries `aria-disabled` and a `data-todo` rather than
+ * being a live-looking control that silently does nothing when pressed — the
+ * same honest-placeholder pattern as the footer's LinkedIn. It still reads as
+ * the inactive half of a switcher, which is exactly what it is, so nothing
+ * looks broken. The day the Arabic route exists: drop `aria-disabled`, swap the
+ * <button> for an <a href>, and delete the `data-todo`.
+ *
+ * Two details the Arabic label needs:
+ *  - `lang="ar"` and `dir="rtl"`, so it is announced in the right voice and
+ *    shaped right to left.
+ *  - exemption from the mono/uppercase/tracking treatment the Latin label gets.
+ *    Letter-spacing an Arabic face breaks the joins between letters, and
+ *    `text-transform: uppercase` means nothing there.
+ *
+ * The glyphs fall outside Archivo's subset and resolve to the system Arabic
+ * face through the existing `unicode-range` — correct, and no extra download.
+ *
+ * Colours come from the neutral ground tokens (`currentColor` and `--muted`),
+ * never from `--on-ink`, so the same markup is legible on the header's paper
+ * and on the menu's ink without branching.
+ */
+interface Props {
+  /** Header sizing: same type, tighter gaps and no 44px row. */
+  compact?: boolean;
+  class?: string;
+}
+
+const { compact = false, class: className }: Props = Astro.props;
+---
+
+<div
+  class:list={["lang", compact && "lang--compact", className]}
+  role="group"
+  aria-label="Language"
+>
+  <span class="lang__opt lang__opt--on" aria-current="true">EN</span>
+  <span class="lang__sep" aria-hidden="true">/</span>
+  <button
+    type="button"
+    class="lang__opt"
+    lang="ar"
+    dir="rtl"
+    aria-disabled="true"
+    aria-label="Arabic — translation not available yet"
+    data-todo="awaiting Arabic translation"
+  >
+    العربية
+  </button>
+</div>
+
+<style>
+  @layer components {
+    .lang {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    /* No background, no border, no chip. Text and a divider. */
+    .lang__opt {
+      display: inline-flex;
+      align-items: center;
+      min-block-size: var(--tap-min);
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+      line-height: var(--lh-flat);
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    /* The current language is the one that is not muted. Value carries it, so
+       it is never colour alone — and `currentColor` means the ground decides. */
+    .lang__opt--on {
+      color: currentColor;
+      cursor: default;
+    }
+
+    .lang__opt[lang="ar"] {
+      font-family: var(--font-sans);
+      font-size: var(--fs-small);
+      letter-spacing: normal;
+      text-transform: none;
+    }
+
+    .lang__sep {
+      color: var(--faint);
+      font-family: var(--font-mono);
+      font-size: var(--fs-label);
+    }
+
+    /*
+      In the header the switcher sits in a 72px bar beside a 44px menu button,
+      so it drops the 44px row of its own — the bar already provides the target
+      height, and two stacked 44px minimums would push the header taller than
+      the token says it is.
+    */
+    .lang--compact {
+      gap: var(--space-2);
+    }
+
+    .lang--compact .lang__opt {
+      min-block-size: auto;
+      padding-block: var(--space-2);
+    }
+  }
+</style>
