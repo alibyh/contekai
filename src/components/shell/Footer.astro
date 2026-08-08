@@ -41,22 +41,27 @@
  *     not `Math.random()` per load — consistent with the no-randomised-visuals
  *     rule already applied to the pinned notes in §03, and it means the
  *     server-rendered markup never differs from itself on a reload.
- *   - Social icons: rendered as inert, focusable, labelled placeholders (the
- *     same "correct and quiet until wired" pattern the header's menu button
- *     used before it had a real target) rather than the reference's bare
- *     `href="#"`, which is not a real link and traps nothing useful under
- *     keyboard nav. No accounts are confirmed yet — CONTEXT.md §5 still
- *     lists the handles as unconfirmed — so nothing here claims to go
- *     anywhere.
+ *   - Social icons: Instagram and TikTok now have real, client-supplied
+ *     handles and are live links; LinkedIn has no handle yet ("just put the
+ *     icon there") and stays the same inert/labelled/focusable placeholder
+ *     pattern the header's menu button used before it had a real target —
+ *     never the reference's bare `href="#"`, which is not a real link and
+ *     traps nothing useful under keyboard nav. Facebook, present in the
+ *     reference, is dropped: it was never in the client's supplied list.
  *   - Legal meta line: "Built in The Gambia" is dropped. It reads as a fact
  *     and nothing in CONTEXT.md confirms it (the same standard already
  *     applied to "Built by Pilore Solutions" — unconfirmed, so absent, not
  *     guessed). Terms/Privacy stay off for the same reason as before: no
  *     evidence either page exists, and a dead legal link is worse than none.
- *   - Icons: Instagram/TikTok/Facebook/WhatsApp are hand-inlined brand marks,
- *     not Lucide. Lucide doesn't ship third-party logos by policy, so this
- *     is a narrow, necessary exception to "one icon family" — brand marks
- *     aren't UI iconography and were never what that rule was protecting.
+ *   - Icons: Instagram and TikTok are the client-supplied files from
+ *     `iconsSvg/`, read off disk at build time — full-colour brand badges,
+ *     not Lucide. Lucide doesn't ship third-party logos by policy, so using
+ *     someone else's real badge is a narrow, necessary exception to "one
+ *     icon family" — brand marks aren't UI iconography and were never what
+ *     that rule was protecting. LinkedIn has no supplied file, so it is
+ *     hand-drawn to match the other two's real-badge convention (rounded
+ *     square, brand blue, white "in") instead of this build's usual
+ *     monochrome line-icon style.
  *
  * KEPT EXACTLY AS SPECIFIED: the five-lobe warmth-panel silhouette (an
  * objectBoundingBox clip-path, hand-computed then baked as a fixed path —
@@ -65,18 +70,42 @@
  * deliberate exception to this build's no-emoji rule — scoped to this single
  * line of copy, not used as an icon anywhere), and the WhatsApp-green glyph.
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import Button from "../ui/Button.astro";
 
 /**
- * The contact channel. Fill this in and the panel's WhatsApp pill and hours
- * line become real; until then both render as an awaiting state.
+ * Reads a supplied brand-icon SVG from `iconsSvg/` and returns just its inner
+ * markup, the same read-off-disk-at-build-time approach `ui/Icon.astro` uses
+ * for Lucide. Kept separate from that component rather than routed through
+ * it: these are full-colour third-party badges with their own baked-in
+ * viewBox and palette, not `currentColor` line icons, so they need their own
+ * wrapper rather than Icon's stroke/size props.
  *
- *   whatsapp: digits only, international format, no + or spaces — wa.me wants
- *             e.g. "2203xxxxxx" for The Gambia.
- *   email:    fallback only. Push for WhatsApp — CONTEXT.md §5 flags its
- *             absence as a real conversion problem in this market.
+ * Resolved from `process.cwd()`, not from `import.meta.url` relative to this
+ * file: Vite rewrites where a component's compiled module actually lives
+ * during the build, so a `../../../` climb from `import.meta.url` walked the
+ * wrong tree and 404'd at build time (`ENOENT`, one directory short of the
+ * project root — caught by `astro build`, not by `astro check`, since it's a
+ * runtime file read, not a type). `astro build`/`astro dev` are always
+ * invoked from the project root, which is what makes `cwd` reliable here.
  */
-const contact: { whatsapp?: string; email?: string; hours?: string } = {};
+function brandIcon(name: string): string {
+  const path = join(process.cwd(), "iconsSvg", `${name}.svg`);
+  const raw = readFileSync(path, "utf8");
+  return raw.replace(/^[\s\S]*?<svg[^>]*>/, "").replace(/<\/svg>[\s\S]*$/, "");
+}
+
+const IG_ICON = brandIcon("instagram");
+const TIKTOK_ICON = brandIcon("tiktok");
+
+/**
+ * The contact channel. `+220 3256493` as supplied, reformatted for wa.me:
+ * digits only, international format, no + or spaces.
+ */
+const contact: { whatsapp?: string; email?: string; hours?: string } = {
+  whatsapp: "2203256493",
+};
 
 const waHref = contact.whatsapp ? `https://wa.me/${contact.whatsapp}` : null;
 const mailHref = contact.email ? `mailto:${contact.email}` : null;
@@ -171,53 +200,65 @@ const year = new Date().getFullYear();
         {barWidths.map((w) => <i style={`--w:${w}px`} />)}
       </div>
 
-      {/* --- receipt line-items -------------------------------------------- */}
-      <nav aria-label="Product">
-        <p class="eyebrow2 t-mono">Product</p>
-        <ul class="lines">
-          {
-            productLines.map((l) => (
-              <li>
-                <a class="line" href={l.href}>
-                  <span class="line__label">{l.label}</span>
-                  <span class="line__dots" aria-hidden="true" />
-                  <span class="line__val t-mono">{l.route}</span>
-                </a>
-              </li>
-            ))
-          }
-        </ul>
-      </nav>
+      {/* --- receipt line-items --------------------------------------------
+          Wrapped in `.receipt__nav` purely so the >=1024px grid below has a
+          single area to target — the two <nav> landmarks and their reading
+          order are unchanged. */}
+      <div class="receipt__nav">
+        <nav aria-label="Product">
+          <p class="eyebrow2 t-mono">Product</p>
+          <ul class="lines">
+            {
+              productLines.map((l) => (
+                <li>
+                  <a class="line" href={l.href}>
+                    <span class="line__label">{l.label}</span>
+                    <span class="line__dots" aria-hidden="true" />
+                    <span class="line__val t-mono">{l.route}</span>
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
 
-      <nav aria-label="Company">
-        <p class="eyebrow2 t-mono">Company</p>
-        <ul class="lines">
-          {
-            companyLines.map((l) => (
-              <li>
-                <a class="line" href={l.href}>
-                  <span class="line__label">{l.label}</span>
-                  <span class="line__dots" aria-hidden="true" />
-                  <span class="line__val t-mono">{l.route}</span>
-                </a>
-              </li>
-            ))
-          }
-        </ul>
-      </nav>
-
-      {/* --- total = CTA --------------------------------------------------- */}
-      <div class="total">
-        <span class="total__label t-mono">Get started</span>
-        {/* Same label as the header and the hero. Reuses Button.astro's
-            primary variant: same radius, same no-lift hover, one button
-            implementation for the whole page. */}
-        <Button variant="primary" href="/signup" icon="arrow-right">
-          Start 7 days free
-        </Button>
+        <nav aria-label="Company">
+          <p class="eyebrow2 t-mono">Company</p>
+          <ul class="lines">
+            {
+              companyLines.map((l) => (
+                <li>
+                  <a class="line" href={l.href}>
+                    <span class="line__label">{l.label}</span>
+                    <span class="line__dots" aria-hidden="true" />
+                    <span class="line__val t-mono">{l.route}</span>
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
       </div>
 
-      {/* Reveals once with the section; does not pulse. See file header. */}
+      {/* --- total = CTA, plus the status line -------------------------------
+          Wrapped together for the same reason as `.receipt__nav` above. */}
+      <div class="receipt__cta">
+        <div class="total">
+          <span class="total__label t-mono">Get started</span>
+          {/* Same label as the header and the hero. Reuses Button.astro's
+              primary variant: same radius, same no-lift hover, one button
+              implementation for the whole page. */}
+          <Button variant="primary" href="/signup" icon="arrow-right">
+            Start 7 days free
+          </Button>
+        </div>
+
+        {/* Reveals once with the section; does not pulse. See file header. */}
+        <p class="status t-mono">
+          <span class="status__dot" aria-hidden="true"></span>
+          Works offline — syncs when you're back
+        </p>
+      </div>
 
       {/* --- the warmth panel ----------------------------------------------
           The section's one bold element. Five-lobe silhouette echoing the
@@ -255,41 +296,62 @@ const year = new Date().getFullYear();
             <p class="panel__heading">Say hello 👋</p>
             <p class="panel__sub">We're friendlier than most software.</p>
 
-            {/* Inert, labelled, focusable placeholders — no confirmed
-                accounts exist yet (CONTEXT.md §5). Not `disabled`: that would
-                claim something false. Not `href="#"`: that is not a real
-                link and goes nowhere useful under keyboard nav either. */}
+            {/*
+              Instagram and TikTok are real, supplied handles — the Instagram
+              link is the specific post the client pointed at (plausibly the
+              same footage the hero video was cut from; CONTEXT.md §5 already
+              expected a TikTok/Instagram source), so it is used as given
+              rather than "corrected" to a profile URL. The TikTok link had a
+              share-token query string (`?_r=1&_t=…`); stripped down to the
+              canonical `@handle` URL, same destination, no client-specific
+              tracking token baked permanently into the page's HTML.
+
+              LinkedIn has no handle yet ("just put the icon there") and stays
+              the same inert/labelled/focusable placeholder pattern used
+              throughout this build — not `disabled` (that would claim
+              something false) and not `href="#"` (not a real link, and a
+              keyboard-nav dead end).
+
+              Icons are the client-supplied files from iconsSvg/, used as
+              given rather than redrawn to match the site's monochrome Lucide
+              language — these are recognisable brand badges, not UI chrome,
+              and the same reasoning that carved out --whatsapp-green as a
+              named exception applies to all three: someone else's trademark,
+              not a Contekai design choice. LinkedIn has no supplied SVG, so
+              it is hand-drawn to match their real badge convention (rounded
+              square, brand blue, white "in") rather than the other three's
+              hand-inlined line-icon style this build used everywhere before.
+            */}
             <div class="panel__socials">
+              <a
+                class="panel__social"
+                href="https://www.instagram.com/p/DbkUhxTCdcL/"
+                target="_blank"
+                rel="noopener"
+                aria-label="Instagram (opens in a new tab)"
+              >
+                <svg viewBox="0 0 48 48" aria-hidden="true" set:html={IG_ICON} />
+              </a>
+              <a
+                class="panel__social"
+                href="https://www.tiktok.com/@contekai_"
+                target="_blank"
+                rel="noopener"
+                aria-label="TikTok (opens in a new tab)"
+              >
+                <svg viewBox="0 0 48 48" aria-hidden="true" set:html={TIKTOK_ICON} />
+              </a>
               <button
                 type="button"
                 class="panel__social"
-                aria-label="Instagram — account not yet confirmed"
+                aria-label="LinkedIn — account not yet confirmed"
                 data-todo="awaiting client handle"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 2.2c3.2 0 3.6 0 4.9.1 1.2.1 1.8.3 2.2.4.6.2 1 .5 1.4.9.4.4.7.8.9 1.4.2.4.4 1 .4 2.2.1 1.3.1 1.7.1 4.9s0 3.6-.1 4.9c-.1 1.2-.3 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.8.7-1.4.9-.4.2-1 .4-2.2.4-1.3.1-1.7.1-4.9.1s-3.6 0-4.9-.1c-1.2-.1-1.8-.3-2.2-.4a3.8 3.8 0 0 1-1.4-.9 3.8 3.8 0 0 1-.9-1.4c-.2-.4-.4-1-.4-2.2C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.9c.1-1.2.3-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.8-.7 1.4-.9.4-.2 1-.4 2.2-.4 1.3-.1 1.7-.1 4.9-.1M12 0C8.7 0 8.3 0 7 .1 5.7.1 4.8.3 4.1.6c-.8.3-1.4.7-2.1 1.4C1.3 2.7.9 3.3.6 4.1.3 4.8.1 5.7.1 7 0 8.3 0 8.7 0 12s0 3.7.1 5c0 1.3.2 2.2.5 2.9.3.8.7 1.4 1.4 2.1.7.7 1.3 1.1 2.1 1.4.7.3 1.6.5 2.9.5 1.3.1 1.7.1 5 .1s3.7 0 5-.1c1.3 0 2.2-.2 2.9-.5.8-.3 1.4-.7 2.1-1.4.7-.7 1.1-1.3 1.4-2.1.3-.7.5-1.6.5-2.9.1-1.3.1-1.7.1-5s0-3.7-.1-5c0-1.3-.2-2.2-.5-2.9a5.8 5.8 0 0 0-1.4-2.1A5.8 5.8 0 0 0 19.9.6c-.7-.3-1.6-.5-2.9-.5C15.7 0 15.3 0 12 0Zm0 5.8a6.2 6.2 0 1 0 0 12.4 6.2 6.2 0 0 0 0-12.4Zm0 10.2a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm6.4-10.4a1.4 1.4 0 1 1-2.9 0 1.4 1.4 0 0 1 2.9 0Z"
-                  ></path>
-                </svg>
-              </button>
-              <button
-                type="button"
-                class="panel__social"
-                aria-label="TikTok — account not yet confirmed"
-                data-todo="awaiting client handle"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M16.6 5.8a4.3 4.3 0 0 1-1-2.8h-3.3v13.2a2.6 2.6 0 1 1-2.6-2.6c.2 0 .5 0 .7.1V10.3a6.1 6.1 0 0 0-.7 0 5.9 5.9 0 1 0 5.9 5.9V9.4a7.5 7.5 0 0 0 4.4 1.4V7.5a4.3 4.3 0 0 1-3.4-1.7Z"
-                  ></path>
-                </svg>
-              </button>
-              <button
-                type="button"
-                class="panel__social"
-                aria-label="Facebook — account not yet confirmed"
-                data-todo="awaiting client handle"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M24 12a12 12 0 1 0-13.9 11.9v-8.4H7.1V12h3V9.4c0-3 1.8-4.6 4.5-4.6 1.3 0 2.6.2 2.6.2v2.9h-1.5c-1.5 0-1.9.9-1.9 1.8V12h3.3l-.5 3.5h-2.8v8.4A12 12 0 0 0 24 12Z"
+                <svg viewBox="0 0 48 48" aria-hidden="true">
+                  <rect width="48" height="48" rx="9" fill="#0a66c2"></rect>
+                  <path
+                    fill="#fff"
+                    d="M14.6 20.2h5.4V35h-5.4V20.2zM17.3 18a3.1 3.1 0 1 1 0-6.2 3.1 3.1 0 0 1 0 6.2zM23.4 20.2h5.2v2.1h.07c.72-1.36 2.49-2.8 5.13-2.8 5.49 0 6.5 3.6 6.5 8.3V35h-5.4v-6.6c0-1.57-.03-3.6-2.2-3.6-2.2 0-2.53 1.72-2.53 3.5V35h-5.4V20.2z"
                   ></path>
                 </svg>
               </button>
@@ -632,16 +694,28 @@ const year = new Date().getFullYear();
       justify-content: center;
       inline-size: var(--tap-min);
       block-size: var(--tap-min);
+      padding: 0;
       border: 0;
       border-radius: var(--r-full);
-      background-color: rgb(255 255 255 / 0.16);
-      color: #fff;
+      /* Near-solid, not the translucent chip this held for the old
+         monochrome placeholders. These are full-colour badges (an Instagram
+         gradient, TikTok's own black-on-white) — a translucent terracotta
+         backer let the panel bleed through and muddied them; solid white is
+         what a real brand badge needs to read correctly. */
+      background-color: rgb(255 255 255 / 0.94);
+      color: inherit;
+      text-decoration: none;
       cursor: pointer;
       transition: background-color var(--dur-fast) var(--ease-out);
     }
 
+    .panel__social svg {
+      inline-size: 22px;
+      block-size: 22px;
+    }
+
     .panel__social:hover {
-      background-color: rgb(255 255 255 / 0.28);
+      background-color: #fff;
     }
 
     .panel__wa {
@@ -703,6 +777,74 @@ const year = new Date().getFullYear();
       letter-spacing: 0.03em;
       line-height: 1.9;
       text-align: center;
+    }
+
+    /* --- desktop: the receipt expands to fill the section ------------------
+       Client correction, and a real one: a receipt-shaped strip floating in
+       the middle of a wide dark screen "isn't supposed to have a fixed
+       width" on desktop. Below this it stays exactly the narrow, torn-edge,
+       centred strip verified against footerGuide's own reference — that
+       treatment is right on a phone or a tablet, where the viewport itself
+       is receipt-sized. On a real desktop screen it read as a business card
+       lost in a much bigger dark room, which is the same "unstructured void"
+       problem Proof had, fixed the same way: give the width a considered
+       composition instead of leaving one small object alone in it.
+
+       The brand letterhead and barcode stay centred and compact — a receipt
+       header doesn't need to be 1200px wide to read as one — while the
+       nav/CTA/status content and the warmth panel split into the same
+       left-content / right-feature two-column pattern Pricing and Proof
+       already use, so the width gets used by real content rather than by
+       stretching the receipt metaphor past where it holds up. */
+    @media (min-width: 1024px) {
+      .receipt {
+        max-inline-size: var(--container);
+      }
+
+      .brand,
+      .barcode {
+        max-inline-size: 480px;
+        margin-inline: auto;
+      }
+
+      .receipt__face {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr;
+        column-gap: var(--space-8);
+        grid-template-areas:
+          "brand   brand"
+          "barcode barcode"
+          "nav     panel"
+          "cta     panel"
+          "meta    meta";
+      }
+
+      .receipt__nav {
+        grid-area: nav;
+        display: flex;
+        gap: var(--space-8);
+      }
+
+      .receipt__nav nav {
+        flex: 1;
+      }
+
+      .receipt__cta {
+        grid-area: cta;
+      }
+
+      .panel {
+        grid-area: panel;
+        /* Spans the nav+cta rows; centred within that combined height rather
+           than pinned to the top of it. */
+        align-self: center;
+        margin-block-start: 0;
+      }
+
+      .meta {
+        grid-area: meta;
+        margin-block-start: var(--space-8);
+      }
     }
 
     /* --- the closing rail --------------------------------------------------- */

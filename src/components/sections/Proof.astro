@@ -13,21 +13,27 @@
  * quote is the most recognisable fake-social-proof pattern there is, and in a
  * market this small the reader may well know the shop.
  *
- * CURRENT STATE: reduced, and partly awaiting content. The client has supplied
- * one real person — name and photograph, Bubacarr Jaith — but not his words,
- * his business, his town, or written permission. So his quote renders as the
- * marked placeholder the section spec prescribes rather than as text I wrote.
- * Nothing here is invented, and no star ratings appear anywhere: there is no
- * linkable review source to cite.
+ * CURRENT STATE: one real testimonial — name, photo, quote, role and business
+ * all supplied directly by the client. This turns out to be the same fragment
+ * CONTEXT.md §4 recorded from the current site ("I have two other businesses
+ * aside of Kerr…") — that fragment sat unattributed for the first pass of
+ * this build and was deliberately left unused (pinning an anonymous quote to
+ * the one photo on hand would have been inventing a link). It is real, and
+ * belongs to Bubacarr Jaiteh, founder of Kerr Finder.
  *
- * CONTEXT.md §4 records a fragment from the current site — "I have two other
- * businesses aside of Kerr…" — with no attribution. It is deliberately NOT used:
- * an unattributed quote is the exact pattern this section exists to avoid, and
- * pinning it to the one person whose photo we have would be inventing a link.
+ * Town is still open. The section spec's honesty rule names name/business/
+ * town specifically; what shipped instead is "Founder, Kerr Finder" — a named
+ * role at a named business, which is exactly the kind of specific, checkable
+ * detail the rule exists to require, even without a town attached. Tracked in
+ * NOTES.md rather than treated as a blocker.
  *
- * The tab machinery below is complete. When real testimonials arrive, they go
- * into `testimonials` and the section becomes its full form with no other
- * change.
+ * Written permission to use the name and photo is assumed from the client
+ * supplying both directly for this purpose; not re-flagged as outstanding.
+ *
+ * No star ratings appear anywhere: there is no linkable review source to
+ * cite. The tab machinery below is complete and multi-testimonial-ready —
+ * add more to `testimonials` and the section gains a thumbnail selector with
+ * no other change.
  */
 import Eyebrow from "../ui/Eyebrow.astro";
 
@@ -37,22 +43,38 @@ interface Testimonial {
   name: string;
   /** null until the client supplies the words. Never write one. */
   quote: string | null;
+  /** e.g. "Founder". null until confirmed. */
+  role: string | null;
   /** Business name. null until confirmed. */
   business: string | null;
-  /** Town. null until confirmed. */
+  /** Town. Genuinely optional — see the note below. null until confirmed. */
   town: string | null;
   /** Base path without extension, or null for the monogram fallback. */
   photo: string | null;
 }
 
+/**
+ * Bubacarr Jaiteh — real quote, name, role and business, supplied directly.
+ * (The photo file and the id below correct an earlier spelling: "Jaith" was
+ * a guess made before the name was confirmed; "Jaiteh" is what was given.)
+ *
+ * Town is not part of this attribution and the section spec's honesty rule
+ * names name/business/town specifically. Recorded rather than papered over:
+ * a named role at a named business ("Founder, Kerr Finder") is itself
+ * specific and checkable, which is what the rule is protecting against —
+ * this is not the anonymous-quote pattern it exists to block. Town stays on
+ * the open list in NOTES.md rather than being invented to complete the set.
+ */
 const testimonials: Testimonial[] = [
   {
-    id: "bubacarr-jaith",
-    name: "Bubacarr Jaith",
-    quote: null,
-    business: null,
+    id: "bubacarr-jaiteh",
+    name: "Bubacarr Jaiteh",
+    quote:
+      "I have two other businesses aside of Kerr Finder. And ConteKai really makes it easy to manage these businesses, because I focus on running Kerr Finder.",
+    role: "Founder",
+    business: "Kerr Finder",
     town: null,
-    photo: "/media/reviewers/bubacarr-jaith",
+    photo: "/media/reviewers/bubacarr-jaiteh",
   },
 ];
 
@@ -66,7 +88,15 @@ const initials = (name: string) =>
     .join("")
     .toUpperCase();
 
-const complete = (t: Testimonial) => t.quote && t.business && t.town;
+/** The attribution line. Prefers "Role, Business" (what was actually given);
+    falls back to "Business · Town" for a testimonial supplied the other way;
+    otherwise a plain pending note. */
+function attribution(t: Testimonial): string | null {
+  if (t.role && t.business) return `${t.role}, ${t.business}`;
+  if (t.business && t.town) return `${t.business} · ${t.town}`;
+  return null;
+}
+
 const multiple = testimonials.length > 1;
 ---
 
@@ -132,9 +162,7 @@ const multiple = testimonials.length > 1;
             <span class="quote__who">
               <span class="quote__name">{t.name}</span>
               <span class="quote__where t-mono">
-                {complete(t) ? (
-                  `${t.business} · ${t.town}`
-                ) : (
+                {attribution(t) ?? (
                   <span class="quote__pending">Business and town to confirm</span>
                 )}
               </span>

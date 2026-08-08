@@ -1734,3 +1734,178 @@ intentional at each rather than as a scaled photocopy of the mobile layout.
 
 Lighthouse mobile: 98/100/100/100, CLS 0, TBT 0 — unaffected by a
 layout-only change.
+
+---
+
+## Real content: WhatsApp, socials, testimonial — and the footer's desktop layout, corrected
+
+### Content, as supplied
+
+- **WhatsApp**: `+220 3256493` → `2203256493` for `wa.me`, live in both the
+  closing panel and the Company nav column.
+- **Instagram**: `https://www.instagram.com/p/DbkUhxTCdcL/` — a post link,
+  not a profile link, used exactly as given rather than "corrected." It's
+  plausibly the same source `CONTEXT.md` §5 already anticipated the hero
+  footage coming from.
+- **TikTok**: `https://www.tiktok.com/@contekai_?_r=1&_t=ZS-98iDWBOoeMH` →
+  stripped to `https://www.tiktok.com/@contekai_`. Same destination; the
+  query string was a share token, not part of the canonical profile URL, and
+  baking someone's share-link artifact permanently into the page's HTML
+  serves no one.
+- **LinkedIn**: no handle — "just put the icon there" — so it's the same
+  inert/labelled/focusable placeholder pattern used everywhere else in this
+  build for an unconfirmed target (the header's menu button before it had a
+  destination, the other socials before this message). Not `href="#"`.
+- **Facebook**, present in `footerGuide`'s reference, is dropped. It was
+  never in the supplied list of three.
+- **Icons**: the real files from `iconsSvg/` — full-colour brand badges
+  (Instagram's gradient, TikTok's black-on-white square), not this build's
+  usual monochrome Lucide language. Read off disk at build time
+  (`brandIcon()`, mirroring `ui/Icon.astro`'s approach for Lucide) rather than
+  pasted into the component, so the source of truth stays the actual files.
+  LinkedIn has no supplied SVG and is hand-drawn to match the other two's
+  real-badge convention (rounded square, official brand blue `#0A66C2`,
+  white "in") instead of a monochrome line icon that would look out of place
+  beside them.
+- **Proof testimonial**: real quote, name, role and business, all supplied
+  directly — *"I have two other businesses aside of Kerr Finder…"*,
+  Bubacarr Jaiteh, Founder, Kerr Finder. This turns out to be the same
+  fragment `CONTEXT.md` §4 recorded from the current site, which sat unused
+  in every earlier pass of this build because it had no attribution — it was
+  the correct call to hold it back then and the correct call to use it now
+  that it has one.
+
+**Name correction**: "Jaith" → "Jaiteh". The photo was supplied without a
+name attached; "Jaith" was a guess made from the filename before the real
+spelling was confirmed. Corrected everywhere — the testimonial `id`, the
+displayed name, the image `alt` text, and the asset filenames themselves
+(`bubacarr-jaith.{avif,jpg}` → `bubacarr-jaiteh.{avif,jpg}`) — rather than
+leaving a mismatched filename as the one place the wrong spelling survives.
+
+**Town remains open.** The section spec's honesty rule names name, business
+and town specifically; what shipped is name, quote, role and business, with
+no town. Recorded as a judgement call, not smoothed over: "Founder, Kerr
+Finder" is itself a specific, checkable claim — a named person in a named
+role at a named business — which is exactly what the honesty rule exists to
+require, even though it arrived by a different route than the rule's own
+wording anticipated. Not treated as a blocker.
+
+### The footer's actual desktop bug
+
+The client correction: *"footer still not looking normal on desktop, it's
+supposed to expand on the whole screen and not have a fixed width."*
+
+This is a different finding from the earlier tablet pass, which measured the
+receipt's centring as correct and concluded no change was needed — that
+measurement was accurate (a narrow receipt genuinely does centre correctly
+inside the section), but it answered a narrower question than the one that
+mattered: whether a fixed-width receipt should exist AT ALL on a real desktop
+screen. It shouldn't, and the client is the one positioned to make that call.
+`footerGuide`'s own brief caps the receipt at ~440–460px on every viewport,
+matching the "digital receipt" metaphor literally — an appropriate print
+reference for a phone or tablet screen, and simply too small an object for a
+27" desktop screen not to look lost. The narrow-receipt-on-mobile reasoning
+holds; the narrow-receipt-on-desktop conclusion drawn from it didn't, and
+this correction is why.
+
+**Fixed at `min-width: 1024px`** — below that, nothing changes; the
+tablet-verified narrow strip stays exactly as it was. At and above it:
+
+- `.receipt` grows from a 460px cap to `var(--container)` (1200px), matching
+  every other section's desktop measure, and caps there rather than
+  stretching edge-to-edge on very wide screens (verified clean at 1920px).
+- The brand letterhead and barcode stay centred and compact (480px) — a
+  receipt header doesn't need to be 1200px wide to still read as one.
+- Below that, the nav/CTA/status content and the warmth panel split into a
+  two-column grid — the same left-content/right-feature pattern already
+  established by Pricing and by the tablet fix just made to Proof, rather
+  than a new pattern invented for this one case.
+
+Verified at 1024, 1280, 1440, and 1920: no horizontal overflow at any width,
+and 1023 (just below the breakpoint) confirmed unchanged from the earlier
+tablet pass.
+
+### Two more markup elements silently deleted by scripted edits
+
+Both caught only by comparing what should be on the page against what
+actually rendered, not by `astro check` (missing children aren't type
+errors):
+
+- **The CTA `<Button>` inside `.total`** vanished during an earlier session's
+  contrast-fix pass — already caught and fixed then, noted here because it's
+  the same failure mode as the second one, found while restructuring this
+  same file again.
+- **The entire "Works offline — syncs when you're back" status line** — its
+  CSS (`.status`, `.status__dot`) survived in the stylesheet, but the actual
+  `<p class="status">` markup was gone from the template. Restored while
+  wrapping it with the CTA into `.receipt__cta` for the new desktop grid.
+
+Given this has now happened twice in the same file, across two different
+editing sessions, it's worth stating as a standing check rather than a
+one-off: after any scripted `old_string`/`new_string` replacement touching
+markup, grep the built HTML for the section's known content — button labels,
+status text — rather than trusting that `astro check` passing means the
+markup is intact. It doesn't catch a deleted child element; a build succeeds
+happily with one fewer `<p>` in it.
+
+### A real build failure, and why it only showed up at `astro build`
+
+`brandIcon()`'s first version resolved the `iconsSvg/` path via
+`new URL('../../../iconsSvg/...', import.meta.url)` — `astro check` passed
+(it's a runtime file read, not a type), but `astro build` failed with
+`ENOENT`, one directory short of the project root. Cause: `import.meta.url`
+reflects where Vite emits the *compiled* module during the build, not the
+original source file's location — a relative climb that's correct against
+`src/components/shell/Footer.astro` is not correct against wherever Rollup
+decides to place the bundled chunk. Fixed by resolving from `process.cwd()`
+instead, which is reliable because `astro build`/`astro dev` are always
+invoked from the project root. `ui/Icon.astro`'s equivalent function sidesteps
+this entirely by going through `require.resolve()` into `node_modules`, which
+works differently and wasn't directly transferable to a project-root asset
+outside `node_modules`.
+
+### Verification
+
+| | |
+|---|---|
+| Lighthouse mobile | **98 / 100 / 100 / 100** |
+| LCP / CLS / TBT | 1.8 s · 0 · 0 ms |
+| Total page weight | 144 KB (+7 KB for the real Instagram/TikTok badge SVGs) |
+| Real links | Instagram, TikTok and WhatsApp all resolve to the exact supplied destinations, `target="_blank"` + `rel="noopener"` |
+| LinkedIn | inert, `data-todo`, no `href="#"` |
+| Touch targets | none under 44×44 anywhere in the footer |
+| Horizontal overflow | none at 1024, 1280, 1440, 1920, and re-confirmed at every width from the previous tablet pass |
+| Status line | present, correct text, restored |
+
+### Self-critique
+
+**Distinctive:** the footer now genuinely behaves like two different objects
+depending on the room it's in — a receipt-sized strip on a phone screen held
+close, a wide composed layout on a desktop monitor — rather than one fixed
+object rendered at whatever scale the viewport happens to be. That's closer
+to how a real receipt and a real desktop footer actually differ, rather than
+one design compromise serving both.
+
+**Templated:** the desktop nav-columns-side-by-side-with-a-panel-on-the-right
+shape. It is now the third time this exact composition has been reached for
+on this page (Pricing, Proof, now the footer). Consistent is the right call
+here — it's the page's own established vocabulary, not a copy-paste
+shortcut — but a fourth instance would start to read as the only idea in the
+build.
+
+**Removed:** the query string on the TikTok URL. Four characters saved
+nothing measurable, but a permanent link on a marketing page carrying a
+one-time share token is the kind of thing that looks fine today and strange
+in a year.
+
+**Gate:** passed. Real links resolve correctly · no fabricated social
+accounts · LinkedIn stays honest about not existing yet · desktop no longer
+has an unexplained fixed-width object in an otherwise full-width page · all
+touch targets clear 44px · Lighthouse clean.
+
+### Still open
+
+- **LinkedIn handle**, whenever confirmed.
+- **Town** for the Bubacarr Jaiteh testimonial — not blocking, per the
+  reasoning above, but still worth closing out if it becomes available.
+- Everything already tracked in `PROGRESS.md` is unchanged by this pass.
