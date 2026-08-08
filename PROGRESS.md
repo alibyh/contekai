@@ -37,8 +37,11 @@ Last updated after the footer rebuild against `footerGuide/`.
 - [x] **Mobile menu.** Circular-reveal panel ported from `menu_mobile/`,
       wired to the header's menu button, focus-trapped, `inert` when closed.
       The lockup now flies out of the header on open and lands centred and
-      1.8x larger above the nav list (measured FLIP, CSS transition). Foot row added: an `EN / العربية` switcher with no
+      1.8x larger above the nav list (measured FLIP, CSS transition), lifted
+      and nudged right via two CSS tunables. The panel no longer scrolls at
+      all — verified fitting at seven phone sizes from 320x640 up. Foot row added: an `EN / العربية` switcher with no
       background, and Instagram / TikTok / LinkedIn badges matching the footer.
+      The switcher is now `ui/LangSwitch.astro`, shared with the header.
       Fixed a pre-existing `region` violation by making the panel one landmark.
 - [x] **Step 7 — Footer.** Rebuilt end to end against `footerGuide/`: a
       second full-form receipt (torn edges, barcode, dotted-leader nav,

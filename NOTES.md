@@ -2661,3 +2661,103 @@ choice and social links is exactly what one navigation landmark is for.
 - **The Arabic route and its translations.** The switcher is a marked
   placeholder until they exist.
 - **LinkedIn handle** — unchanged, same placeholder as the footer.
+
+---
+
+## Menu + header — landing tuned, panel pinned, switcher shared
+
+Three follow-ups from the client: raise the landed lockup and nudge it right,
+stop the menu scrolling, and put the language switcher in the header too.
+
+### The lockup landing
+
+Two tunables added beside the existing `--menu-brand-scale`, declared in CSS and
+read back by `menu.ts`, so there is exactly one place to change the landing:
+
+```css
+--menu-brand-lift:  45%;   /* raised by this share of its distance from the top */
+--menu-brand-shift: 16px;  /* nudged right */
+```
+
+**The lift is 45%, not the 25% asked for, and the difference is not a
+disagreement — the two numbers measure different things.** The request was 25%
+higher than what was on screen; by the time it landed, the panel's padding and
+gaps had tightened to make it fit without scrolling, which moved the column's
+centre *down* and ate the lift. 25% of the new distance put the mark at 138px —
+**7px lower than the 131px it started at.** 45% of the new distance puts it
+where 25% of the old one would have: measured **103px** at 375×812.
+
+The lift is clamped so the mark can never ride up into the header it just left,
+which would put it on top of the close button. On short screens that clamp does
+the work: at 320×640 and 375×667 it lands at 89px, just clear of the 72px bar.
+
+### The panel does not scroll
+
+`overflow: hidden` plus `overscroll-behavior: contain` on `.menu__content`.
+
+That is a constraint, not a default: everything in the panel now has to *fit*,
+so the column tightened to earn it — gap `--space-6` → `--space-5`, top padding
+`header-h + space-5` → `header-h + space-4`, bottom `--space-8` → `--space-6`.
+
+Verified at **320×640, 320×700, 360×640, 375×667, 375×812, 390×844 and
+430×932**: the panel fits at all seven, the lockup clears the header, the list
+sits below it, and the foot is fully visible.
+
+`justify-content: safe center` stays, and is now a genuine safety net rather
+than the main mechanism — if a screen ever does defeat the compression, content
+ends up clipped at the bottom rather than stranded above the top where nothing
+can reach it.
+
+Scrolling was then actually attempted rather than assumed. Six wheel gestures
+at 400px each, over the open panel: panel `scrollTop` **0**, page `scrollY`
+**0**. (A programmatic `window.scrollTo` does still move the page behind — that
+is not a user action, and `html { overflow: hidden }` has never claimed to stop
+it.)
+
+### The language switcher is one component now
+
+Extracted to `ui/LangSwitch.astro` the moment it needed a second home. A
+switcher whose two copies can disagree about which language is current is worse
+than no switcher.
+
+It reads its colours from the neutral ground tokens — `currentColor` for the
+active option, `--muted` for the other, `--faint` for the divider — never from
+`--on-ink`. That is what lets the same markup sit on the header's paper and the
+panel's ink without branching. The header instance takes a `compact` prop, which
+drops the 44px row of its own: the 72px bar already provides the target height,
+and two stacked 44px minimums would push the header taller than the token says
+it is.
+
+Arabic is unchanged and still honest: `aria-disabled`, a `data-todo`, `lang`,
+`dir`, and an exemption from the mono/uppercase/tracking treatment, because
+letter-spacing an Arabic face breaks the joins between letters.
+
+### A scoping bug the second instance exposed
+
+With the panel open, "EN / العربية" rendered **twice** — once in the header,
+once in the panel's foot.
+
+The header already had a rule fading everything in `.header__actions` except the
+menu button, and it did not match. Astro scopes styles to the file that
+*authors* an element, and `LangSwitch`'s root div is authored in
+`LangSwitch.astro`, so Header's scoped `.header__actions > :not(.menu-btn)`
+selector could never reach it. Fixed with an explicit `:global` rule that
+crosses the component boundary.
+
+Worth remembering as a rule rather than a one-off: **a scoped selector aimed at
+a child component's root element silently does nothing.** It fails by not
+matching, so nothing errors and nothing warns — this one was caught by looking
+at a screenshot.
+
+### Verification
+
+| | |
+|---|---|
+| axe, menu open | 0 violations at 375 and 320 |
+| axe, whole page | 0 violations, both power states, at 320 / 375 / 430 / 1440 |
+| Panel scroll | `scrollTop` 0 after six wheel gestures; page `scrollY` 0 |
+| Panel fit | no overflow at 7 phone sizes from 320×640 to 430×932 |
+| Landing | 103px at 375×812 (was 138 at 25%), 16px right of centre, above the list, clear of the header at every size |
+| Header layout | switcher, Log in and the burger never overlap at 768 / 900 / 1024 / 1440; header stays 72px |
+| Duplicate switcher | header copy fades to opacity 0 with the panel open |
+| Lighthouse | 99 / 100 / 100 / 100, LCP 1.8 s, CLS 0 |

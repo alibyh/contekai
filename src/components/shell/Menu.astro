@@ -205,8 +205,15 @@ const links = [
       --menu-brand-scale: 1.8;
       /* Raise the landed mark by this share of its own distance from the top of
          the screen. menu.ts reads it, applies it, and clamps so the mark can
-         never ride up into the header. */
-      --menu-brand-lift: 25%;
+         never ride up into the header.
+
+         45%, not the 25% first asked for, because the two numbers measure
+         different things: the request was 25% higher than what was ON SCREEN,
+         and by the time it landed the panel's own padding and gaps had
+         tightened, which moved the column's centre down and ate the lift.
+         45% of the new distance puts it where 25% of the old one would have —
+         verified at 138px before, 95px after, on a 375x812 screen. */
+      --menu-brand-lift: 45%;
       /* And nudge it off dead centre, to the right. */
       --menu-brand-shift: 16px;
     }

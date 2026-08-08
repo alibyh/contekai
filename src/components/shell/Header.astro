@@ -241,6 +241,20 @@ import LangSwitch from "../ui/LangSwitch.astro";
       transition: opacity var(--dur-fast) var(--ease-out);
     }
 
+    /*
+      The switcher needs its own copy of that rule. Astro scopes styles to the
+      file that AUTHORS the element, and LangSwitch's root div is authored in
+      LangSwitch.astro — so the scoped `.header__actions > :not(.menu-btn)`
+      selector above never matched it, and "EN / العربية" was rendering twice
+      with the panel open: once here and once in the panel's own foot. Written
+      :global so it reaches across the component boundary.
+    */
+    :global(body:has(.menu.is-open) .header__lang) {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--dur-fast) var(--ease-out);
+    }
+
     .menu-btn__box {
       display: grid;
       gap: 5px;
