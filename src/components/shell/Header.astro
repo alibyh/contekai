@@ -151,26 +151,35 @@ import Button from "../ui/Button.astro";
       margin-inline-end: auto;
       text-decoration: none;
       color: inherit;
+      /* Scaling grows from the left edge and the vertical middle, which is the
+         point menu.ts translates — so the two operations do not fight and the
+         maths below stays one subtraction. Set unconditionally: it changes
+         nothing while the transform is none. */
+      transform-origin: 0 50%;
       transition: transform var(--dur-slow) var(--ease-out);
     }
 
     /*
-      Open the menu and the lockup walks to the centre of the header.
+      Open the menu and the lockup flies out of the header, down into the panel,
+      and lands centred and larger above the nav list.
 
-      Transform only, and computed rather than measured: the lockup's left edge
-      sits at (--gutter + --rail) because that is header__inner's inline-start
-      padding, and centring it means putting that edge at 50vw minus half the
-      lockup's own width. translateX percentages resolve against the element's
-      own border box, so `50%` IS half its width and the whole move is one
-      calc with no JS and no layout read.
+      The distances come from menu.ts, which measures the lockup against the
+      empty slot the panel reserves for it and writes three custom properties.
+      They have to be measured rather than computed: where that slot sits
+      depends on how tall the panel's own content is, which no CSS expression
+      can know. The fallbacks mean a failed script leaves the mark exactly where
+      it already was rather than throwing it somewhere arbitrary.
 
-      It runs on --dur-slow, one step longer than the burger morph, so the mark
-      arrives just after the X has formed rather than racing it.
+      Transform only, so the move stays on the compositor, and it runs on
+      --dur-slow — one step longer than the burger morph, so the mark arrives
+      just after the X has formed rather than racing it.
     */
     :global(body:has(.menu.is-open)) .lockup {
-      transform: translateX(calc(50vw - 50% - var(--gutter) - var(--rail)));
+      transform: translate(var(--brand-dx, 0px), var(--brand-dy, 0px))
+        scale(var(--brand-scale, 1));
       /* The menu owns the whole screen while it is open, so the lockup stops
-         being a live link back to the page behind it. */
+         being a live link back to the page behind it. menu.ts also takes it out
+         of the tab order for as long as it is a brand mark rather than a link. */
       pointer-events: none;
     }
 

@@ -68,6 +68,15 @@ const links = [
     rather than nested.
   */}
   <nav class="menu__content" aria-label="Menu">
+    {/*
+      Where the lockup lands. Empty on purpose: the mark that flies down here is
+      the REAL one out of the header, not a copy — two "Contekai" links in one
+      document would be two things for a screen reader to read and two things to
+      keep in sync. This only reserves the space so the list has somewhere to
+      start below it, and gives menu.ts a rect to aim at.
+    */}
+    <div class="menu__brandslot" aria-hidden="true"></div>
+
     <ul class="menu__list">
       {
         links.map((link, i) => (
@@ -215,14 +224,39 @@ const links = [
 
     /* --- content ------------------------------------------------------------ */
 
+    /* How much bigger the lockup gets once it lands. Declared here, read by
+       menu.ts through getComputedStyle, so the reserved space and the transform
+       cannot disagree. */
+    .menu {
+      --menu-brand-scale: 1.8;
+    }
+
+    .menu__brandslot {
+      flex: none;
+      /* The lockup's own box is --tap-min tall; scaled, this is what it needs.
+         No margin: the column's own gap already separates it from the list, and
+         having both made a 112px trench where 32 was intended. */
+      block-size: calc(var(--tap-min) * var(--menu-brand-scale));
+    }
+
     .menu__content {
       position: absolute;
       inset: 0;
       display: flex;
       flex-direction: column;
-      justify-content: end;
-      gap: var(--space-8);
-      padding: calc(var(--header-h) + var(--space-8)) var(--gutter) var(--space-8);
+      /*
+        `safe` is load-bearing. This was `end`, which was invisible while the
+        column was short enough to fit; adding the brand slot pushed it over and
+        the overflow went off the TOP, where it cannot be scrolled back to —
+        measured at 320x700 the landed lockup sat at y -42, above the viewport.
+        `safe center` centres while there is room and falls back to flex-start
+        when there is not, so nothing can ever be pushed out of reach.
+      */
+      justify-content: safe center;
+      /* Tightened from --space-8 to make room for the brand slot the panel now
+         carries, so the whole column still fits on a 320x700 screen. */
+      gap: var(--space-6);
+      padding: calc(var(--header-h) + var(--space-5)) var(--gutter) var(--space-8);
       overflow-y: auto;
       opacity: 0;
       transition: opacity var(--dur-base) var(--ease-out);

@@ -2536,34 +2536,64 @@ be the LCP candidate; documented in the previous entry and unchanged.
 
 Three additions to the panel.
 
-### The lockup centres itself on open
+### The lockup flies down into the panel
 
-The header already goes to `z-index: 61` and drops its ground while the menu is
-open, so the mark was visible on the ink the whole time — it just stayed in the
-top-left corner while the panel filled the screen around it. Now it moves to
-the middle of the header band.
+**First attempt was wrong.** I read "centre top" as centring it inside the
+header band and did it with one pure-CSS calc. The client meant something
+else: *"bring it down and make it bigger and center it, like above the list not
+in the header."* Corrected.
 
-Transform only, and **computed rather than measured**:
+The mark now leaves the header, travels down into the panel, and lands centred
+and 1.8x larger directly above the nav list. The element that travels is the
+**real lockup out of the header**, not a copy — two "Contekai" links in one
+document would be two accessible names to read and two things to keep in sync.
+The panel reserves an empty `.menu__brandslot` for it to land in, which is both
+the space the list needs to start below and the rect the script aims at.
 
-```css
-transform: translateX(calc(50vw - 50% - var(--gutter) - var(--rail)));
-```
+This one has to be measured, which is why the first version's approach could
+not have worked for it: where the slot sits depends on how tall the panel's own
+content is, and no CSS expression knows that. `menu.ts` measures the lockup
+against the slot on every open and writes three custom properties; the
+transition itself is still CSS, on transform, so the move stays on the
+compositor.
 
-The lockup's left edge sits at `--gutter + --rail`, which is `header__inner`'s
-inline-start padding, and centring means putting that edge at `50vw` minus half
-its own width. `translateX` percentages resolve against the element's own
-border box, so `50%` *is* half its width and the whole move is one calc — no
-JS, no layout read, nothing to go stale. Verified dead centre (`offBy: 0`) at
-320, 375 and 430.
+The lockup's `transform-origin` is `0 50%` — translate moves its left edge and
+vertical centre, and scale grows from that same point, which keeps the maths to
+one subtraction per axis instead of a correction term. The scale lives in CSS
+(`--menu-brand-scale`) and is read back by the script, so the reserved space and
+the transform cannot disagree.
 
-It rides the existing `body:has(.menu.is-open)` hook, so there was no script to
-change, and it runs at `--dur-slow` — one step longer than the burger morph, so
-the mark arrives just after the X has formed instead of racing it. `--rail` is
-`0px` below 900px, so the same expression is correct on both sides of that
-breakpoint.
+Closing needs no counterpart: the rule stops matching, the transform reverts to
+`none`, and the same transition carries it home. The custom properties have
+fallbacks, so a failed script leaves the mark exactly where it already was
+rather than throwing it somewhere arbitrary — verified with JS off: `left: 20`,
+`transform: none`, still a real `#top` link.
 
-The lockup also drops `pointer-events` while open: the menu owns the screen and
-a link back to a page you cannot see is a trap.
+While it is a brand mark it is not a link: `pointer-events: none` in CSS and
+`tabindex="-1"` from the script, which is the keyboard half of the same
+statement.
+
+Measured on open: 118×44 in the header → 212×79 above the list, dead centre
+(`centreOffBy: 0`) and exactly on the slot (`slotCentreOffBy: 0`) at 320, 375
+and 430. Mid-flight sampling at 180ms catches it at 194–203px wide, so it is
+genuinely travelling rather than jumping.
+
+### A latent layout bug the slot exposed
+
+`.menu__content` was `justify-content: end`. Harmless while the column was short
+enough to fit — and wrong the moment the brand slot pushed it over, because the
+overflow then went off the **top**, where it cannot be scrolled back to. At
+320×700 the landed lockup measured y **-42**: above the viewport entirely.
+
+Now `justify-content: safe center`, which centres while there is room and falls
+back to flex-start when there is not, so nothing can be pushed out of reach at
+any size. The column gap tightened from `--space-8` to `--space-6` and the top
+padding from `header-h + space-8` to `header-h + space-5` to make room for the
+slot, so the whole panel still fits a 320×700 screen (742px of content in 700px
+now scrolls from the top rather than vanishing off it).
+
+The brand slot also carries no margin of its own: it and the column gap were
+both applying, opening a 112px trench where 32px was intended.
 
 ### Language switcher
 

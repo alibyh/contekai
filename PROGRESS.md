@@ -36,8 +36,8 @@ Last updated after the footer rebuild against `footerGuide/`.
       No stars. Tablet/desktop composition added.
 - [x] **Mobile menu.** Circular-reveal panel ported from `menu_mobile/`,
       wired to the header's menu button, focus-trapped, `inert` when closed.
-      The lockup now walks to the centre of the header on open (pure CSS
-      transform, no JS). Foot row added: an `EN / العربية` switcher with no
+      The lockup now flies out of the header on open and lands centred and
+      1.8x larger above the nav list (measured FLIP, CSS transition). Foot row added: an `EN / العربية` switcher with no
       background, and Instagram / TikTok / LinkedIn badges matching the footer.
       Fixed a pre-existing `region` violation by making the panel one landmark.
 - [x] **Step 7 — Footer.** Rebuilt end to end against `footerGuide/`: a

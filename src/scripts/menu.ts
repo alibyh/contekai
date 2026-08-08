@@ -20,7 +20,54 @@
 const button = document.querySelector<HTMLButtonElement>(".menu-btn");
 const menu = document.querySelector<HTMLElement>("[data-menu]");
 
+/**
+ * The lockup flies out of the header and lands centred and larger above the nav
+ * list. This measures that trip and hands CSS three numbers; the transition
+ * itself is CSS, on transform, in Header.astro.
+ *
+ * Measured rather than computed, because where the landing slot sits depends on
+ * how tall the panel's own content is — no CSS expression can know that. The
+ * slot is an empty reserved box in the panel, so the mark that travels is the
+ * REAL one out of the header rather than a second copy: one element, one
+ * accessible name, nothing to keep in sync.
+ *
+ * Called before the open class goes on, so the properties are already in place
+ * when the rule starts matching and the transition runs from the real starting
+ * position. Closing needs no counterpart — the rule stops matching, the
+ * transform reverts to none, and the same transition carries it home.
+ *
+ * The lockup's transform-origin is `0 50%`, so translate moves its left edge
+ * and vertical centre and scale grows from that same point. That is what keeps
+ * this to one subtraction per axis instead of a correction term.
+ */
+function measureBrandFlight(panel: HTMLElement, lockup: HTMLElement): void {
+  const slot = panel.querySelector<HTMLElement>(".menu__brandslot");
+  if (!slot) return;
+
+  const scale =
+    parseFloat(getComputedStyle(panel).getPropertyValue("--menu-brand-scale")) ||
+    1;
+
+  const from = lockup.getBoundingClientRect();
+  const to = slot.getBoundingClientRect();
+  if (from.width === 0 || to.width === 0) return;
+
+  const style = document.documentElement.style;
+  /* Centre the SCALED width on the slot, not the original width. */
+  style.setProperty(
+    "--brand-dx",
+    `${to.left + to.width / 2 - (from.width * scale) / 2 - from.left}px`,
+  );
+  style.setProperty(
+    "--brand-dy",
+    `${to.top + to.height / 2 - (from.top + from.height / 2)}px`,
+  );
+  style.setProperty("--brand-scale", String(scale));
+}
+
 if (button && menu) {
+  const lockup = document.querySelector<HTMLElement>(".lockup");
+
   const focusables = () =>
     [...menu.querySelectorAll<HTMLElement>("a[href], button:not([disabled])")].filter(
       (el) => el.offsetParent !== null || el.getClientRects().length > 0,
@@ -38,6 +85,18 @@ if (button && menu) {
   function setOpen(next: boolean, restoreFocus = true): void {
     if (next === open) return;
     open = next;
+
+    /* Before the class, so the distances exist by the time the rule matches.
+       Re-measured on every open rather than cached: the panel's content height
+       — and so the slot's position — moves with the viewport. */
+    if (open && lockup) measureBrandFlight(menu!, lockup);
+
+    /* While it is a brand mark it is not a link. Pointer events are already off
+       in CSS; this is the keyboard half of the same statement. */
+    if (lockup) {
+      if (open) lockup.setAttribute("tabindex", "-1");
+      else lockup.removeAttribute("tabindex");
+    }
 
     menu!.classList.toggle("is-open", open);
     button!.classList.toggle("is-open", open);
