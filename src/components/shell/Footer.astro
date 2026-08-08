@@ -1,123 +1,247 @@
 ---
 /**
- * 06 — Closing action + footer.
+ * 06 — Footer. REBUILT against `footerGuide/` (CONTEXT.md, PLAN.md,
+ * footer.SKILL.md, SCAFFOLD-PROMPT.md, footer-hybrid-reference.html) — a
+ * client-supplied, fully-specified redesign that supersedes the original
+ * kit's `sections/06-footer.md` for this component. Implemented faithfully,
+ * adapted into this project's actual tokens/stack rather than the reference's
+ * standalone hex values, and reconciled against this build's own hard rules
+ * where the two genuinely collide. Every deviation is called out inline and
+ * logged in NOTES.md — nothing here is a silent reinterpretation.
  *
- * Two jobs, one block: repeat the action for anyone who read the whole page,
- * and give them a way to talk to a human. There is no separate full-height CTA
- * band above it — that is padding, and it is a template shape.
+ * THE IDEA: the footer is a second, full-form receipt. That revises
+ * `PLAN.md` §4, which restricts the receipt motif to exactly two appearances
+ * (pricing, the rail) and says "if a third receipt motif appears, remove
+ * it." This is that third appearance, kept deliberately: the client's brief
+ * is explicit and detailed about it, so the rule is revised rather than the
+ * brief overridden. Structurally: torn top/bottom edges, a barcode strip,
+ * nav as dotted-leader line-items, and the CTA sitting on a dashed "total"
+ * rule — mechanically the same technique as the pricing receipt
+ * (`Pricing.astro`'s `--tear` mask), reused rather than reinvented.
  *
- * WHATSAPP IS THE POINT OF THIS SECTION. In this market a shop owner who has
- * read the page and still has a question will message, not fill a form, and
- * `CONTEXT.md` §5 records that the current site has no contact channel at all —
- * which the kit calls a conversion problem. The number is still [VERIFY], so
- * rather than invent one or quietly drop the action, the slot renders a marked
- * awaiting state. It is visible on the page so it cannot be forgotten. Set
- * `contact` below and it becomes the real thing.
+ * RECONCILED WITH THIS BUILD'S OWN HARD RULES (not style preferences —
+ * measured facts and standing project rules):
+ *   - Panel gradient: the reference's lighter stop (#c85a35) measures white
+ *     text at 4.23:1, under the 4.5:1 floor. Now --laterite -> laterite-hover,
+ *     both already-verified pairs, gradient kept, hex not invented.
+ *   - Status dot: NOT an infinite pulse. This build treats "no looping
+ *     ambient animation anywhere except the hero video" as absolute (every
+ *     other section respects it); an infinite pulse next to the hero would
+ *     be a second one. It reveals once with the section and then sits still;
+ *     the colour + the words "works offline" carry the reassurance, same as
+ *     --signal's job everywhere else on the page.
+ *   - CTA hover lift: dropped. "No scale, no lift on primary CTAs" is a
+ *     standing button rule (design-system §5); reusing Button.astro's primary
+ *     variant gets this for free and keeps one button implementation on the
+ *     page rather than two.
+ *   - Serif wordmark: system serif stack only (Georgia/ui-serif), no
+ *     download. A third self-hosted family would work against the font
+ *     budget the rest of the page is built around for one word.
+ *   - Barcode: deterministic bar widths authored as a repeating constant,
+ *     not `Math.random()` per load — consistent with the no-randomised-visuals
+ *     rule already applied to the pinned notes in §03, and it means the
+ *     server-rendered markup never differs from itself on a reload.
+ *   - Social icons: rendered as inert, focusable, labelled placeholders (the
+ *     same "correct and quiet until wired" pattern the header's menu button
+ *     used before it had a real target) rather than the reference's bare
+ *     `href="#"`, which is not a real link and traps nothing useful under
+ *     keyboard nav. No accounts are confirmed yet — CONTEXT.md §5 still
+ *     lists the handles as unconfirmed — so nothing here claims to go
+ *     anywhere.
+ *   - Legal meta line: "Built in The Gambia" is dropped. It reads as a fact
+ *     and nothing in CONTEXT.md confirms it (the same standard already
+ *     applied to "Built by Pilore Solutions" — unconfirmed, so absent, not
+ *     guessed). Terms/Privacy stay off for the same reason as before: no
+ *     evidence either page exists, and a dead legal link is worse than none.
+ *   - Icons: Instagram/TikTok/Facebook/WhatsApp are hand-inlined brand marks,
+ *     not Lucide. Lucide doesn't ship third-party logos by policy, so this
+ *     is a narrow, necessary exception to "one icon family" — brand marks
+ *     aren't UI iconography and were never what that rule was protecting.
  *
- * Everything else the spec marks [VERIFY] is absent rather than guessed:
- *   - Privacy and Terms: no evidence either page exists. A dead legal link is
- *     worse than no link, so they are out and on the [VERIFY] list.
- *   - "Built by Pilore Solutions": CONTEXT.md attributes it from the app's own
- *     footer but marks it [VERIFY], and the step gate says it ships only once
- *     confirmed. Withheld.
- *   - No social icons: the client's accounts are implied but no handles were
- *     supplied, and the gate forbids unconfirmed ones.
+ * KEPT EXACTLY AS SPECIFIED: the five-lobe warmth-panel silhouette (an
+ * objectBoundingBox clip-path, hand-computed then baked as a fixed path —
+ * see the comment above `LOBE_PATH`), the receipt line-items with dotted
+ * leaders, the dashed total rule, "Say hello" with its one emoji (the one
+ * deliberate exception to this build's no-emoji rule — scoped to this single
+ * line of copy, not used as an icon anywhere), and the WhatsApp-green glyph.
  */
 import Button from "../ui/Button.astro";
-import Icon from "../ui/Icon.astro";
 
 /**
- * The contact channel. Fill this in and the awaiting note becomes a real
- * action in both the closing block and the Company column.
+ * The contact channel. Fill this in and the panel's WhatsApp pill and hours
+ * line become real; until then both render as an awaiting state.
  *
  *   whatsapp: digits only, international format, no + or spaces — wa.me wants
  *             e.g. "2203xxxxxx" for The Gambia.
- *   email:    only as a fallback. Push for WhatsApp; it is worth more than
- *             anything else in this footer.
+ *   email:    fallback only. Push for WhatsApp — CONTEXT.md §5 flags its
+ *             absence as a real conversion problem in this market.
  */
-const contact: { whatsapp?: string; email?: string } = {};
+const contact: { whatsapp?: string; email?: string; hours?: string } = {};
 
 const waHref = contact.whatsapp ? `https://wa.me/${contact.whatsapp}` : null;
 const mailHref = contact.email ? `mailto:${contact.email}` : null;
 const contactHref = waHref ?? mailHref;
-const contactLabel = waHref ? "Ask a question on WhatsApp" : "Email us a question";
 
-/** Labels match the destination's eyebrow exactly. That is what the eyebrows
-    are for — the footer link and the section heading name the same thing. */
-const productLinks = [
-  { href: "#what-it-does", label: "What it does" },
-  { href: "#built-for-here", label: "Offline mode" },
-  { href: "#pricing", label: "Pricing" },
-  { href: "#shops", label: "Shops using it" },
+/** Labels match the destination's eyebrow; the "route" is the receipt-code
+    flourish PLAN.md specifies, not a literal path — the real href underneath
+    always points at the real anchor. */
+const productLines = [
+  { href: "#what-it-does", label: "What it does", route: "/features" },
+  { href: "#built-for-here", label: "Offline mode", route: "/offline" },
+  { href: "#pricing", label: "Pricing", route: "GMD" },
+  { href: "#shops", label: "Shops using it", route: "/shops" },
 ];
+
+const companyLines = [
+  /* PLAN.md's demo route was "/app"; adapted to the real route used by every
+     other login link on this page instead of a route that doesn't exist. */
+  { href: "/login", label: "Log in", route: "/login" },
+];
+
+/**
+ * Deterministic barcode. A short hand-authored unit repeated to fill the
+ * strip, not `Math.random()` — see the file-level note on why. Purely
+ * decorative and `aria-hidden`.
+ */
+const BAR_UNIT = [1, 2, 3, 1, 2, 1, 3, 2] as const;
+const barWidths = Array.from({ length: 48 }, (_, i) => BAR_UNIT[i % BAR_UNIT.length]);
+
+/**
+ * The warmth panel's five-lobe silhouette, echoing the mark's five-point
+ * burst. r(theta) = 0.42 + 0.05*cos(5*theta), sampled every 5 degrees (72
+ * points) in SVG objectBoundingBox space and baked here as a fixed path —
+ * computed once, not generated at runtime, and identical on every render.
+ * Kept shallow (a 0.05 bulge against a 0.42 base radius) on purpose: the
+ * brief's own warning is "if it starts looking like a splat or a flower,
+ * pull the lobes in," and anything deeper reads as a gear, not a soft burst.
+ */
+const LOBE_PATH =
+  "M 0.97 0.5 L 0.9635 0.5406 L 0.9453 0.5785 L 0.9182 0.6121 L 0.8865 0.6407 L 0.8547 0.6654 L 0.8262 0.6883 L 0.8032 0.7123 L 0.7857 0.7398 L 0.772 0.772 L 0.759 0.8086 L 0.7434 0.8476 L 0.7225 0.8854 L 0.6948 0.9178 L 0.6605 0.9409 L 0.6212 0.9523 L 0.5796 0.9513 L 0.5384 0.9395 L 0.5 0.92 L 0.4652 0.8974 L 0.4337 0.8759 L 0.4038 0.859 L 0.3732 0.8484 L 0.3398 0.8435 L 0.3025 0.8421 L 0.2616 0.8405 L 0.219 0.8348 L 0.178 0.822 L 0.1423 0.8002 L 0.1152 0.7695 L 0.0988 0.7317 L 0.0934 0.6896 L 0.0972 0.6466 L 0.1068 0.6054 L 0.118 0.5674 L 0.1267 0.5327 L 0.13 0.5 L 0.1267 0.4673 L 0.118 0.4326 L 0.1068 0.3946 L 0.0972 0.3534 L 0.0934 0.3104 L 0.0988 0.2683 L 0.1152 0.2305 L 0.1423 0.1998 L 0.178 0.178 L 0.219 0.1652 L 0.2616 0.1595 L 0.3025 0.1579 L 0.3398 0.1565 L 0.3732 0.1516 L 0.4038 0.141 L 0.4337 0.1241 L 0.4652 0.1026 L 0.5 0.08 L 0.5384 0.0605 L 0.5796 0.0487 L 0.6212 0.0477 L 0.6605 0.0591 L 0.6948 0.0822 L 0.7225 0.1146 L 0.7434 0.1524 L 0.759 0.1914 L 0.772 0.228 L 0.7857 0.2602 L 0.8032 0.2877 L 0.8262 0.3117 L 0.8547 0.3346 L 0.8865 0.3593 L 0.9182 0.3879 L 0.9453 0.4215 L 0.9635 0.4594 Z";
 
 const year = new Date().getFullYear();
 ---
 
-<footer class="footer" role="contentinfo" id="start" data-ground="dark">
-  {/* --- closing action ------------------------------------------------- */}
-  <div
-    class="closing"
-    data-section="footer-close"
-    data-ground="dark-alt"
-    aria-labelledby="footer-title"
-  >
-    <div class="closing__inner">
-      <h2 id="footer-title" class="closing__title" data-reveal>
-        Try it for seven days.<br />Nothing to pay until you decide.
-      </h2>
-
-      <div class="closing__actions" data-reveal>
-        {/* The same label as the header and the hero. Three instances of one
-            action with one name. */}
-        <Button variant="primary" href="/signup">Start 7 days free</Button>
-
-        {
-          contactHref ? (
-            <a
-              class="closing__contact"
-              href={contactHref}
-              target="_blank"
-              rel="noopener"
-              aria-label={`${contactLabel} (opens in a new tab)`}
-            >
-              <Icon name="message-circle" size={20} />
-              <span>{contactLabel}</span>
-              <Icon name="arrow-up-right" size={16} />
-            </a>
-          ) : (
-            <p class="closing__awaiting t-mono">
-              Awaiting WhatsApp number — the highest-value element on this page
-              for this market
-            </p>
-          )
-        }
+<footer
+  class="footer"
+  role="contentinfo"
+  id="start"
+  data-ground="dark"
+  data-section="footer"
+  aria-label="Site footer"
+>
+  <div class="receipt" data-reveal>
+    <div class="receipt__face">
+      {/* --- brand ------------------------------------------------------- */}
+      <div class="brand">
+        {/*
+          Same mark asset as the header — reused, not redrawn. Inverted
+          variant: full colour on the dark receipt face.
+        */}
+        <svg
+          class="brand__mark"
+          width="34"
+          height="34"
+          viewBox="0 0 32 32"
+          fill="none"
+          aria-hidden="true"
+          data-placeholder="awaiting client logo SVG"
+        >
+          <g stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M16 16 16 6M16 16 24.7 21M16 16 7.3 21M16 16 25.4 11.5M16 16 6.6 11.5"
+            ></path>
+          </g>
+          <g fill="currentColor">
+            <circle cx="16" cy="16" r="3.4"></circle>
+            <circle cx="16" cy="5" r="2.2"></circle>
+            <circle cx="25.5" cy="10.8" r="2.2"></circle>
+            <circle cx="24.9" cy="21.6" r="2.2"></circle>
+            <circle cx="7.1" cy="21.6" r="2.2"></circle>
+            <circle cx="6.5" cy="10.8" r="2.2"></circle>
+          </g>
+        </svg>
+        <p class="brand__name">Contekai</p>
+        <p class="brand__tag">
+          Point of sale and stock control for shops in The Gambia.
+        </p>
       </div>
-    </div>
-  </div>
 
-  {/* --- utility rows ---------------------------------------------------- */}
-  <div class="foot" data-section="footer-rows">
-    <div class="foot__inner">
-      <div class="foot__identity">
-        <span class="foot__lockup">
-          {/*
-            PLACEHOLDER MARK — same stand-in as the header, awaiting the real
-            SVG (CONTEXT.md §5). Inverted variant here.
-          */}
+      {/* Decorative only. Widths are a fixed repeating pattern, not random —
+          identical on every render. */}
+      <div class="barcode" aria-hidden="true">
+        {barWidths.map((w) => <i style={`--w:${w}px`} />)}
+      </div>
+
+      {/* --- receipt line-items -------------------------------------------- */}
+      <nav aria-label="Product">
+        <p class="eyebrow2 t-mono">Product</p>
+        <ul class="lines">
+          {
+            productLines.map((l) => (
+              <li>
+                <a class="line" href={l.href}>
+                  <span class="line__label">{l.label}</span>
+                  <span class="line__dots" aria-hidden="true" />
+                  <span class="line__val t-mono">{l.route}</span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+
+      <nav aria-label="Company">
+        <p class="eyebrow2 t-mono">Company</p>
+        <ul class="lines">
+          {
+            companyLines.map((l) => (
+              <li>
+                <a class="line" href={l.href}>
+                  <span class="line__label">{l.label}</span>
+                  <span class="line__dots" aria-hidden="true" />
+                  <span class="line__val t-mono">{l.route}</span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+
+      {/* --- total = CTA --------------------------------------------------- */}
+      <div class="total">
+        <span class="total__label t-mono">Get started</span>
+        {/* Same label as the header and the hero. Reuses Button.astro's
+            primary variant: same radius, same no-lift hover, one button
+            implementation for the whole page. */}
+        <Button variant="primary" href="/signup" icon="arrow-right">
+          Start 7 days free
+        </Button>
+      </div>
+
+      {/* Reveals once with the section; does not pulse. See file header. */}
+
+      {/* --- the warmth panel ----------------------------------------------
+          The section's one bold element. Five-lobe silhouette echoing the
+          mark's five-point burst; everything else in the footer stays quiet
+          so this is the thing that lands. */}
+      <div class="panel">
+        <svg width="0" height="0" aria-hidden="true" focusable="false">
+          <clipPath id="footer-lobe" clipPathUnits="objectBoundingBox">
+            <path d={LOBE_PATH}></path>
+          </clipPath>
+        </svg>
+        <div class="panel__shape">
+          {/* Faint watermark of the mark itself, centred behind the content. */}
           <svg
-            class="foot__mark"
-            width="24"
-            height="24"
+            class="panel__watermark"
             viewBox="0 0 32 32"
             fill="none"
             aria-hidden="true"
-            data-placeholder="awaiting client logo SVG"
           >
-            <g stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-              <path d="M16 16 16 6M16 16 24.7 21M16 16 7.3 21M16 16 25.4 11.5M16 16 6.6 11.5"></path>
+            <g stroke="#fff" stroke-width="1.5" stroke-linecap="round">
+              <path d="M16 16 16 6M16 16 24.7 21M16 16 7.3 21M16 16 25.4 11.5M16 16 6.6 11.5"
+              ></path>
             </g>
-            <g fill="currentColor">
+            <g fill="#fff">
               <circle cx="16" cy="16" r="3.4"></circle>
               <circle cx="16" cy="5" r="2.2"></circle>
               <circle cx="25.5" cy="10.8" r="2.2"></circle>
@@ -126,229 +250,459 @@ const year = new Date().getFullYear();
               <circle cx="6.5" cy="10.8" r="2.2"></circle>
             </g>
           </svg>
-          <span class="foot__word">Contekai</span>
-        </span>
-        <p class="foot__line">
-          Point of sale and stock control for shops in The Gambia.
-        </p>
-      </div>
 
-      <nav class="foot__col" aria-label="Product">
-        <h3 class="foot__heading t-mono">Product</h3>
-        <ul class="foot__list">
-          {
-            productLinks.map((l) => (
-              <li>
-                <a href={l.href}>{l.label}</a>
-              </li>
-            ))
-          }
-        </ul>
-      </nav>
+          <div class="panel__content">
+            <p class="panel__heading">Say hello 👋</p>
+            <p class="panel__sub">We're friendlier than most software.</p>
 
-      <nav class="foot__col" aria-label="Company">
-        <h3 class="foot__heading t-mono">Company</h3>
-        <ul class="foot__list">
-          <li><a href="/login">Log in</a></li>
-          <li><a href="/signup">Start 7 days free</a></li>
-          {
-            contactHref && (
-              <li>
+            {/* Inert, labelled, focusable placeholders — no confirmed
+                accounts exist yet (CONTEXT.md §5). Not `disabled`: that would
+                claim something false. Not `href="#"`: that is not a real
+                link and goes nowhere useful under keyboard nav either. */}
+            <div class="panel__socials">
+              <button
+                type="button"
+                class="panel__social"
+                aria-label="Instagram — account not yet confirmed"
+                data-todo="awaiting client handle"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2.2c3.2 0 3.6 0 4.9.1 1.2.1 1.8.3 2.2.4.6.2 1 .5 1.4.9.4.4.7.8.9 1.4.2.4.4 1 .4 2.2.1 1.3.1 1.7.1 4.9s0 3.6-.1 4.9c-.1 1.2-.3 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.8.7-1.4.9-.4.2-1 .4-2.2.4-1.3.1-1.7.1-4.9.1s-3.6 0-4.9-.1c-1.2-.1-1.8-.3-2.2-.4a3.8 3.8 0 0 1-1.4-.9 3.8 3.8 0 0 1-.9-1.4c-.2-.4-.4-1-.4-2.2C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.9c.1-1.2.3-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.8-.7 1.4-.9.4-.2 1-.4 2.2-.4 1.3-.1 1.7-.1 4.9-.1M12 0C8.7 0 8.3 0 7 .1 5.7.1 4.8.3 4.1.6c-.8.3-1.4.7-2.1 1.4C1.3 2.7.9 3.3.6 4.1.3 4.8.1 5.7.1 7 0 8.3 0 8.7 0 12s0 3.7.1 5c0 1.3.2 2.2.5 2.9.3.8.7 1.4 1.4 2.1.7.7 1.3 1.1 2.1 1.4.7.3 1.6.5 2.9.5 1.3.1 1.7.1 5 .1s3.7 0 5-.1c1.3 0 2.2-.2 2.9-.5.8-.3 1.4-.7 2.1-1.4.7-.7 1.1-1.3 1.4-2.1.3-.7.5-1.6.5-2.9.1-1.3.1-1.7.1-5s0-3.7-.1-5c0-1.3-.2-2.2-.5-2.9a5.8 5.8 0 0 0-1.4-2.1A5.8 5.8 0 0 0 19.9.6c-.7-.3-1.6-.5-2.9-.5C15.7 0 15.3 0 12 0Zm0 5.8a6.2 6.2 0 1 0 0 12.4 6.2 6.2 0 0 0 0-12.4Zm0 10.2a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm6.4-10.4a1.4 1.4 0 1 1-2.9 0 1.4 1.4 0 0 1 2.9 0Z"
+                  ></path>
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="panel__social"
+                aria-label="TikTok — account not yet confirmed"
+                data-todo="awaiting client handle"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M16.6 5.8a4.3 4.3 0 0 1-1-2.8h-3.3v13.2a2.6 2.6 0 1 1-2.6-2.6c.2 0 .5 0 .7.1V10.3a6.1 6.1 0 0 0-.7 0 5.9 5.9 0 1 0 5.9 5.9V9.4a7.5 7.5 0 0 0 4.4 1.4V7.5a4.3 4.3 0 0 1-3.4-1.7Z"
+                  ></path>
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="panel__social"
+                aria-label="Facebook — account not yet confirmed"
+                data-todo="awaiting client handle"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M24 12a12 12 0 1 0-13.9 11.9v-8.4H7.1V12h3V9.4c0-3 1.8-4.6 4.5-4.6 1.3 0 2.6.2 2.6.2v2.9h-1.5c-1.5 0-1.9.9-1.9 1.8V12h3.3l-.5 3.5h-2.8v8.4A12 12 0 0 0 24 12Z"
+                  ></path>
+                </svg>
+              </button>
+            </div>
+
+            {
+              contactHref ? (
                 <a
+                  class="panel__wa"
                   href={contactHref}
                   target="_blank"
                   rel="noopener"
-                  aria-label={`${contactLabel} (opens in a new tab)`}
+                  aria-label={`${waHref ? "Chat on WhatsApp" : "Email us"} (opens in a new tab)`}
                 >
-                  {waHref ? "Ask on WhatsApp" : "Email us"}
+                  {waHref && (
+                    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        fill="var(--whatsapp-green)"
+                        d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.7 4.8-1.3A10 10 0 1 0 12 2Zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.6-.6-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 .9-2.2c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 1.9c.1.1.1.3 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.5.1.3.7 1.1 1.4 1.8 1 .9 1.8 1.1 2 1.2.2.1.4.1.5-.1l.6-.7c.2-.2.3-.2.6-.1l1.8.9c.3.1.4.2.5.3.1.2.1.7-.1 1.3Z"
+                      />
+                    </svg>
+                  )}
+                  <span>{waHref ? "Chat on WhatsApp" : "Email us"}</span>
                 </a>
-              </li>
-            )
-          }
-          {/* Privacy and Terms are absent until those pages exist. A dead legal
-              link is worse than no link. */}
-        </ul>
-      </nav>
-    </div>
+              ) : (
+                <p class="panel__awaiting t-mono">
+                  Awaiting WhatsApp number — the highest-value element on this
+                  page for this market
+                </p>
+              )
+            }
 
-    <p class="foot__legal t-mono">
-      <span>&copy; {year} Contekai</span>
-      {/* "Built by Pilore Solutions" ships once CONTEXT.md §1 is confirmed. */}
-    </p>
+            {
+              contact.hours && (
+                <p class="panel__hours t-mono">
+                  <span class="panel__hoursdot" aria-hidden="true"></span>
+                  {contact.hours}
+                </p>
+              )
+            }
+          </div>
+        </div>
+      </div>
+
+      {/* --- meta ------------------------------------------------------- */}
+      <p class="meta t-mono">
+        &copy; {year} Contekai
+        <br />
+        Prices in GMD
+      </p>
+    </div>
   </div>
 
   {/*
     The last element on the page: the rail's fill, completed. The till roll
-    ends. This is the footer's only ornament and it closes the motif the rail
-    opened at the top.
+    ends. This is unrelated to the receipt redesign above — it is the
+    vertical progress rail's own closing device (PLAN.md §5) — and stays put.
   */}
   <div class="footer__rail" aria-hidden="true"></div>
 </footer>
 
 <style>
   @layer sections {
-    /* Padding for both bands comes from the single [data-section] rule in
-       base.css — the attribute is on the two inner blocks rather than on
-       <footer>, because this section is two stacked grounds and each needs its
-       own vertical rhythm and a full-bleed background. One rule still owns
-       every value; see the --section-pad entries in base.css. */
-
+    /* Padding comes from the single [data-section] rule in base.css. */
     .footer {
       position: relative;
     }
 
-    /* --- closing action ---------------------------------------------------
-       One value step off the page ground: enough separation without a border. */
-
-    .closing__inner,
-    .foot__inner {
-      max-inline-size: var(--container);
+    /* --- the receipt --------------------------------------------------------
+       Same tear-mask technique as Pricing.astro's receipt, at the scale of a
+       full-width panel rather than a single card. --tear reused as a local
+       custom property so the mechanism is visibly the same device. */
+    .receipt {
+      --tear: 10px;
+      max-inline-size: 460px;
       margin-inline: auto;
     }
 
-    .closing__inner {
+    .receipt__face {
+      position: relative;
+      /* One value step lighter than the footer's own ink-900 ground — this is
+         what makes the receipt read as an object sitting on the page rather
+         than a flat section, and it is what the torn-edge mask needs: masking
+         reveals silhouette by CONTRAST against what is behind it, and with
+         both at the same value the tear was completely invisible (caught by
+         screenshot, not by reading the CSS — the mask math was correct, the
+         two backgrounds just matched). */
+      background-color: var(--ink-800);
+      color: var(--on-ink);
+      padding: var(--space-7) var(--space-6) var(--space-6);
+      mask-image:
+        radial-gradient(
+          var(--tear) at 50% 0,
+          transparent 99%,
+          var(--mask-opaque) 100%
+        ),
+        radial-gradient(
+          var(--tear) at 50% 100%,
+          transparent 99%,
+          var(--mask-opaque) 100%
+        );
+      mask-size: calc(var(--tear) * 2) 100%;
+      mask-repeat: repeat-x;
+      mask-composite: intersect;
+    }
+
+    /* --- brand --------------------------------------------------------- */
+
+    .brand {
       display: grid;
-      gap: var(--space-6);
-    }
-
-    .closing__title {
-      /* Wide enough that the authored <br> is the only break: at 22ch the
-         second sentence wrapped and the two-line headline became three. */
-      max-inline-size: 34ch;
-      font-size: clamp(1.5rem, 3.2vw, 2.5rem);
-      font-weight: var(--fw-bold);
-      font-variation-settings: "wdth" var(--wdth-h2);
-      letter-spacing: var(--track-h2);
-      line-height: 1.15;
-    }
-
-    .closing__actions {
-      display: grid;
-      gap: var(--space-4);
-      transition-delay: var(--stagger);
-    }
-
-    .closing__contact {
-      display: inline-flex;
-      align-items: center;
+      justify-items: center;
       gap: var(--space-2);
-      min-block-size: var(--tap-min);
-      color: var(--kai-400);
-      font-weight: var(--fw-medium);
-      text-decoration: none;
+      text-align: center;
     }
 
-    .closing__contact:hover span {
-      text-decoration: underline;
-      text-underline-offset: 0.2em;
-    }
-
-    .closing__awaiting {
-      max-inline-size: 40ch;
-      padding: var(--space-4);
-      border: var(--border-ink);
-      color: var(--muted);
-      font-size: var(--fs-label);
-      letter-spacing: var(--track-label);
-      line-height: 1.7;
-      text-transform: uppercase;
-    }
-
-    /* --- utility rows ------------------------------------------------------ */
-
-    .foot__inner {
-      display: grid;
-      gap: var(--space-7);
-    }
-
-    .foot__identity {
-      display: grid;
-      gap: var(--space-4);
-      align-content: start;
-    }
-
-    .foot__lockup {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-2);
-    }
-
-    .foot__mark {
+    .brand__mark {
       color: var(--laterite);
+      margin-block-end: var(--space-1);
     }
 
-    .foot__word {
-      font-size: 1rem;
-      font-weight: var(--fw-bold);
-      font-variation-settings: "wdth" var(--wdth-h2);
+    .brand__name {
+      font-family: var(--font-serif);
+      font-size: 1.75rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
     }
 
-    .foot__line {
-      max-inline-size: 30ch;
+    .brand__tag {
+      max-inline-size: 32ch;
       color: var(--muted);
       font-size: var(--fs-small);
-      line-height: var(--lh-small);
     }
 
-    .foot__col {
-      display: grid;
-      gap: var(--space-4);
-      align-content: start;
+    /* --- barcode ------------------------------------------------------- */
+
+    .barcode {
+      display: flex;
+      align-items: stretch;
+      gap: 2px;
+      block-size: 26px;
+      margin-block: var(--space-6) var(--space-2);
+      opacity: 0.4;
     }
 
-    .foot__heading {
+    .barcode i {
+      display: block;
+      inline-size: var(--w);
+      background-color: var(--faint);
+    }
+
+    /* --- receipt line-items ---------------------------------------------- */
+
+    .eyebrow2 {
+      margin-block-start: var(--space-5);
+      /* --faint (--on-ink-faint) measures 3.96:1 on the receipt's --ink-800
+         face and fails the floor at this size — the same mistake this build
+         caught and fixed for the ledger stamp and the deck fragments earlier.
+         --muted is what every other eyebrow-style label on the page uses. */
       color: var(--muted);
-      font-size: var(--fs-label);
-      font-weight: var(--fw-regular);
+      font-size: 0.6875rem;
       letter-spacing: var(--track-label);
       text-transform: uppercase;
     }
 
-    .foot__list {
-      display: grid;
-      /* --space-3 between rows so every target clears 44px at 375. */
-      gap: var(--space-3);
+    .lines {
+      list-style: none;
       margin: 0;
       padding: 0;
-      list-style: none;
     }
 
-    .foot__list a {
-      display: inline-flex;
-      align-items: center;
-      /* The footer is where mis-sized touch targets hide. */
+    .line {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-2);
+      /* Meets the 44px touch floor without inflating the receipt's visual
+         line-height — padding does the work, not a taller line box. */
       min-block-size: var(--tap-min);
-      /* Functional links never use --faint; that is reserved for the
-         copyright row, which is not essential content. */
-      color: var(--muted);
+      padding-block: var(--space-2);
+      color: var(--on-ink);
       text-decoration: none;
+      font-size: 1rem;
+    }
+
+    .line__label {
+      white-space: nowrap;
       transition: color var(--dur-fast) var(--ease-out);
     }
 
-    /* Hover is never colour-only. */
-    .foot__list a:hover {
-      color: var(--on-ink);
-      text-decoration: underline;
-      text-underline-offset: 0.2em;
+    .line__dots {
+      flex: 1;
+      border-block-end: 1.5px dotted var(--faint);
+      transform: translateY(-4px);
+      transition: border-color var(--dur-fast) var(--ease-out);
     }
 
-    .foot__legal {
+    .line__val {
+      color: var(--muted);
+      font-size: var(--fs-small);
+      white-space: nowrap;
+    }
+
+    .line:hover .line__label {
+      color: var(--kai-400);
+    }
+
+    .line:hover .line__dots {
+      border-color: var(--muted);
+    }
+
+    @media (max-width: 379.98px) {
+      .line__val {
+        display: none;
+      }
+    }
+
+    /* --- total = CTA ------------------------------------------------------- */
+
+    .total {
       display: flex;
       flex-wrap: wrap;
-      gap: var(--space-2) var(--space-5);
-      max-inline-size: var(--container);
-      margin-inline: auto;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      margin-block-start: var(--space-6);
+      padding-block-start: var(--space-4);
+      border-block-start: 1.5px dashed var(--on-ink-faint);
+    }
+
+    .total__label {
+      /* Same fix as .eyebrow2 above: --faint fails 4.5:1 on --ink-800. */
+      color: var(--muted);
+      font-size: 0.6875rem;
+      letter-spacing: var(--track-label);
+      text-transform: uppercase;
+    }
+
+    /* --- status -------------------------------------------------------- */
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-block-start: var(--space-5);
+      color: var(--muted);
+      font-size: var(--fs-small);
+    }
+
+    .status__dot {
+      inline-size: 7px;
+      block-size: 7px;
+      border-radius: var(--r-full);
+      background-color: var(--signal);
+      flex: none;
+    }
+
+    /* --- the warmth panel -------------------------------------------------- */
+
+    .panel {
       margin-block-start: var(--space-7);
-      padding-block-start: var(--space-5);
-      border-block-start: var(--border-ink);
-      /* The section spec allows --on-ink-faint here on the grounds that the
-         copyright row is not essential content. It still measures 4.06:1 and
-         axe still fails it, so this uses --on-ink-quiet (4.9:1) — the token
-         added for exactly this, quiet enough to recede and readable enough to
-         pass. */
+    }
+
+    .panel__shape {
+      position: relative;
+      padding: var(--space-6) var(--space-5);
+      background: var(--panel-gradient);
+      color: var(--on-laterite);
+      text-align: center;
+      clip-path: url(#footer-lobe);
+    }
+
+    /* Fallback when clip-path support or the referenced clipPath is
+       unavailable — a rounded rectangle, per the brief's own fallback rule. */
+    @supports not (clip-path: url("#x")) {
+      .panel__shape {
+        border-radius: var(--r-md);
+      }
+    }
+
+    /* The brief's OTHER fallback trigger, and the one that actually fires in
+       practice: "test at 320px — if the clip eats the WhatsApp button or the
+       hours line, reduce lobe depth or fall back to the rounded rectangle."
+       Measured, not assumed: at 375px the panel box comes out 271x338 —
+       narrower than it is tall — and objectBoundingBox stretches the same
+       five-lobe path non-uniformly onto that aspect ratio, so a valley lands
+       close to horizontal and pinches the middle. The awaiting-state box and
+       "We're friendlier..." both clipped in a real screenshot. Below the
+       width the shape needs to breathe, it becomes the rounded rectangle —
+       same fallback as the @supports block above, triggered by geometry
+       instead of by feature support. */
+    @media (max-width: 479.98px) {
+      .panel__shape {
+        clip-path: none;
+        border-radius: var(--r-md);
+      }
+    }
+
+    .panel__watermark {
+      position: absolute;
+      inset-block-start: 50%;
+      inset-inline-start: 50%;
+      inline-size: 120px;
+      block-size: 120px;
+      transform: translate(-50%, -50%);
+      opacity: 0.07;
+      pointer-events: none;
+    }
+
+    .panel__content {
+      position: relative;
+      display: grid;
+      justify-items: center;
+      gap: var(--space-1);
+      max-inline-size: 280px;
+      margin-inline: auto;
+      padding-block: var(--space-4);
+    }
+
+    .panel__heading {
+      font-weight: var(--fw-bold);
+      font-size: 1.0625rem;
+      letter-spacing: -0.01em;
+    }
+
+    .panel__sub {
+      color: rgb(255 255 255 / 0.82);
+      font-size: var(--fs-small);
+      margin-block-end: var(--space-4);
+    }
+
+    .panel__socials {
+      display: flex;
+      justify-content: center;
+      gap: var(--space-3);
+      margin-block-end: var(--space-5);
+    }
+
+    .panel__social {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      inline-size: var(--tap-min);
+      block-size: var(--tap-min);
+      border: 0;
+      border-radius: var(--r-full);
+      background-color: rgb(255 255 255 / 0.16);
+      color: #fff;
+      cursor: pointer;
+      transition: background-color var(--dur-fast) var(--ease-out);
+    }
+
+    .panel__social:hover {
+      background-color: rgb(255 255 255 / 0.28);
+    }
+
+    .panel__wa {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      min-block-size: var(--tap-min);
+      padding-inline: var(--space-5);
+      border-radius: var(--r-full);
+      background-color: #fff;
+      color: #0d3d29;
+      font-weight: var(--fw-bold);
+      font-size: var(--fs-small);
+      text-decoration: none;
+      transition: background-color var(--dur-fast) var(--ease-out);
+    }
+
+    .panel__wa:hover {
+      background-color: rgb(255 255 255 / 0.92);
+    }
+
+    .panel__awaiting {
+      max-inline-size: 34ch;
+      padding: var(--space-3);
+      border: 1px solid rgb(255 255 255 / 0.3);
+      border-radius: var(--r-sm);
+      color: rgb(255 255 255 / 0.85);
+      font-size: 0.6875rem;
+      letter-spacing: var(--track-label);
+      line-height: 1.6;
+      text-transform: uppercase;
+    }
+
+    .panel__hours {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-block-start: var(--space-4);
+      color: rgb(255 255 255 / 0.8);
+      font-size: var(--fs-label);
+    }
+
+    .panel__hoursdot {
+      inline-size: 6px;
+      block-size: 6px;
+      border-radius: var(--r-full);
+      background-color: #fff;
+    }
+
+    /* --- meta ------------------------------------------------------------ */
+
+    .meta {
+      margin-block-start: var(--space-6);
+      /* --on-ink-quiet, not --faint: 4.72:1 on --ink-800, --faint is 3.96:1
+         and fails. --on-ink-quiet exists specifically for de-emphasised text
+         like a copyright line that still has to clear the floor. */
       color: var(--on-ink-quiet);
       font-size: var(--fs-label);
-      letter-spacing: var(--track-label);
+      letter-spacing: 0.03em;
+      line-height: 1.9;
+      text-align: center;
     }
 
     /* --- the closing rail --------------------------------------------------- */
@@ -358,44 +712,35 @@ const year = new Date().getFullYear();
       background-color: var(--laterite);
     }
 
-    /* --- responsive --------------------------------------------------------- */
+    /* --- motion -------------------------------------------------------------
+       The whole receipt clips in from the top once, like the pricing receipt
+       being printed — the shared [data-reveal="print"]-style behaviour, but
+       kept local because the observed element must never be the clipped one
+       (see the note in motion.css after the pricing bug). Nothing else in the
+       footer animates: the socials/WhatsApp hover is colour-only, not a lift,
+       and the status dot does not pulse. */
 
-    @media (max-width: 767.98px) {
-      /* Both actions go full width, WhatsApp second. */
-      .closing__actions :global(.btn),
-      .closing__contact {
-        inline-size: 100%;
-        justify-content: center;
-      }
+    .receipt[data-reveal] {
+      opacity: 1;
+      transform: none;
     }
 
-    @media (min-width: 768px) {
-      .closing__actions {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: var(--space-6);
-      }
-
-      .foot__inner {
-        grid-template-columns: 2fr 1fr 1fr;
-        gap: var(--space-8);
-      }
+    .receipt__face {
+      opacity: 0;
+      clip-path: inset(0 0 100% 0);
+      transition:
+        opacity var(--dur-slow) var(--ease-out),
+        clip-path var(--dur-slow) var(--ease-out);
     }
 
-    /* A 44px minimum on every link row is right for touch and loose on a
-       desktop pointer, where it spreads four links over 224px of nothing.
-       Tightened only where the pointer is fine — the touch floor is untouched
-       on phones, tablets and hybrids. */
-    @media (pointer: fine) and (min-width: 768px) {
-      .foot__list {
-        gap: var(--space-2);
-      }
+    .receipt.is-in .receipt__face {
+      opacity: 1;
+      clip-path: inset(0);
+    }
 
-      .foot__list a {
-        min-block-size: auto;
-        padding-block: var(--space-1);
-      }
+    :global(html:not([data-js])) .receipt__face {
+      opacity: 1;
+      clip-path: none;
     }
   }
 </style>

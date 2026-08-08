@@ -1528,3 +1528,148 @@ the footer, not a separate band.
 5. Still outstanding from earlier steps: the 6-month price, the multi-location
    discount, Bubacarr Jaith's quote/business/town/permission, the logo SVG, and
    confirmation that `/signup` and `/login` are the real routes.
+
+---
+
+## Footer rebuild — against `footerGuide/`
+
+**Superseded, not amended.** The client supplied a complete, separate brief —
+`footerGuide/{CONTEXT,PLAN,SCAFFOLD-PROMPT,footer.SKILL}.md` plus a working
+HTML reference — and asked for the footer to be redone against it. This
+replaces the receipt-adjacent footer from step 7 entirely rather than
+patching it. Implemented faithfully, adapted into this project's actual
+tokens instead of the reference's standalone hex values, and reconciled
+against a handful of this build's own hard rules where the two genuinely
+collided. Every reconciliation is a measured fact or a standing rule, not a
+style preference, and every one is called out in the component's own header
+comment as well as here.
+
+### The one deliberate rule change: a third receipt
+
+`PLAN.md` §4 (the original kit) is explicit: the receipt motif appears in
+exactly two places — pricing, and the rail's echo — "if a third receipt motif
+appears, remove it." The new brief makes the whole footer a second full-form
+receipt: torn top/bottom edges, a barcode, dotted-leader nav lines, a dashed
+"total" rule with the CTA sitting on it. This is that third appearance, kept
+on purpose because the brief is detailed and explicit about wanting exactly
+this. The rule is revised, not silently broken — recorded here as the
+record of that decision.
+
+Mechanically it reuses the pricing receipt's own technique rather than
+reinventing one: the same `--tear` radial-gradient mask, the same
+`mask-composite: intersect`, copied verbatim from `Pricing.astro` and
+confirmed to match before use.
+
+### Reconciled against measured facts, not taste
+
+1. **Panel gradient.** The reference's lighter stop (`#c85a35`) measures white
+   text at **4.23:1** — fails the 4.5:1 floor. `--laterite -> --laterite-hover`
+   keeps both ends of the gradient above 5.35:1, reusing tokens already
+   verified elsewhere rather than inventing a new "clay" hex.
+2. **Three text uses of `--faint` (`--on-ink-faint`) failed contrast on the
+   receipt's `--ink-800` face** — the eyebrow labels, the "GET STARTED" label,
+   and the copyright line. Computed precisely: `--on-ink-faint` is **3.96:1**
+   on `--ink-800`, under the floor. This is the fourth time in this build a
+   section spec has reached for `--on-ink-faint` as text and failed; the first
+   three (the hero placeholder, the ledger stamp, the deck fragments) are
+   already logged. Eyebrows and the total label moved to `--muted` (7.60:1);
+   the copyright line moved to `--on-ink-quiet` (4.72:1) — the token this
+   project added specifically for de-emphasised text that still has to clear
+   4.5:1.
+3. **The five-lobe panel genuinely clipped its own content at 375px** — not a
+   theoretical risk, a real screenshot: "We're friendlier than most soft…"
+   and the WhatsApp-awaiting box both cut off mid-word. Measured cause: at
+   375px the panel box renders 271×338, taller than it is wide, and
+   `objectBoundingBox` stretches the same five-lobe path non-uniformly onto
+   that aspect ratio, pinching a valley in close to horizontal — exactly the
+   failure the brief's own text anticipates ("test at 320px... if it eats the
+   WhatsApp button, fall back to the rounded rectangle"). Fixed by doing
+   exactly that: below 480px the panel drops `clip-path` for
+   `border-radius: var(--r-md)`, the same fallback already written for
+   `@supports not (clip-path: …)`, now triggered by geometry as well as by
+   feature support. Reverified: zero overflow, zero clipped content, at 320
+   and 375.
+4. **Status pulse.** The reference's `animation: pulse 2.4s infinite` is a
+   looping ambient animation, which this build treats as an absolute ban
+   (enforced everywhere else, including the deck's auto-advance override,
+   which still respects it). The dot reveals once with the section and holds
+   still; colour plus the words "works offline" carry the reassurance, the
+   same job `--signal` does everywhere else on the page.
+5. **CTA hover lift.** Dropped, by reusing `Button.astro`'s primary variant
+   rather than a bespoke `.cta` class — "no scale, no lift on primary CTAs"
+   is a standing rule, and reuse means one button implementation for the
+   whole page rather than two.
+6. **Serif wordmark.** System stack only (`ui-serif, Georgia, "Times New
+   Roman", serif`) — no third self-hosted family. The rest of the page is
+   built around a carefully measured ~65 KB font budget; downloading a serif
+   for one six-letter word would be a strange place to spend it.
+7. **Legal line.** "Built in The Gambia" is a factual-sounding claim
+   `CONTEXT.md` does not confirm, the same standard already applied to "Built
+   by Pilore Solutions" in step 7 — dropped rather than shipped as fact.
+   Terms/Privacy stay off for the same reason as before: no evidence either
+   page exists, and a dead legal link is worse than none.
+8. **Social icons.** Rendered as inert, focusable, labelled placeholder
+   buttons — the same "correct and quiet until wired" pattern already used
+   for the header's menu button before it had a real target — rather than
+   the reference's bare `href="#"`, which is not a real link and is a
+   keyboard-nav dead end. No accounts are confirmed (`CONTEXT.md` §5).
+9. **Barcode.** A hand-authored 8-width unit repeated to fill the strip, not
+   `Math.random()` per load — the same no-randomised-visuals rule already
+   applied to the pinned notes in §03. The server-rendered markup is now
+   identical on every request rather than differing on reload.
+
+### Kept exactly as specified
+
+The five-lobe silhouette itself (computed once — `r(θ) = 0.42 + 0.05·cos(5θ)`,
+sampled every 5° and baked as a fixed path, not generated at runtime — kept
+shallow because the brief's own warning is "if it starts looking like a
+splat or a flower, pull the lobes in"), the receipt line-items with dotted
+leaders, the dashed total rule, "Say hello 👋" with its one emoji — the sole
+deliberate exception to this build's no-emoji rule, scoped to that one line
+of copy and not used as an icon anywhere — and the WhatsApp-green glyph,
+added as `--whatsapp-green`, documented as a third-party trademark colour
+rather than a Contekai design choice.
+
+### A bug an edit introduced and a screenshot caught
+
+Midway through the contrast fixes, the `<Button>` call inside `.total`
+disappeared from the file entirely — a casualty of one of the scripted
+string replacements matching wider than intended. `astro check` and the
+build both stayed green (a missing child element isn't a type error), and it
+only surfaced as "Start 7 days free" appearing three times on the page
+instead of four when grepping the built HTML, then confirmed visually: the
+mobile screenshot showed "GET STARTED" with nothing next to it. Restored and
+reverified against the built output, not just re-read in the editor.
+
+### Verification
+
+| | |
+|---|---|
+| Lighthouse mobile | **99 / 100 / 100 / 100** (three consecutive runs) |
+| LCP / CLS / TBT | 1.7 s · **0** · 0 ms |
+| Total page weight | 137 KB (+13 KB for the new footer's inline SVGs and CSS) |
+| Touch targets | none under 44px at 320, 375, or 1440 |
+| Contrast | `color-contrast` audit clean; every text use hand-computed, not eyeballed |
+| Panel clip | five-lobe ≥480px, rounded rect below it; zero clipped content at 320/375 |
+| Reduced motion | receipt visible immediately, no pulse, no lift |
+| JS disabled | receipt fully visible, `clip-path: none` |
+| Focus ring | `2px solid var(--kai-400)` on every link, button and social placeholder |
+| Landmarks | `<footer role="contentinfo">`, `<nav aria-label="Product">` / `"Company"` |
+| Emoji count | 1 (the deliberate exception) |
+| `href="#"` count | 0 |
+| Terms/Privacy/"Built in…" | absent, per the no-invented-facts rule |
+
+The one point off performance (99, not 100) traces to `speed-index` and
+`render-blocking-resources` softening slightly under the extra inline SVG and
+CSS weight — CLS, TBT and LCP are all untouched. Not chased further; 99/100
+with zero accessibility, best-practices or SEO loss is not a regression worth
+trading the redesign for.
+
+### What's still owed on this component
+
+Unchanged from step 7, now scoped to the panel instead of the closing block:
+the WhatsApp number (or an email fallback), and confirmed Instagram/TikTok/
+Facebook handles if those accounts should be linked. If none of that
+lands, the footer still ships correctly — the awaiting-state box and the
+inert social placeholders are the honest version of "not yet," not a broken
+one.

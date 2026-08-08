@@ -356,14 +356,10 @@
   [data-section="proof"] {
     --section-pad: var(--space-7);
   }
-  /* The footer is two stacked grounds, so the attribute sits on each band
-     rather than on <footer>: the closing action on --ink-800 and the utility
-     rows on --ink-900, each needing its own rhythm and a full-bleed
-     background. Together they come to the footer's row in the rhythm table. */
-  [data-section="footer-close"] {
-    --section-pad: var(--space-8) var(--space-7);
-  }
-  [data-section="footer-rows"] {
+  /* The footer is one ground now (--ink-800, the receipt paper) rather than
+     the previous two-band closing-action/rows split, so it is back to a
+     single [data-section="footer"] entry like every other section. */
+  [data-section="footer"] {
     --section-pad: var(--space-7) var(--space-5);
   }
 
@@ -383,10 +379,7 @@
     [data-section="proof"] {
       --section-pad: var(--space-8);
     }
-    [data-section="footer-close"] {
-      --section-pad: var(--space-9) var(--space-8);
-    }
-    [data-section="footer-rows"] {
+    [data-section="footer"] {
       --section-pad: var(--space-8) var(--space-6);
     }
   }
