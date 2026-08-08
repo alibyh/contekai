@@ -285,6 +285,16 @@
     --btn-h-desktop: 48px;
     --btn-h-compact: 40px; /* header CTA only */
     --tap-min: 44px;       /* minimum touch target, everywhere */
+    /* The brand mark's rotation in the menu and the footer.
+       This is a LOOPING AMBIENT ANIMATION, which kit/skills/motion/SKILL.md §1
+       forbids outright — the one exemption it granted was the hero video, and
+       that is gone, so the build had none. Added on the client's explicit
+       instruction; see NOTES.md. Bounded to keep the cost of the exception low:
+       slow enough to read as a drift rather than a spinner, on transform only,
+       on two elements in the whole page, and off entirely under
+       prefers-reduced-motion. */
+    --spin-dur: 9s;
+
     --focus-ring: 2px solid var(--kai-400);
     --focus-offset: 3px;
   }

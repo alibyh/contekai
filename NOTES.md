@@ -2761,3 +2761,130 @@ at a screenshot.
 | Header layout | switcher, Log in and the burger never overlap at 768 / 900 / 1024 / 1440; header stays 72px |
 | Duplicate switcher | header copy fades to opacity 0 with the panel open |
 | Lighthouse | 99 / 100 / 100 / 100, LCP 1.8 s, CLS 0 |
+
+---
+
+## Last touches — the deck that stopped, a back-to-top, and a spinning mark
+
+### The deck: found the latch
+
+The client reported the capabilities deck "sometimes doesn't move at all",
+which is the worst possible failure for a component whose whole job is to
+cycle. It reproduced in none of six scenarios I tried — idle, mouse over the
+stage, scrub click, tap, tap-then-scroll, swipe — so I went at the code instead.
+
+**The bug: `pointercancel` was never handled.**
+
+The scrub bar takes pointer capture on `pointerdown` and releases it on
+`pointerup`. A horizontal drag on a phone that the browser decides is a scroll
+fires **`pointercancel` and never `pointerup`** — the single most ordinary thing
+that can happen to that gesture. When it did, `scrubbing` stayed `true` forever,
+and because hover was also a stored flag set by `pointerenter`, `hovering`
+stayed `true` too. Auto-advance checked `hovering` on every tick and declined,
+permanently. One stray drag and the deck never moved again — which would feel
+exactly as arbitrary as "sometimes".
+
+Fixed in three layers, because a component that has already stopped once should
+not be able to stop again for a new reason:
+
+1. **No stateful pause flags.** `hovering` and `focusWithin` are gone. The pause
+   conditions are now *queried* at each tick — `el.matches(":hover")`,
+   `document.activeElement` plus `:focus-visible` — so there is no state left to
+   get stuck in. A missed event can no longer strand anything.
+2. **`pointercancel` and `lostpointercapture` are handled**, so the drag itself
+   always ends.
+3. **A watchdog.** If the deck has not advanced in 9s it advances regardless of
+   every other condition. This is the guarantee rather than the mechanism: if it
+   ever fires, something above it is wrong — but the deck still moves.
+
+Measured after the fix: it yields for **9.9s** with the pointer parked on it,
+then releases. So it still gets out of the reader's way, and it cannot be
+stopped for longer than about ten seconds by anything.
+
+**Reduced motion now advances too**, where it previously did not start at all.
+Two reasons, and the second is the stronger: nothing actually moves, because
+`motion.css` already collapses every transition to 1ms, so the card *changes*
+rather than travelling — the standard accommodation, not a violation of it. And
+standing still was *worse* for those readers: with no prev/next buttons in the
+markup, a frozen deck left five of the six capabilities behind `inert` and
+`aria-hidden`, reachable only by finding the scrub bar. The pause mechanism WCAG
+2.2.2 asks for is still real: pointer resting on the deck, or keyboard focus
+inside it.
+
+Also removed: `prevBtn`/`nextBtn` lookups and their handlers. Those elements do
+not exist in the markup any more, so the code was reaching for nothing.
+
+### Back to top
+
+`shell/ToTop.astro`, mounted outside `.page` so nothing in the flow can clip it.
+Appears once the hero is behind you and hides again at the top, where "up" is
+where you already are.
+
+Visibility comes from the shared observer in `reveal.ts` watching the hero — no
+scroll listener, no per-frame work, and it lives beside the other two for the
+same reason: the motion skill says there is one place observers get registered.
+
+A `--paper-hi` disc reads on every ground this page has: unmissable on the four
+dark bands, and on the two paper ones the lift shadow and hairline give it its
+edge. The icon inside is 15.7:1, and it is the icon that identifies the control,
+not its boundary. It hides while the menu is open, and with JS off it never
+appears at all — a control that cannot know where you are is worse than none.
+
+Two things axe and Lighthouse caught here:
+
+- **Outside any landmark.** It is a direct child of `<body>`, so axe flagged
+  `region`. Wrapped in `<nav aria-label="Back to top">` — the conventional home
+  for this control, and it announces as something useful rather than stray text.
+- **Focusable while invisible.** It shipped focusable at the top of the page,
+  where a screen reader would offer "Back to top" to someone already there. It
+  now ships `inert` and the observer lifts that at the same moment it becomes
+  visible, so the keyboard, the accessibility tree and the pixels agree.
+
+### The spinning mark
+
+The lockup's mark rotates in the menu and the footer, 9s, linear, transform
+only, and off entirely under `prefers-reduced-motion`.
+
+**This is a looping ambient animation, which the motion skill §1 forbids
+outright.** The one exemption it granted was the hero video, and that is gone —
+so the build had none, and now has two. Added on the client's explicit
+instruction and bounded to keep the cost of the exception low: slow enough to
+read as a drift rather than a spinner, on two elements in the whole page, and
+on `transform` so it never leaves the compositor.
+
+One implementation note worth keeping: **the spin is on the mark, not the
+lockup.** The lockup already carries the flight transform that flies it into the
+menu, and an animation and a transition on the same property on the same element
+fight — the animation wins and the flight would simply never happen. Separating
+them by one element costs nothing and keeps both correct. Verified: with the
+spin running, the mark still lands at 103px, centred and scaled.
+
+### A WCAG failure that had been shipping quietly
+
+Lighthouse's `label-content-name-mismatch` flagged the Arabic language option:
+visible text `العربية`, accessible name "Arabic — translation not available
+yet". That is **WCAG 2.5.3 Label in Name** — the visible label appeared nowhere
+in the accessible name, so anyone using voice control could not say what they
+could see.
+
+It had been shipping since the switcher was added; I had not printed the failing
+audit list on that run, only the scores, and the accessibility *score* stayed
+100 throughout. The lesson is the process one: print the failing list, not just
+the number.
+
+Fixed by deleting the `aria-label`. The visible text is the name now, and
+`aria-disabled` carries the unavailability — which is what that attribute is
+for, and it announces in the reader's own words rather than mine.
+
+### Verification
+
+| | |
+|---|---|
+| Deck, idle | advances, 5 distinct cards in 12s |
+| Deck, reduced motion | advances (was frozen) |
+| Deck, cancelled scrub drag | advances (was frozen **forever**) |
+| Deck, pointer parked on it | yields 9.9s, then the watchdog releases it |
+| Back to top | hidden and `inert` at the top, 44×44 and live once scrolled, returns to `scrollY 0`, hidden with the menu open |
+| Spin | `brand-spin 9s infinite` on both marks; menu flight still lands at 103px |
+| axe | 0 violations — whole page in both power states at 320/375/430/1440, over paper, and with the menu open |
+| Lighthouse | 99 / 100 / 100 / 100, LCP 1.8 s, CLS 0, **no failing audits** |

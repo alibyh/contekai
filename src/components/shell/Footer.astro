@@ -463,6 +463,19 @@ const year = new Date().getFullYear();
       margin-block-end: var(--space-1);
     }
 
+    /* Looping, per the client. Slow enough to read as a drift rather than a
+       spinner, transform only, and gone entirely under reduced motion. See the
+       note on --spin-dur in tokens.css for why this is an exception. */
+    .brand__mark {
+      animation: brand-spin var(--spin-dur) linear infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .brand__mark {
+        animation: none;
+      }
+    }
+
     .brand__name {
       font-family: var(--font-serif);
       font-size: 1.75rem;

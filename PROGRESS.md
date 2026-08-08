@@ -23,6 +23,12 @@ Last updated after the footer rebuild against `footerGuide/`.
       documented in `NOTES.md` — React/Tailwind, backdrop-filter, two contrast
       failures in the supplied orange, an impossible headline size, the
       typeface, mobile-only, and the 65% device position.
+- [x] **Back to top.** `shell/ToTop.astro`, driven off the shared hero
+      observer; appears past the hero, `inert` until visible, hides with the
+      menu.
+- [x] **Brand mark spins** in the menu and the footer (9s, transform only, off
+      under reduced motion). A documented exception to the motion skill's ban
+      on looping ambient animation.
 - [x] **Step 3 — Capabilities deck.** Rebuilt as a three-up stacked carousel
       per client revision (auto-advance, pause-on-interaction, reduced-motion
       falloff). Every card now dark (`--ink-700`) per the latest tweak.

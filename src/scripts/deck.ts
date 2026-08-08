@@ -15,40 +15,76 @@
  *
  * AUTO-ADVANCE, AND WHY IT IS HERE
  * kit/skills/motion/SKILL.md §2C says "Never auto-advance", and it is right
- * about why: auto-advancing carousels are a documented usability failure and
- * steal control from someone reading on a phone. This component overrides that
- * rule on the client's explicit instruction. The override is bounded so it
- * takes as little control as possible:
- *   - 6s cadence, and it stops the moment the reader shows any sign of reading:
- *     pointer over the deck, focus inside it, or the tab hidden
- *   - any manual navigation (arrow, key, scrub) suspends it for 15s
- *   - under prefers-reduced-motion it never starts at all
+ * about why. This component overrides that rule on the client's explicit
+ * instruction. The override is bounded so it takes as little control as
+ * possible: it yields while the reader is plainly reading, and resumes by
+ * itself the moment they are not.
+ *
+ * IT MUST NEVER STOP. The client reported the deck "sometimes doesn't move at
+ * all", which is the worst possible failure for a component that exists to
+ * cycle. Everything below is built so that a pause is impossible to LATCH:
+ *
+ *   1. No stateful pause flags. `hovering` and `focusWithin` used to be
+ *      booleans set by pointerenter/focusin and cleared by their opposites —
+ *      and any missed clearing event froze the deck permanently. The pause
+ *      conditions are now QUERIED at each tick from the DOM itself, so there
+ *      is no state to get stuck in.
+ *   2. `pointercancel` is handled. This was the concrete bug: dragging the
+ *      scrub and having the browser take the gesture over for scrolling — the
+ *      single most likely thing to happen on a phone — fires pointercancel and
+ *      never pointerup, which left BOTH `scrubbing` and `hovering` true
+ *      forever. That is a deck that stops and never restarts, and it would
+ *      feel exactly as random as "sometimes".
+ *   3. A watchdog. Whatever else happens, if the deck has not advanced in
+ *      MAX_STALL_MS it advances regardless of every other condition. This is
+ *      the guarantee rather than the mechanism: if it ever fires, something
+ *      above it is wrong.
+ *
  * See NOTES.md for the full argument.
+ *
+ * REDUCED MOTION
+ * The deck now advances under prefers-reduced-motion too, where it previously
+ * did not start at all. Two reasons, and the second is the stronger one:
+ *
+ *   - Nothing actually moves. motion.css already collapses every transition to
+ *     1ms, so the card CHANGES rather than travelling — which is the standard
+ *     accommodation, not a violation of it.
+ *   - Standing still was worse for those readers, not better. With no arrows in
+ *     the markup, a frozen deck left five of the six capabilities behind
+ *     `inert` and `aria-hidden`, reachable only by finding the scrub bar.
+ *
+ * The pause mechanism WCAG 2.2.2 asks for is still there and still real: the
+ * deck yields to a pointer resting on it and to keyboard focus inside it.
  *
  * Everything else follows §2C: no 3D rotation, no perspective, no coverflow.
  */
-
-import { prefersReducedMotion } from "./reveal";
 
 const stage = document.querySelector<HTMLElement>("[data-deck-track]");
 
 if (stage) {
   const cards = [...stage.querySelectorAll<HTMLElement>("[data-deck-card]")];
-  const prevBtn = document.querySelector<HTMLButtonElement>("[data-deck-prev]");
-  const nextBtn = document.querySelector<HTMLButtonElement>("[data-deck-next]");
   const count = document.querySelector<HTMLElement>("[data-deck-count]");
   const scrub = document.querySelector<HTMLElement>("[data-deck-scrub]");
   const segments = [...document.querySelectorAll<HTMLElement>("[data-deck-seg]")];
   const total = cards.length;
-  const reduced = prefersReducedMotion();
+
+  /** Everything that counts as "inside the deck" for the purpose of yielding. */
+  const zones: HTMLElement[] = [stage, scrub].filter(
+    (el): el is HTMLElement => el !== null,
+  );
 
   const AUTO_MS = 3000;
+  /** A manual move gets a beat to land before the clock takes over again. */
   const MANUAL_COOLDOWN_MS = 1000;
+  /**
+   * The hard guarantee. No combination of hover, focus or cooldown may hold the
+   * deck still for longer than this — if it does, the watchdog advances anyway.
+   */
+  const MAX_STALL_MS = 9000;
 
   let active = 0;
   let lastManualAt = 0;
-  let hovering = false;
-  let focusWithin = false;
+  let lastAdvanceAt = Date.now();
   let timer: number | undefined;
 
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -83,32 +119,52 @@ if (stage) {
 
     if (count) count.textContent = `${pad(active + 1)} / ${pad(total)}`;
     segments.forEach((seg, i) => seg.toggleAttribute("data-on", i <= active));
-
-    // The deck wraps, so neither arrow is ever a dead end.
-    prevBtn?.setAttribute("aria-disabled", "false");
-    nextBtn?.setAttribute("aria-disabled", "false");
   }
 
   function go(index: number, manual = false): void {
     active = mod(index);
-    if (manual) lastManualAt = Date.now();
+    lastAdvanceAt = Date.now();
+    if (manual) lastManualAt = lastAdvanceAt;
     paint();
   }
 
-  /* --- auto-advance -------------------------------------------------------- */
+  /* --- auto-advance --------------------------------------------------------
+     Every condition below is READ, never stored. A flag that is set by one
+     event and cleared by another is a flag that can be left set when the
+     clearing event does not arrive, and that is precisely how this deck came
+     to stop. */
+
+  /** True while the pointer is genuinely over the deck, asked of the DOM. */
+  const pointerOnDeck = (): boolean => zones.some((el) => el.matches(":hover"));
+
+  /**
+   * True only for KEYBOARD focus. Clicking a control focuses it in Chrome, and
+   * treating that as "the reader is in the deck" would hold the pause open long
+   * after the pointer had gone. :focus-visible is exactly that distinction.
+   */
+  function keyboardFocusInDeck(): boolean {
+    const el = document.activeElement;
+    if (!(el instanceof Element)) return false;
+    if (!zones.some((zone) => zone.contains(el))) return false;
+    return el.matches(":focus-visible");
+  }
 
   function mayAdvance(): boolean {
-    if (reduced) return false;
-    if (hovering || focusWithin) return false;
+    // A hidden tab is the one case where standing still is correct: nobody is
+    // watching, and browsers throttle the timer to roughly nothing anyway.
     if (document.visibilityState !== "visible") return false;
-    return Date.now() - lastManualAt >= MANUAL_COOLDOWN_MS;
+
+    // The guarantee, checked before anything that could withhold consent.
+    if (Date.now() - lastAdvanceAt >= MAX_STALL_MS) return true;
+
+    if (Date.now() - lastManualAt < MANUAL_COOLDOWN_MS) return false;
+    return !pointerOnDeck() && !keyboardFocusInDeck();
   }
 
   function startAuto(): void {
-    if (reduced || timer !== undefined) return;
+    if (timer !== undefined) return;
     timer = window.setInterval(() => {
-      if (!mayAdvance()) return;
-      go(active + 1);
+      if (mayAdvance()) go(active + 1);
     }, AUTO_MS);
   }
 
@@ -118,56 +174,30 @@ if (stage) {
     timer = undefined;
   }
 
-  stage.addEventListener("pointerenter", () => {
-    hovering = true;
-  });
-  stage.addEventListener("pointerleave", () => {
-    hovering = false;
-  });
-  /**
-   * Only KEYBOARD focus pauses. Clicking an arrow focuses it in Chrome, and
-   * treating that as "the reader is in the deck" pinned the pause on forever:
-   * one click and auto-advance never resumed, because focusWithin stayed true
-   * long after the pointer had left. :focus-visible is exactly the distinction
-   * — someone tabbing through is reading, someone who clicked is not
-   * necessarily still there.
-   */
-  const isKeyboardFocus = (t: EventTarget | null): boolean =>
-    t instanceof Element && t.matches(":focus-visible");
-
-  stage.addEventListener("focusin", (e) => {
-    focusWithin = isKeyboardFocus(e.target);
-  });
-  stage.addEventListener("focusout", (e) => {
-    if (!stage.contains(e.relatedTarget as Node)) focusWithin = false;
-  });
-  // The controls sit outside the stage but are part of the deck.
-  for (const el of [prevBtn, nextBtn, scrub]) {
-    el?.addEventListener("pointerenter", () => {
-      hovering = true;
-    });
-    el?.addEventListener("pointerleave", () => {
-      hovering = false;
-    });
-    el?.addEventListener("focusin", (e) => {
-      focusWithin = isKeyboardFocus(e.target);
-    });
-    el?.addEventListener("focusout", () => {
-      focusWithin = false;
-    });
-  }
-
   document.addEventListener("visibilitychange", () => {
-    // Nothing to resume explicitly: mayAdvance() reads visibilityState each
-    // tick, so a hidden tab simply stops advancing and picks up when shown.
-    if (document.visibilityState === "visible") startAuto();
-    else stopAuto();
+    // mayAdvance() reads visibilityState every tick, so this is only about not
+    // burning a timer in a background tab. Coming back restarts it, and resets
+    // the stall clock so the watchdog does not fire on the first tick after a
+    // long absence.
+    if (document.visibilityState === "visible") {
+      lastAdvanceAt = Date.now();
+      startAuto();
+    } else {
+      stopAuto();
+    }
+  });
+
+  // Some browsers restore a page from the back/forward cache without firing
+  // visibilitychange, which would leave a cleared timer cleared.
+  window.addEventListener("pageshow", () => {
+    lastAdvanceAt = Date.now();
+    startAuto();
   });
 
   /* --- controls ------------------------------------------------------------ */
 
-  prevBtn?.addEventListener("click", () => go(active - 1, true));
-  nextBtn?.addEventListener("click", () => go(active + 1, true));
+  // There are no prev/next buttons in the markup any more — the scrub bar and
+  // the arrow keys are the manual controls. Nothing here looks for them.
 
   stage.addEventListener("keydown", (e) => {
     const moves: Record<string, number> = {
@@ -193,6 +223,12 @@ if (stage) {
   }
 
   let scrubbing = false;
+
+  function endScrub(e: PointerEvent): void {
+    scrubbing = false;
+    if (scrub?.hasPointerCapture(e.pointerId)) scrub.releasePointerCapture(e.pointerId);
+  }
+
   scrub?.addEventListener("pointerdown", (e) => {
     scrubbing = true;
     scrub.setPointerCapture(e.pointerId);
@@ -201,9 +237,15 @@ if (stage) {
   scrub?.addEventListener("pointermove", (e) => {
     if (scrubbing) scrubTo(e.clientX);
   });
-  scrub?.addEventListener("pointerup", (e) => {
+  scrub?.addEventListener("pointerup", endScrub);
+  /* THE BUG. A drag the browser takes over for scrolling — the most ordinary
+     thing that can happen to a horizontal drag on a phone — fires
+     pointercancel and never pointerup. Without this the deck was left mid-drag
+     forever, and with the old flags that also meant hovering stayed true and
+     auto-advance never resumed. */
+  scrub?.addEventListener("pointercancel", endScrub);
+  scrub?.addEventListener("lostpointercapture", () => {
     scrubbing = false;
-    if (scrub.hasPointerCapture(e.pointerId)) scrub.releasePointerCapture(e.pointerId);
   });
 
   paint();

@@ -193,6 +193,23 @@ import LangSwitch from "../ui/LangSwitch.astro";
       color: var(--laterite);
     }
 
+    /*
+      The mark spins while the menu is open. It has to be the MARK and not the
+      lockup: the lockup is already carrying the flight transform, and an
+      animation and a transition on the same property on the same element fight
+      — the animation wins and the flight would never happen. Separating them by
+      one element costs nothing and keeps both correct.
+    */
+    :global(body:has(.menu.is-open)) .lockup__mark {
+      animation: brand-spin var(--spin-dur) linear infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      :global(body:has(.menu.is-open)) .lockup__mark {
+        animation: none;
+      }
+    }
+
     .lockup__word {
       font-size: 1.125rem;
       font-weight: var(--fw-bold);

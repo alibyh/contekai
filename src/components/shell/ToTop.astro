@@ -1,0 +1,102 @@
+---
+/**
+ * ToTop — the back-to-top control, shown once the hero is behind you.
+ *
+ * Appears rather than persists: it is dead weight on the first screen, where
+ * "up" is where you already are. Visibility is driven by the shared observer in
+ * reveal.ts watching the hero, so this component ships no script of its own and
+ * the page gains no second scroll listener.
+ *
+ * GROUND. It floats over sections of both materials, so it cannot inherit one.
+ * A paper disc reads on every ground this page has: unmissable on the four dark
+ * bands, and on the two paper ones the lift shadow and the hairline give it its
+ * edge. The icon inside is --on-paper on --paper-hi, 15.7:1, which is what
+ * actually identifies the control.
+ *
+ * With JS off it never appears. That is correct rather than a gap: the page is
+ * one document with a working skip link and a browser Home key, and a control
+ * that cannot know where you are is worse than no control.
+ */
+import Icon from "../ui/Icon.astro";
+---
+
+{/*
+  Wrapped in a landmark because it is a direct child of <body> and axe flagged
+  it as content outside any region. A one-link <nav> is the conventional home
+  for a back-to-top control and announces as something useful rather than as
+  stray text.
+
+  Ships `inert`: while the reader is still on the hero the control is invisible,
+  and a screen reader offering "Back to top" to someone already at the top is
+  noise. reveal.ts lifts it at the same moment it becomes visible, so the
+  keyboard and the accessibility tree agree with the pixels.
+*/}
+<nav class="totop-region" aria-label="Back to top" data-totop-region inert>
+  <a class="totop" href="#top" data-totop aria-label="Back to top">
+    <Icon name="arrow-up" size={20} />
+  </a>
+</nav>
+
+<style>
+  @layer components {
+    /* The landmark is a wrapper with no box of its own; the control inside it
+       is what is fixed. */
+    .totop-region {
+      display: contents;
+    }
+
+    .totop {
+      position: fixed;
+      z-index: 45; /* under the header (50) and the menu (60), over the page */
+      inset-block-end: var(--gutter);
+      inset-inline-end: var(--gutter);
+
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      inline-size: var(--tap-min);
+      block-size: var(--tap-min);
+
+      border: var(--border-paper);
+      border-radius: var(--r-full);
+      background-color: var(--paper-hi);
+      color: var(--on-paper);
+      box-shadow: var(--shadow-lift);
+      text-decoration: none;
+
+      /* Hidden until the hero is behind you. Not display:none — it has to be
+         able to transition, and pointer-events is what actually makes it
+         unclickable while invisible. */
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition:
+        opacity var(--dur-base) var(--ease-out),
+        transform var(--dur-base) var(--ease-out);
+    }
+
+    .totop.is-in {
+      opacity: 1;
+      transform: none;
+      pointer-events: auto;
+    }
+
+    .totop:hover {
+      background-color: var(--paper);
+    }
+
+    /* The menu covers the page; a floating control over it is just clutter. */
+    :global(body:has(.menu.is-open)) .totop {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /*
+      No JS, no observer, no way to know where the reader is — so it never
+      shows at all rather than sitting there permanently.
+    */
+    :global(html:not([data-js])) .totop {
+      display: none;
+    }
+  }
+</style>

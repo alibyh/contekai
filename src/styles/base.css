@@ -279,6 +279,14 @@
     scroll-margin-top: calc(var(--header-h) + var(--space-4));
   }
 
+  /* Shared by the menu's lockup mark and the footer's. Declared here rather
+     than twice, because two copies of a keyframe are two things to drift. */
+  @keyframes brand-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
   ::selection {
     background-color: var(--laterite);
     color: var(--on-laterite);

@@ -119,5 +119,35 @@ function initHeaderGround(): void {
   );
 }
 
+/**
+ * Back-to-top visibility. The control appears once the hero is behind you and
+ * hides again at the top, where "up" is where you already are.
+ *
+ * Driven off the hero's own intersection rather than a scroll listener, so the
+ * page gains no per-frame work — and it lives here for the same reason the
+ * header's ground switching does: the motion skill says there is one place
+ * observers get registered.
+ */
+function initToTop(): void {
+  const button = document.querySelector<HTMLElement>("[data-totop]");
+  const region = document.querySelector<HTMLElement>("[data-totop-region]");
+  const hero = document.querySelector<HTMLElement>('[data-section="hero"]');
+  if (!button || !region || !hero) return;
+
+  new IntersectionObserver(
+    ([entry]) => {
+      /* Any sliver of the hero still on screen counts as "at the top". */
+      const show = !entry.isIntersecting;
+      button.classList.toggle("is-in", show);
+      /* Keep the accessibility tree and the tab order in step with the pixels:
+         an invisible control that can still be tabbed to is a trap, and one
+         that offers "Back to top" while you are at the top is noise. */
+      region.toggleAttribute("inert", !show);
+    },
+    { threshold: 0 },
+  ).observe(hero);
+}
+
 initReveal();
 initHeaderGround();
+initToTop();

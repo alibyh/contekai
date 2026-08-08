@@ -15,6 +15,17 @@
  * looks broken. The day the Arabic route exists: drop `aria-disabled`, swap the
  * <button> for an <a href>, and delete the `data-todo`.
  *
+ * NO aria-label ON THE ARABIC OPTION. It used to carry
+ * `aria-label="Arabic — translation not available yet"`, which failed WCAG
+ * 2.5.3 Label in Name: the visible text "العربية" appeared nowhere in the
+ * accessible name, so anyone using voice control could not say what they could
+ * see. Lighthouse's label-content-name-mismatch caught it.
+ *
+ * The visible text is the name now, and `aria-disabled` carries the
+ * unavailability — which is what that attribute is for, and it announces in
+ * the reader's own words rather than mine. The `data-todo` keeps the note where
+ * it belongs: for whoever wires the route.
+ *
  * Two details the Arabic label needs:
  *  - `lang="ar"` and `dir="rtl"`, so it is announced in the right voice and
  *    shaped right to left.
@@ -51,7 +62,6 @@ const { compact = false, class: className }: Props = Astro.props;
     lang="ar"
     dir="rtl"
     aria-disabled="true"
-    aria-label="Arabic — translation not available yet"
     data-todo="awaiting Arabic translation"
   >
     العربية
