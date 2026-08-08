@@ -337,9 +337,38 @@ const multiple = testimonials.length > 1;
 
     /* --- responsive --------------------------------------------------------- */
 
+    /* Below this, `.proof` stacked head-then-body has been the ONLY layout at
+       every width — including desktop. Measured, not assumed: at 768-1440 the
+       quote and its attribution stayed pinned to a narrow left column with a
+       large unstructured dark void beside them, because nothing was giving
+       that space a reason to exist. Pricing and the footer receipt get away
+       with a narrow object surrounded by quiet space because there are always
+       TWO things in relationship across the width (controls beside the
+       receipt, the heading beside the receipt); Proof had only one. A real
+       two-column split — heading left, quote right, same 12-column grid and
+       breakpoint Pricing already uses — gives the space that same structure
+       without widening the quote itself, which the section spec caps at 26ch
+       per line on purpose. */
     @media (min-width: 768px) {
       .quote__text {
         font-size: clamp(1.5rem, 2.6vw, 2.125rem);
+      }
+
+      .proof {
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        column-gap: var(--space-5);
+        align-items: start;
+      }
+
+      .proof__head {
+        grid-column: 1 / span 4;
+        /* The head no longer needs its own wide cap — the grid column does
+           that job now. */
+        max-inline-size: none;
+      }
+
+      .proof__body {
+        grid-column: 6 / -1;
       }
     }
 

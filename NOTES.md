@@ -1673,3 +1673,64 @@ Facebook handles if those accounts should be linked. If none of that
 lands, the footer still ships correctly — the awaiting-state box and the
 inert social placeholders are the honest version of "not yet," not a broken
 one.
+
+---
+
+## Tablet range (≥720px) — Proof composition, and a false alarm on the footer
+
+**The ask:** Proof and Footer needed real attention in the tablet zone
+(roughly 720–1023px), not just whatever fell out of the mobile/desktop
+breakpoints.
+
+### Footer: measured, found correct, no change needed
+
+First pass of measurements (a naive `getBoundingClientRect()` read
+immediately after `page.goto`, no forced reflow) showed the receipt wildly
+off-centre at 900–1440px — at 1440 it read 335px right of true centre. That
+would have been a real bug. It wasn't: repeated with a forced reflow
+(`document.body.offsetHeight` before reading) and a second read 200ms later
+to confirm stability, the receipt centres correctly at every width, with
+exactly one explainable, consistent, and by-design offset — the till-rail's
+44px gutter, present identically on every other section, active only above
+900px (matching `--rail: 0px` below that). The first reading was headless
+Chrome not having settled `vw`-based layout (`--gutter: clamp(...)`) at the
+instant `evaluate()` ran right after a viewport change — a tooling artifact,
+not a page bug. Recorded here so it isn't re-investigated from scratch next
+time the same flakiness shows up.
+
+The footer's narrow-centred receipt at every width above ~500px is correct
+and intentional: `footerGuide/footer-hybrid-reference.html` and its own
+`PLAN.md` cap the receipt at ~440-460px on purpose — a receipt is a strip of
+paper, not a panel, and stretching it to fill the viewport would break the
+metaphor the whole component is built around. No change made.
+
+### Proof: a real gap, now fixed
+
+This one was real. `.proof` had exactly one layout — head stacked above body
+in a single narrow column — at every width from 320px to 1440px. On a phone
+that's correct. On anything ≥768px it read as unfinished: a small quote and
+a five-line attribution block pinned to the left edge with a large,
+unstructured dark void beside them, visible even at 1440px in screenshots
+taken during earlier verification passes that were checking contrast and
+rhythm, not "does this use its width."
+
+What makes the equivalent whitespace work elsewhere on the page — the
+pricing receipt, the footer receipt — is that there are always two things in
+a considered relationship across the width (controls beside the receipt, the
+heading beside the receipt). Proof only ever had one. Fixed by giving it the
+same relationship, reusing Pricing's exact pattern rather than inventing a
+new one: a 12-column grid at the same `min-width: 768px` breakpoint Pricing
+already uses, eyebrow+heading in columns 1–4, quote+attribution in columns
+6–12. The quote's own measure is untouched — the section spec caps it at
+26ch per line on purpose, and that cap is doing real typographic work, not
+just filling space badly — only the *column* it sits in got wider, giving
+the negative space beside it a reason to exist instead of reading as an
+accident.
+
+Verified at 375 (unaffected, still single column), 768, 900 (the rail's own
+activation point — checked in case the two changes interacted), 1023, and
+1440: no horizontal overflow at any width, and the composition reads as
+intentional at each rather than as a scaled photocopy of the mobile layout.
+
+Lighthouse mobile: 98/100/100/100, CLS 0, TBT 0 — unaffected by a
+layout-only change.
