@@ -36,6 +36,10 @@ Last updated after the footer rebuild against `footerGuide/`.
       No stars. Tablet/desktop composition added.
 - [x] **Mobile menu.** Circular-reveal panel ported from `menu_mobile/`,
       wired to the header's menu button, focus-trapped, `inert` when closed.
+      The lockup now walks to the centre of the header on open (pure CSS
+      transform, no JS). Foot row added: an `EN / العربية` switcher with no
+      background, and Instagram / TikTok / LinkedIn badges matching the footer.
+      Fixed a pre-existing `region` violation by making the panel one landmark.
 - [x] **Step 7 — Footer.** Rebuilt end to end against `footerGuide/`: a
       second full-form receipt (torn edges, barcode, dotted-leader nav,
       dashed total row) plus the five-lobe warmth panel.
@@ -115,6 +119,10 @@ state or is simply absent, never guessed.
       go back in; if no, they stay absent.
 - [ ] **"Built by Pilore Solutions"** — sourced from the current site's own
       footer but unconfirmed, so absent from the new one.
+- [ ] **Arabic translations and the `ar` route.** The menu's language switcher
+      ships as a marked placeholder (`aria-disabled`, `data-todo`) — the control
+      exists, the translations do not. Drop `aria-disabled` and add an `href`
+      when they land.
 - [ ] **LinkedIn handle.** Instagram and TikTok are live with the client's own
       links and badges; Facebook was dropped (never in the supplied list).
       LinkedIn is an inert labelled placeholder, not `href="#"`, until there is

@@ -26,7 +26,25 @@
  * is `inert` when closed so nothing inside is tabbable, and every item is a
  * real anchor to a real section rather than a button with a handler.
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import Button from "../ui/Button.astro";
+
+/**
+ * The client's own brand SVGs, read off disk at build time so the source of
+ * truth stays the actual files rather than a paste. Same helper as Footer.astro
+ * — resolved from process.cwd() rather than import.meta.url, because Vite
+ * rewrites where the compiled module lives and a relative climb lands in the
+ * wrong tree at build time.
+ */
+function brandIcon(name: string): string {
+  const path = join(process.cwd(), "iconsSvg", `${name}.svg`);
+  const raw = readFileSync(path, "utf8");
+  return raw.replace(/^[\s\S]*?<svg[^>]*>/, "").replace(/<\/svg>[\s\S]*$/, "");
+}
+
+const IG_ICON = brandIcon("instagram");
+const TIKTOK_ICON = brandIcon("tiktok");
 
 const links = [
   { href: "#what-it-does", label: "What it does" },
@@ -40,23 +58,30 @@ const links = [
   {/* Scales out of the button's corner. Solid ink, not a gradient. */}
   <div class="menu__bubble" aria-hidden="true"></div>
 
-  <div class="menu__content">
-    <nav class="menu__nav" aria-label="Sections">
-      <ul class="menu__list">
-        {
-          links.map((link, i) => (
-            <li class="menu__item" style={`--i:${i}`}>
-              <a class="menu__link" href={link.href} data-menu-link>
-                <span>{link.label}</span>
-                <span class="menu__index t-mono" aria-hidden="true">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-              </a>
-            </li>
-          ))
-        }
-      </ul>
-    </nav>
+  {/*
+    One navigation landmark around everything, not just the section links.
+    axe flagged the actions, the language switcher and the socials as content
+    outside any landmark — the actions had been sitting outside one since the
+    port and it only surfaced now that there is more of it. A site menu holding
+    links, a call to action, a language choice and social links is exactly what
+    a <nav> is for, so the panel is the landmark and the inner one is gone
+    rather than nested.
+  */}
+  <nav class="menu__content" aria-label="Menu">
+    <ul class="menu__list">
+      {
+        links.map((link, i) => (
+          <li class="menu__item" style={`--i:${i}`}>
+            <a class="menu__link" href={link.href} data-menu-link>
+              <span>{link.label}</span>
+              <span class="menu__index t-mono" aria-hidden="true">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
 
     <div class="menu__actions menu__item" style={`--i:${links.length}`}>
       <Button variant="primary" href="/signup" data-menu-link>
@@ -64,7 +89,84 @@ const links = [
       </Button>
       <Button variant="quiet" href="/login" data-menu-link>Log in</Button>
     </div>
-  </div>
+
+    <div class="menu__foot menu__item" style={`--i:${links.length + 1}`}>
+      {/*
+        Language switcher. No background of any kind, per the request — it is
+        two words and a divider, which is all a two-language switcher needs.
+
+        Arabic is present and NOT pretending to work: there are no translations
+        yet, so the option carries aria-disabled and a data-todo rather than
+        silently doing nothing when pressed. It still reads as the inactive half
+        of a switcher, which is exactly what it is. Drop aria-disabled and wire
+        an href the day the Arabic route exists.
+
+        The Arabic label carries lang and dir so it is announced in the right
+        voice and shaped right-to-left. It also falls outside Archivo's subset,
+        so it renders in the system Arabic face — correct, and free.
+      */}
+      <div class="lang" role="group" aria-label="Language">
+        <span class="lang__opt lang__opt--on" aria-current="true">EN</span>
+        <span class="lang__sep" aria-hidden="true">/</span>
+        <button
+          type="button"
+          class="lang__opt"
+          lang="ar"
+          dir="rtl"
+          aria-disabled="true"
+          aria-label="Arabic — translation not available yet"
+          data-todo="awaiting Arabic translation"
+        >
+          العربية
+        </button>
+      </div>
+
+      {/* Same accounts, same treatment as the footer. One source of truth for
+          where Contekai actually is; LinkedIn stays an honest placeholder. */}
+      <ul class="socials" role="list">
+        <li>
+          <a
+            class="social"
+            href="https://www.instagram.com/p/DbkUhxTCdcL/"
+            target="_blank"
+            rel="noopener"
+            aria-label="Contekai on Instagram"
+            data-menu-link
+          >
+            <svg viewBox="0 0 48 48" aria-hidden="true" set:html={IG_ICON} />
+          </a>
+        </li>
+        <li>
+          <a
+            class="social"
+            href="https://www.tiktok.com/@contekai_"
+            target="_blank"
+            rel="noopener"
+            aria-label="Contekai on TikTok"
+            data-menu-link
+          >
+            <svg viewBox="0 0 48 48" aria-hidden="true" set:html={TIKTOK_ICON} />
+          </a>
+        </li>
+        <li>
+          <button
+            type="button"
+            class="social"
+            aria-label="LinkedIn — account not yet confirmed"
+            data-todo="awaiting client handle"
+          >
+            <svg viewBox="0 0 48 48" aria-hidden="true">
+              <rect width="48" height="48" rx="9" fill="#0a66c2"></rect>
+              <path
+                fill="#fff"
+                d="M14.6 20.2h5.4V35h-5.4V20.2zM17.3 18a3.1 3.1 0 1 1 0-6.2 3.1 3.1 0 0 1 0 6.2zM23.4 20.2h5.2v2.1h.07c.72-1.36 2.49-2.8 5.13-2.8 5.49 0 6.5 3.6 6.5 8.3V35h-5.4v-6.6c0-1.57-.03-3.6-2.2-3.6-2.2 0-2.53 1.72-2.53 3.5V35h-5.4V20.2z"
+              ></path>
+            </svg>
+          </button>
+        </li>
+      </ul>
+    </div>
+  </nav>
 </div>
 
 <style>
@@ -188,6 +290,106 @@ const links = [
       flex-wrap: wrap;
       align-items: center;
       gap: var(--space-4);
+    }
+
+    /* --- the foot: language + socials --------------------------------------- */
+
+    /*
+      The auto top margin absorbs the free space the column's centring would
+      otherwise spread around, which pins the foot to the bottom while the nav
+      and the actions stay optically centred above it.
+    */
+    .menu__foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-5);
+      margin-block-start: auto;
+      padding-block-start: var(--space-5);
+      border-block-start: var(--border-ink);
+    }
+
+    .lang {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    /* No background, no border, no chip. Text and a divider. */
+    .lang__opt {
+      min-block-size: var(--tap-min);
+      display: inline-flex;
+      align-items: center;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--on-ink-muted);
+      font-family: var(--font-mono);
+      font-size: var(--fs-label);
+      letter-spacing: var(--track-label);
+      line-height: var(--lh-flat);
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    /* The current language is the one that is not muted. Weight and value carry
+       it, so it is never colour alone. */
+    .lang__opt--on {
+      color: var(--on-ink);
+      cursor: default;
+    }
+
+    /* Arabic is not uppercase-able and should not be letterspaced — neither
+       does anything useful to an Arabic face, and tracking actively breaks the
+       joins between letters. */
+    .lang__opt[lang="ar"] {
+      font-family: var(--font-sans);
+      font-size: var(--fs-small);
+      letter-spacing: normal;
+      text-transform: none;
+    }
+
+    .lang__sep {
+      color: var(--on-ink-faint);
+      font-family: var(--font-mono);
+      font-size: var(--fs-label);
+    }
+
+    .socials {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    /* Same treatment as the footer's: these are full-colour third-party badges
+       (an Instagram gradient, TikTok's own near-black square) and they need a
+       light backer to read at all on --ink-900. */
+    .social {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      inline-size: var(--tap-min);
+      block-size: var(--tap-min);
+      padding: 0;
+      border: 0;
+      border-radius: var(--r-full);
+      background-color: rgb(255 255 255 / 0.94);
+      color: inherit;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform var(--dur-fast) var(--ease-out);
+    }
+
+    .social:hover {
+      transform: translateY(-1px);
+    }
+
+    .social svg {
+      inline-size: 24px;
+      block-size: 24px;
     }
 
     /* --- reduced motion ------------------------------------------------------

@@ -151,6 +151,27 @@ import Button from "../ui/Button.astro";
       margin-inline-end: auto;
       text-decoration: none;
       color: inherit;
+      transition: transform var(--dur-slow) var(--ease-out);
+    }
+
+    /*
+      Open the menu and the lockup walks to the centre of the header.
+
+      Transform only, and computed rather than measured: the lockup's left edge
+      sits at (--gutter + --rail) because that is header__inner's inline-start
+      padding, and centring it means putting that edge at 50vw minus half the
+      lockup's own width. translateX percentages resolve against the element's
+      own border box, so `50%` IS half its width and the whole move is one
+      calc with no JS and no layout read.
+
+      It runs on --dur-slow, one step longer than the burger morph, so the mark
+      arrives just after the X has formed rather than racing it.
+    */
+    :global(body:has(.menu.is-open)) .lockup {
+      transform: translateX(calc(50vw - 50% - var(--gutter) - var(--rail)));
+      /* The menu owns the whole screen while it is open, so the lockup stops
+         being a live link back to the page behind it. */
+      pointer-events: none;
     }
 
     .lockup__mark {

@@ -2529,3 +2529,105 @@ button", and holding to it means the eye has exactly one place to go.
 **Gate:** passed. Same standing exception as before on the LCP-element item —
 §2A's mask-reveal clips the headline out of its own paint box, so it can never
 be the LCP candidate; documented in the previous entry and unchanged.
+
+---
+
+## Mobile menu — the lockup walks to centre, and a foot row
+
+Three additions to the panel.
+
+### The lockup centres itself on open
+
+The header already goes to `z-index: 61` and drops its ground while the menu is
+open, so the mark was visible on the ink the whole time — it just stayed in the
+top-left corner while the panel filled the screen around it. Now it moves to
+the middle of the header band.
+
+Transform only, and **computed rather than measured**:
+
+```css
+transform: translateX(calc(50vw - 50% - var(--gutter) - var(--rail)));
+```
+
+The lockup's left edge sits at `--gutter + --rail`, which is `header__inner`'s
+inline-start padding, and centring means putting that edge at `50vw` minus half
+its own width. `translateX` percentages resolve against the element's own
+border box, so `50%` *is* half its width and the whole move is one calc — no
+JS, no layout read, nothing to go stale. Verified dead centre (`offBy: 0`) at
+320, 375 and 430.
+
+It rides the existing `body:has(.menu.is-open)` hook, so there was no script to
+change, and it runs at `--dur-slow` — one step longer than the burger morph, so
+the mark arrives just after the X has formed instead of racing it. `--rail` is
+`0px` below 900px, so the same expression is correct on both sides of that
+breakpoint.
+
+The lockup also drops `pointer-events` while open: the menu owns the screen and
+a link back to a page you cannot see is a trap.
+
+### Language switcher
+
+`EN / العربية`, no background of any kind, as asked — two words and a divider,
+which is all a two-language switcher needs.
+
+**Arabic is present and does not pretend to work.** There are no translations
+yet, so the option carries `aria-disabled="true"` and a `data-todo`, exactly
+like the LinkedIn placeholder in the footer, rather than being a live-looking
+control that silently does nothing when pressed. It still reads as the inactive
+half of a switcher — which is precisely what it is — so nothing looks broken.
+The day the Arabic route exists, drop `aria-disabled` and give it an `href`.
+
+Two details that matter for the Arabic label:
+
+- `lang="ar"` and `dir="rtl"` on that element, so it is announced in the right
+  voice and shaped right to left.
+- It is exempted from the mono/uppercase/`--track-label` treatment the rest of
+  the labels get. Letter-spacing an Arabic face actively breaks the joins
+  between letters, and `text-transform: uppercase` means nothing there.
+
+The glyphs fall outside Archivo's subset, so the browser resolves them to the
+system Arabic face through the existing `unicode-range`. Correct, and free — no
+extra download.
+
+### Socials
+
+Instagram and TikTok as real links to the accounts the client supplied,
+LinkedIn as the same honest placeholder the footer uses. Icons read off
+`iconsSvg/` at build time with the same `brandIcon()` helper and the same
+`process.cwd()` resolution, so there is one source of truth for the badges.
+
+They keep the footer's near-solid white backer for the same measured reason:
+these are full-colour third-party badges — an Instagram gradient and TikTok's
+own near-black square — and TikTok's `#212121` on `--ink-900` `#0a151e` is
+almost invisible without one.
+
+### A landmark violation that was already there
+
+axe on the open panel reported `region` — content outside any landmark — on
+four nodes. The actions block had been sitting outside the `<nav>` since the
+original port from `menu_mobile/`; it only surfaced now because there is more
+of it and the panel is the only thing on screen.
+
+Fixed by making the panel itself the landmark: `.menu__content` is now
+`<nav aria-label="Menu">` and the inner `<nav aria-label="Sections">` is gone
+rather than nested. A site menu holding links, a call to action, a language
+choice and social links is exactly what one navigation landmark is for.
+
+### Verification
+
+| | |
+|---|---|
+| axe, menu **open** | 0 violations at 375 and 320 (was 1 × `region`, 4 nodes) |
+| axe, whole page | 0 violations, both power states, at 320 / 375 / 430 / 1440 |
+| Lockup centring | `offBy: 0` at 320, 375, 430 |
+| Focus trap | cycles all 9 controls including the new three and wraps back |
+| Touch targets | socials 44×44, both language options 44px tall |
+| Language switcher | `background-color: rgba(0,0,0,0)` — no background, as asked |
+| Reduced motion | transition collapses to 1ms, lockup already centred 120ms after the click |
+| Lighthouse | 99 / 100 / 100 / 100, LCP 1.8 s, CLS 0 |
+
+### Still open
+
+- **The Arabic route and its translations.** The switcher is a marked
+  placeholder until they exist.
+- **LinkedIn handle** — unchanged, same placeholder as the footer.
